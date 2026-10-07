@@ -104,7 +104,8 @@ static NSDictionary *RunChecks(void) {
     }
     report[@"engines"] = results;
     report[@"status"] = allPassed ? @"PASS" : @"FAIL";
-    report[@"target_high_sierra"] = @(version.majorVersion == 10 && version.minorVersion == 13 && version.patchVersion == 6);
+    BOOL isHighSierra = version.majorVersion == 10 && version.minorVersion == 13 && version.patchVersion == 6;
+    report[@"target_high_sierra"] = isHighSierra ? @YES : @NO;
     return report;
 }
 

@@ -16,7 +16,11 @@ APP = OUTPUT / 'LegacyWGPlatformProbe.app'
 
 
 def run(arguments: list[str], timeout: int = 90) -> str:
-    return subprocess.check_output(arguments, cwd=ROOT, text=True, stderr=subprocess.STDOUT, timeout=timeout)
+    try:
+        return subprocess.check_output(arguments, cwd=ROOT, text=True, stderr=subprocess.STDOUT, timeout=timeout)
+    except subprocess.CalledProcessError as error:
+        print(error.output)
+        raise
 
 
 def main() -> None:
