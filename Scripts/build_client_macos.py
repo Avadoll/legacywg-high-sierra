@@ -78,8 +78,16 @@ def main() -> None:
         'MachServices':{label:True},'RunAtLoad':True,'ProcessType':'Interactive'}))
     for path in (ROOT/'Installer/Scripts').iterdir():path.chmod(0o755)
     package=OUT/'LegacyWG-research-0.2.pkg'
+    # The helper policy and application location are fixed. Do not let Installer
+    # relocate the bundle onto another copy (including the build directory).
+    components=BUILD/'components.plist'
+    components.write_bytes(plistlib.dumps([{
+        'RootRelativeBundlePath':'Applications/LegacyWG.app',
+        'BundleIsRelocatable':False,'BundleIsVersionChecked':False,
+        'BundleHasStrictIdentifier':True,'BundleOverwriteAction':'upgrade'}]))
     run(['/usr/bin/pkgbuild','--root',str(payload),'--ownership','recommended','--identifier','org.legacywg.research',
-         '--version','0.2','--install-location','/','--scripts',str(ROOT/'Installer/Scripts'),str(package)])
+         '--version','0.2','--install-location','/','--component-plist',str(components),
+         '--scripts',str(ROOT/'Installer/Scripts'),str(package)])
     archive=OUT/'LegacyWG-research-0.2-app.zip'
     run(['/usr/bin/ditto','-c','-k','--sequesterRsrc','--keepParent',str(app),str(archive)])
     manifest={'source_commit':source,'kind':'limited-native-client-research','signing_mode':'ad-hoc',

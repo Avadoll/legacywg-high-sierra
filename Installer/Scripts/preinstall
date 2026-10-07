@@ -1,7 +1,14 @@
 #!/bin/sh
 set -eu
 # Test package: fixed application files only; no user profiles are touched.
-if [ -e '/Library/Application Support/LegacyWG' ] || [ -e '/Library/PrivilegedHelperTools/org.legacywg.helper' ]; then
+if [ "${3:-}" != / ]; then
+    echo 'This research package supports only the running system volume.' >&2
+    exit 1
+fi
+if [ -e '/Applications/LegacyWG.app' ] || [ -L '/Applications/LegacyWG.app' ] ||
+   [ -e '/Library/Application Support/LegacyWG' ] || [ -L '/Library/Application Support/LegacyWG' ] ||
+   [ -e '/Library/PrivilegedHelperTools/org.legacywg.helper' ] || [ -L '/Library/PrivilegedHelperTools/org.legacywg.helper' ] ||
+   [ -e '/Library/LaunchDaemons/org.legacywg.helper.plist' ] || [ -L '/Library/LaunchDaemons/org.legacywg.helper.plist' ]; then
     echo 'Existing LegacyWG component found. This research package does not perform upgrades.' >&2
     exit 1
 fi
