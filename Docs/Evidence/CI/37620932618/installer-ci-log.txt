@@ -1,0 +1,3 @@
+installer: Package name is LegacyWG-research-0.2
+installer: Installing at base path /
+installer: The install was successful.

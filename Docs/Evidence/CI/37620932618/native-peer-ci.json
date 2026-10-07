@@ -1,0 +1,10 @@
+{
+  "connect_disconnect_cycles": 20,
+  "elapsed_ms": 10355,
+  "external_server": "NOT_RUN",
+  "helper_crash_cleanup": "PASS",
+  "high_sierra": "NOT_RUN",
+  "kind": "authenticated-helper-native-utun-encrypted-loopback",
+  "route_restoration": "PASS",
+  "status": "PASS"
+}

@@ -1,0 +1,8 @@
+{
+  "allowed_client": "PASS",
+  "same_identifier_different_binary": "PASS",
+  "wrong_server_requirement": "PASS",
+  "native_authenticated_encrypted_peer": "PASS",
+  "audit_identity": "kernel Mach trailer + SecCode audit guest",
+  "status": "PASS"
+}
