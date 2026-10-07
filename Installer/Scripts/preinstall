@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+# Test package: fixed application files only; no user profiles are touched.
+if [ -e '/Library/Application Support/LegacyWG' ] || [ -e '/Library/PrivilegedHelperTools/org.legacywg.helper' ]; then
+    echo 'Existing LegacyWG component found. This research package does not perform upgrades.' >&2
+    exit 1
+fi
+exit 0

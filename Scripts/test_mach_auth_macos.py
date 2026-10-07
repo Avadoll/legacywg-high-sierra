@@ -40,17 +40,24 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     common = ['/usr/bin/xcrun', 'clang', '-arch', 'x86_64', '-mmacosx-version-min=10.13',
               '-fobjc-arc', '-Wall', '-Wextra', '-Werror', '-Wunguarded-availability',
-              '-Wno-deprecated-declarations', '-framework', 'Foundation', '-framework', 'Security', '-lbsm',
+              '-Wno-deprecated-declarations', '-framework', 'Foundation', '-framework', 'Security',
+              '-framework', 'SystemConfiguration', '-lbsm',
               str(ROOT / 'Shared' / 'LWMach.m')]
     helper = TEST / 'helper'
     allowed = TEST / 'allowed-client'
     rejected = TEST / 'rejected-client'
-    run(common + [str(ROOT / 'Helper' / 'main.m'), '-o', str(helper)])
+    client_build=ROOT/'Build/Client'
+    if (client_build/'org.legacywg.helper').exists():
+        import shutil
+        shutil.copyfile(client_build/'org.legacywg.helper',helper);helper.chmod(0o755)
+    else:
+        run(common + [str(ROOT / 'Helper' / 'main.m'), '-o', str(helper)])
     run(common + [str(ROOT / 'Tests' / 'MachClient.m'), '-o', str(allowed)])
     run(common + ['-DLW_UNTRUSTED_TEST=1', str(ROOT / 'Tests' / 'MachClient.m'), '-o', str(rejected)])
     for binary, identifier in ((helper, SERVICE), (allowed, 'org.legacywg.testclient'),
                                (rejected, 'org.legacywg.testclient')):
-        run(['/usr/bin/codesign', '--force', '--sign', '-', '--timestamp=none', '--identifier', identifier, str(binary)])
+        if binary!=helper or not (client_build/'org.legacywg.helper').exists():
+            run(['/usr/bin/codesign', '--force', '--sign', '-', '--timestamp=none', '--identifier', identifier, str(binary)])
         run(['/usr/bin/codesign', '--verify', '--strict', str(binary)])
     # A different binary with the same bundle ID must not be accepted.
     assert cdhash(allowed) != cdhash(rejected)
@@ -70,6 +77,12 @@ def main() -> None:
         installed = True
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-o', 'root', '-g', 'wheel', '-m', '0755', str(helper), str(HELPER)])
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-o', 'root', '-g', 'wheel', '-m', '0644', str(policy), str(POLICY_DIR / policy.name)])
+        if (client_build/'legacywg-worker').exists():
+            worker=client_build/'legacywg-worker'
+            worker_policy=TEST/'Worker.req'
+            worker_policy.write_text('identifier "org.legacywg.worker" and cdhash H"'+cdhash(worker)+'"\n')
+            run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',str(worker),str(POLICY_DIR/worker.name)])
+            run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0644',str(worker_policy),str(POLICY_DIR/worker_policy.name)])
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-o', 'root', '-g', 'wheel', '-m', '0644', str(plist), str(PLIST)])
         run(['/usr/bin/sudo', '-n', '/bin/launchctl', 'bootstrap', 'system', str(PLIST)])
         response = json.loads(run([str(allowed), helper_requirement]))
@@ -82,13 +95,19 @@ def main() -> None:
         spoofed = subprocess.run([str(allowed), 'identifier "org.legacywg.wrong-server"'], capture_output=True, text=True, timeout=20)
         assert spoofed.returncode == 1 and json.loads(spoofed.stdout)['ok'] is False
         results['wrong_server_requirement'] = 'PASS'
+        if (client_build/'peercheck').exists():
+            peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement],timeout=45)
+            report=json.loads(peer_result)
+            assert report['status']=='PASS'
+            (OUT/'native-peer-ci.json').write_text(json.dumps(report,indent=2)+'\n')
+            results['native_authenticated_encrypted_peer']='PASS'
         results['audit_identity'] = 'kernel Mach trailer + SecCode audit guest'
         results['status'] = 'PASS'
     finally:
         if installed:
             subprocess.run(['/usr/bin/sudo', '-n', '/bin/launchctl', 'bootout', 'system/' + SERVICE], capture_output=True)
             # Exact files created by this test only; no recursive deletion.
-            for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req'):
+            for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req', POLICY_DIR/'legacywg-worker', POLICY_DIR/'Worker.req'):
                 subprocess.run(['/usr/bin/sudo', '-n', '/bin/rm', '-f', str(path)], check=True)
             run(['/usr/bin/sudo', '-n', '/bin/rmdir', str(POLICY_DIR)])
         if created_helper_directory:

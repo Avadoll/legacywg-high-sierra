@@ -52,7 +52,9 @@ jobs:
           if report.get('status') != 'PASS':
               raise SystemExit('Native probe did not report PASS')
           PY
-      - name: Test authenticated helper boundary
+      - name: Build limited native VPN client and research installer
+        run: python3 Scripts/build_client_macos.py
+      - name: Test real client helper and encrypted peer
         run: python3 Scripts/test_mach_auth_macos.py
       - name: Upload research app and actual CI evidence
         if: always()
@@ -62,6 +64,7 @@ jobs:
           path: |
             Build/CI/*.zip
             Build/CI/*.dmg
+            Build/CI/*.pkg
             Build/CI/*.json
             Build/CI/*.txt
             Docs/Evidence/Mac/
