@@ -1,6 +1,7 @@
 """Review the downloaded Darwin worker and its production source call graph."""
 from __future__ import annotations
 import json
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -39,6 +40,7 @@ def main() -> None:
         'GOMODCACHE':str(ROOT/'.cache/gomod'),'GOROOT':str(ROOT/'.tools/go1.24.13/go'),
         'PATH':str(ROOT/'.tools/go1.24.13/go/bin')+os.pathsep+os.environ['PATH']}
     summary={'date':'2026-10-07','analyzer':'v1.8.0','target':'darwin/amd64','binary':binary.name,
+        'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
         'limitation':'Limited Go analysis; does not audit Objective-C, installation, target OS or all attack paths','results':[]}
     for label,args in [('binary',['-mode=binary','-format=json',str(binary)]),
                        ('source',['-format=json','./Engine/worker'])]:

@@ -1,6 +1,6 @@
-# LegacyWG platform feasibility probe
+# LegacyWG experimental client
 
-Этот репозиторий содержит диагностический этап разработки WireGuard-клиента для Intel macOS 10.13.6. **Готового VPN-клиента здесь пока нет.**
+Этот репозиторий содержит диагностический этап разработки WireGuard-клиента для Intel macOS 10.13.6. **Полного готового продукта здесь пока нет.**
 
 Приложение `LegacyWGPlatformProbe` проверяет целостность bundle и запуск двух встроенных официальных engine через фиксированный `--version`. Оно не принимает VPN-ключи, не включает туннель, не меняет DNS/маршруты/firewall и не устанавливает root helper. Результат можно сохранить через GUI; автоматической отправки данных нет.
 
@@ -13,3 +13,5 @@ AppKit compilation и native utun probe на современном CI host не
 Upstream WireGuard закреплён в `deps.lock.json`, без собственных изменений криптографии. Лицензии сторонних компонентов сохранены в `Vendor` и `Licenses`; см. `THIRD_PARTY_NOTICES.md`. Это собственный проект LegacyWG, не официальное приложение WireGuard. Лицензия собственного кода ещё не выбрана.
 
 Исходное пользовательское ТЗ, личные документы, локальные toolchains/cache, реальные конфигурации/ключи и первоначальная история проекта не включены. Этот repository начинается с отдельного проверенного снимка исходников.
+
+Настоящий limited research client уже реализован: AppKit/Keychain, authenticated Mach helper, official worker, IPv4 split без DNS. Native handshake/шифрованный обмен, 20 Connect/Disconnect циклов и crash/route cleanup прошли на macOS 15.7.9. Full tunnel/DNS/IPv6/hostname endpoints пока отвергаются до сетевых изменений. Test pkg unsigned, target install не одобрен. Подробности, source commit и SHA256 — [CLIENT_RESEARCH.md](Docs/CLIENT_RESEARCH.md).
