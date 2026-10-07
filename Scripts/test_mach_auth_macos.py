@@ -61,8 +61,11 @@ def main() -> None:
     plist.write_bytes(plistlib.dumps({'Label': SERVICE, 'ProgramArguments': [str(HELPER)],
         'MachServices': {SERVICE: True}, 'RunAtLoad': True, 'ProcessType': 'Interactive'}))
     installed = False
+    created_helper_directory = not HELPER.parent.exists()
     results = {}
     try:
+        if created_helper_directory:
+            run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-d', '-o', 'root', '-g', 'wheel', '-m', '0755', str(HELPER.parent)])
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-d', '-o', 'root', '-g', 'wheel', '-m', '0755', str(POLICY_DIR)])
         installed = True
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-o', 'root', '-g', 'wheel', '-m', '0755', str(helper), str(HELPER)])
@@ -88,6 +91,8 @@ def main() -> None:
             for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req'):
                 subprocess.run(['/usr/bin/sudo', '-n', '/bin/rm', '-f', str(path)], check=True)
             run(['/usr/bin/sudo', '-n', '/bin/rmdir', str(POLICY_DIR)])
+        if created_helper_directory:
+            run(['/usr/bin/sudo', '-n', '/bin/rmdir', str(HELPER.parent)])
         (OUT / 'mach-auth-ci.json').write_text(json.dumps(results, indent=2)+'\n')
     print(json.dumps(results, indent=2))
 
