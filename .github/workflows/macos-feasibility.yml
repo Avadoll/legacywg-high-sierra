@@ -52,6 +52,8 @@ jobs:
           if report.get('status') != 'PASS':
               raise SystemExit('Native probe did not report PASS')
           PY
+      - name: Test authenticated helper boundary
+        run: python3 Scripts/test_mach_auth_macos.py
       - name: Upload research app and actual CI evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
