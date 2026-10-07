@@ -38,10 +38,16 @@ func nativeCommand(program string, arguments ...string) error {
 }
 
 func (network *nativeNetwork) close() error {
-    interfaces, err := net.Interfaces()
-    if err != nil { return errors.New("cannot verify native interface ownership during recovery") }
-    same := false
-    for _, current := range interfaces { if current.Name == network.iface && current.Index == network.index { same = true } }
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return errors.New("cannot verify native interface ownership during recovery")
+	}
+	same := false
+	for _, current := range interfaces {
+		if current.Name == network.iface && current.Index == network.index {
+			same = true
+		}
+	}
 	if !same {
 		// The original interface has gone. Never delete routes on a reused
 		// utun name belonging to a different kernel interface instance.

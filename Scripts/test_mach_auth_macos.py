@@ -96,7 +96,7 @@ def main() -> None:
         assert spoofed.returncode == 1 and json.loads(spoofed.stdout)['ok'] is False
         results['wrong_server_requirement'] = 'PASS'
         if (client_build/'peercheck').exists():
-            peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement],timeout=45)
+            peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement],timeout=180)
             report=json.loads(peer_result)
             assert report['status']=='PASS'
             (OUT/'native-peer-ci.json').write_text(json.dumps(report,indent=2)+'\n')

@@ -52,7 +52,7 @@ func call(client, requirement, op, profile string) (map[string]any, error) {
 	return reply, nil
 }
 
-func check(client, requirement string) error {
+func check(client, requirement string, crashParent bool) error {
 	serverIP := netip.MustParseAddr("198.18.0.2")
 	clientIP := netip.MustParseAddr("198.18.0.1")
 	clientPrivate, clientPublic, err := keypair()
@@ -148,7 +148,18 @@ func check(client, requirement string) error {
 		return errors.New("actual handshake and traffic statistics missing")
 	}
 	iface, _ := status["interface"].(string)
-	if _, err = call(client, requirement, "stop", ""); err != nil {
+	if crashParent {
+		if exec.Command("/usr/bin/sudo", "-n", "/bin/launchctl", "kill", "SIGKILL", "system/org.legacywg.helper").Run() != nil {
+			return errors.New("CI helper crash injection failed")
+		}
+		deadline := time.Now().Add(8 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, err = net.InterfaceByName(iface); err != nil {
+				break
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	} else if _, err = call(client, requirement, "stop", ""); err != nil {
 		return err
 	}
 	stopped = true
@@ -171,9 +182,13 @@ func main() {
 		os.Exit(2)
 	}
 	started := time.Now()
-	if err := check(os.Args[1], os.Args[2]); err != nil {
-		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "reason": err.Error()})
-		os.Exit(1)
+	for cycle := 0; cycle < 21; cycle++ {
+		if err := check(os.Args[1], os.Args[2], cycle == 20); err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "cycle": cycle + 1, "reason": err.Error()})
+			os.Exit(1)
+		}
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback", "elapsed_ms": time.Since(started).Milliseconds(), "external_server": "NOT_RUN", "high_sierra": "NOT_RUN"})
+	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
+		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
+		"external_server": "NOT_RUN", "high_sierra": "NOT_RUN"})
 }
