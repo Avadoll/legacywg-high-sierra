@@ -52,9 +52,35 @@ func call(client, requirement, op, profile string) (map[string]any, error) {
 	return reply, nil
 }
 
+func physicalRoute(address netip.Addr) (string, error) {
+	data, err := exec.Command("/sbin/route", "-n", "get", "-inet", address.String()).Output()
+	if err != nil {
+		return "", errors.New("cannot capture benchmark route")
+	}
+	selected := []string{}
+	for _, line := range strings.Split(string(data), "\n") {
+		field, value, ok := strings.Cut(strings.TrimSpace(line), ":")
+		if ok && (field == "interface" || field == "gateway") {
+			selected = append(selected, field+":"+strings.TrimSpace(value))
+		}
+	}
+	if len(selected) == 0 {
+		return "", errors.New("benchmark route identity missing")
+	}
+	return strings.Join(selected, "\n"), nil
+}
+
 func check(client, requirement string, crashParent bool) error {
 	serverIP := netip.MustParseAddr("198.18.0.2")
 	clientIP := netip.MustParseAddr("198.18.0.1")
+	routeBefore := map[netip.Addr]string{}
+	for _, address := range []netip.Addr{clientIP, serverIP} {
+		original, err := physicalRoute(address)
+		if err != nil {
+			return err
+		}
+		routeBefore[address] = original
+	}
 	clientPrivate, clientPublic, err := keypair()
 	if err != nil {
 		return err
@@ -174,6 +200,12 @@ func check(client, requirement string, crashParent bool) error {
 	if _, err = net.InterfaceByName(iface); err == nil {
 		return errors.New("native interface still exists after disconnect")
 	}
+	for address, original := range routeBefore {
+		restored, err := physicalRoute(address)
+		if err != nil || restored != original {
+			return errors.New("benchmark route was not restored after disconnect")
+		}
+	}
 	return nil
 }
 
@@ -189,6 +221,6 @@ func main() {
 		}
 	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
-		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
+		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
 		"external_server": "NOT_RUN", "high_sierra": "NOT_RUN"})
 }
