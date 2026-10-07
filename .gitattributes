@@ -1,0 +1,3 @@
+* text=auto eol=lf
+Vendor/** -text -whitespace
+Docs/Evidence/** -text -whitespace

@@ -1,0 +1,11 @@
+.cache/
+.tools/
+Build/
+Artifacts/
+*.conf
+*.dmg
+*.pkg
+.DS_Store
+Docs/Evidence/*-raw.json
+__pycache__/
+*.pyc

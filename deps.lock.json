@@ -1,0 +1,1891 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-07",
+  "release_approved": false,
+  "toolchains": [
+    {
+      "version": "go1.24.13",
+      "source": "https://go.dev/dl/",
+      "spdx": "BSD-3-Clause",
+      "license": ".tools/go1.24.13/go/LICENSE",
+      "artifacts": [
+        {
+          "filename": "go1.24.13.windows-amd64.zip",
+          "os": "windows",
+          "arch": "amd64",
+          "version": "go1.24.13",
+          "sha256": "40b16bc8f00540a2cb02dff4de72b73e966fdd8d65f95e33d8e4080b48a2459a",
+          "size": 87295983,
+          "kind": "archive"
+        },
+        {
+          "filename": "go1.24.13.darwin-amd64.tar.gz",
+          "os": "darwin",
+          "arch": "amd64",
+          "version": "go1.24.13",
+          "sha256": "6cc6549b06725220b342b740497ffd24e0ebdcef75781a77931ca199f46ad781",
+          "size": 80145725,
+          "kind": "archive"
+        },
+        {
+          "filename": "go1.24.13.src.tar.gz",
+          "os": "",
+          "arch": "",
+          "version": "go1.24.13",
+          "sha256": "639a6204c2486b137df1eb6e78ee3ed038f9877d0e4b5a465e796a2153f858d7",
+          "size": 30802752,
+          "kind": "source"
+        }
+      ],
+      "role": "engine-research",
+      "high_sierra": "NOT_RUN"
+    },
+    {
+      "version": "go1.27.1",
+      "source": "https://go.dev/dl/",
+      "spdx": "BSD-3-Clause",
+      "license": ".tools/go1.27.1/go/LICENSE",
+      "artifacts": [
+        {
+          "filename": "go1.27.1.windows-amd64.zip",
+          "os": "windows",
+          "arch": "amd64",
+          "version": "go1.27.1",
+          "sha256": "a3911b5e0e1b1053f25ed0675f4c1c6aad1e2bfcf253df2b9be4caabd2edd95d",
+          "size": 78931360,
+          "kind": "archive"
+        },
+        {
+          "filename": "go1.27.1.darwin-amd64.tar.gz",
+          "os": "darwin",
+          "arch": "amd64",
+          "version": "go1.27.1",
+          "sha256": "8f8f52c6649542cf027bbc9b9c68d1ec042f9f34808a40413f0b8b3f66f3caa4",
+          "size": 71621873,
+          "kind": "archive"
+        },
+        {
+          "filename": "go1.27.1.src.tar.gz",
+          "os": "",
+          "arch": "",
+          "version": "go1.27.1",
+          "sha256": "4e408abae126d916b6164627193f2c54f0e3ca1312d693b86db45f862ab238b1",
+          "size": 35109201,
+          "kind": "source"
+        }
+      ],
+      "role": "security-analysis-only",
+      "high_sierra": "NOT_APPLICABLE"
+    }
+  ],
+  "components": [
+    {
+      "name": "wireguard-go",
+      "role": "baseline",
+      "source": "https://git.zx2c4.com/wireguard-go/",
+      "commit": "f333402bd9cbe0f3eeb02507bd14e23d7d639280",
+      "git_tree": "ceca7e862be18b0ac24bdaf210711d9f83d00ede",
+      "tag": "0.0.20250522",
+      "archive_sha256": "cd475cc07c25d1ed34c031b3bdddbadabf196059d1ade243e0f3142c2dd32474",
+      "archive_format": "git archive zip",
+      "spdx": "MIT",
+      "license": "Vendor/wireguard-baseline/LICENSE",
+      "path": "Vendor/wireguard-baseline",
+      "patches": [],
+      "high_sierra": "NOT_RUN",
+      "release_approved": false,
+      "signature": "NOT_VERIFIED; see Docs/Evidence/upstream-tag-verification.txt",
+      "source_tree_sha256": "c922d1a8475686e8f25d14beafc645b1cb4606fbd25948f2c3e7d396857e00d0",
+      "tree_hash_algorithm": "sha256(sorted(relative-path + NUL + sha256(file-bytes)))",
+      "go_mod_sha256": "87e5574c17f1c8d3badd9195d933237c289c07b5813f4e60ceae36c7b270e288",
+      "go_sum_sha256": "1aa8ba6a11e01ea4554607a7dd5402132b6912e6d4704474986d3044cef1ff69",
+      "module_graph": "Docs/Evidence/graph-baseline.txt",
+      "modules": [
+        {
+          "Path": "github.com/BurntSushi/toml",
+          "Version": "v1.4.1-0.20240526193622-a339e1f7089c",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/BurntSushi/toml/@v/v1.4.1-0.20240526193622-a339e1f7089c.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/Microsoft/go-winio",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/Microsoft/go-winio/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/Microsoft/hcsshim",
+          "Version": "v0.9.12",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/Microsoft/hcsshim/@v/v0.9.12.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/bazelbuild/rules_go",
+          "Version": "v0.44.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/bazelbuild/rules_go/@v/v0.44.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/cenkalti/backoff",
+          "Version": "v2.2.1+incompatible",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/cenkalti/backoff/@v/v2.2.1+incompatible.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/cilium/ebpf",
+          "Version": "v0.12.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/cilium/ebpf/@v/v0.12.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/cgroups",
+          "Version": "v1.0.4",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/cgroups/@v/v1.0.4.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/console",
+          "Version": "v1.0.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/console/@v/v1.0.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/containerd",
+          "Version": "v1.6.36",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/containerd/@v/v1.6.36.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/continuity",
+          "Version": "v0.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/continuity/@v/v0.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/errdefs",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/errdefs/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/fifo",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/fifo/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/go-runc",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/go-runc/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/log",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/log/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/ttrpc",
+          "Version": "v1.1.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/ttrpc/@v/v1.1.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/typeurl",
+          "Version": "v1.0.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/typeurl/@v/v1.0.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/coreos/go-systemd/v22",
+          "Version": "v22.5.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/coreos/go-systemd/v22/@v/v22.5.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/davecgh/go-spew",
+          "Version": "v1.1.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/davecgh/go-spew/@v/v1.1.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/docker/go-events",
+          "Version": "v0.0.0-20190806004212-e31b211e4f1c",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/docker/go-events/@v/v0.0.0-20190806004212-e31b211e4f1c.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/docker/go-units",
+          "Version": "v0.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/docker/go-units/@v/v0.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/go-logr/logr",
+          "Version": "v1.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/go-logr/logr/@v/v1.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/godbus/dbus/v5",
+          "Version": "v5.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/godbus/dbus/v5/@v/v5.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gofrs/flock",
+          "Version": "v0.8.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gofrs/flock/@v/v0.8.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gogo/googleapis",
+          "Version": "v1.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gogo/googleapis/@v/v1.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gogo/protobuf",
+          "Version": "v1.3.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gogo/protobuf/@v/v1.3.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/groupcache",
+          "Version": "v0.0.0-20210331224755-41bb18bfe9da",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/groupcache/@v/v0.0.0-20210331224755-41bb18bfe9da.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/mock",
+          "Version": "v1.7.0-rc.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/mock/@v/v1.7.0-rc.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/protobuf",
+          "Version": "v1.5.4",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/protobuf/@v/v1.5.4.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/btree",
+          "Version": "v1.1.2",
+          "Sum": "h1:xf4v41cLI2Z6FxbKm+8Bu+m8ifhj15JuZ9sa0jZCMUU=",
+          "GoModSum": "h1:qOPhT0dTNdNzV6Z/lhRX0YXUafgPLFUh+gZMl761Gm4=",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/btree/@v/v1.1.2.zip",
+          "archive_sha256": "faee8550c5fffb4ae1dadde5ccaccb13298726f9fad226bb4eed0c03c90a481d",
+          "license": "Licenses/github.com_google_btree-v1.1.2-LICENSE",
+          "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/go-cmp",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/go-cmp/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/go-github/v56",
+          "Version": "v56.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/go-github/v56/@v/v56.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/gofuzz",
+          "Version": "v1.2.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/gofuzz/@v/v1.2.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/subcommands",
+          "Version": "v1.0.2-0.20190508160503-636abe8753b8",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/subcommands/@v/v1.0.2-0.20190508160503-636abe8753b8.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/uuid",
+          "Version": "v1.3.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/uuid/@v/v1.3.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/googleapis/gnostic",
+          "Version": "v0.5.5",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/googleapis/gnostic/@v/v0.5.5.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hanwen/go-fuse/v2",
+          "Version": "v2.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hanwen/go-fuse/v2/@v/v2.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hashicorp/errwrap",
+          "Version": "v1.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hashicorp/errwrap/@v/v1.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hashicorp/go-multierror",
+          "Version": "v1.1.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hashicorp/go-multierror/@v/v1.1.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/json-iterator/go",
+          "Version": "v1.1.12",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/json-iterator/go/@v/v1.1.12.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/klauspost/compress",
+          "Version": "v1.15.9",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/klauspost/compress/@v/v1.15.9.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/kr/pty",
+          "Version": "v1.1.5",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/kr/pty/@v/v1.1.5.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/mattbaird/jsonpatch",
+          "Version": "v0.0.0-20171005235357-81af80346b1a",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/mattbaird/jsonpatch/@v/v0.0.0-20171005235357-81af80346b1a.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/locker",
+          "Version": "v1.0.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/locker/@v/v1.0.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/capability",
+          "Version": "v0.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/capability/@v/v0.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/mountinfo",
+          "Version": "v0.6.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/mountinfo/@v/v0.6.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/signal",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/signal/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/user",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/user/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/modern-go/concurrent",
+          "Version": "v0.0.0-20180306012644-bacd9c7ef1dd",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/modern-go/concurrent/@v/v0.0.0-20180306012644-bacd9c7ef1dd.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/modern-go/reflect2",
+          "Version": "v1.0.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/modern-go/reflect2/@v/v1.0.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/mohae/deepcopy",
+          "Version": "v0.0.0-20170308212314-bb9b5e7adda9",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/mohae/deepcopy/@v/v0.0.0-20170308212314-bb9b5e7adda9.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/go-digest",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/go-digest/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/image-spec",
+          "Version": "v1.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/image-spec/@v/v1.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/runtime-spec",
+          "Version": "v1.1.0-rc.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/runtime-spec/@v/v1.1.0-rc.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/selinux",
+          "Version": "v1.10.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/selinux/@v/v1.10.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/pkg/errors",
+          "Version": "v0.9.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/pkg/errors/@v/v0.9.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/sirupsen/logrus",
+          "Version": "v1.9.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/sirupsen/logrus/@v/v1.9.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/vishvananda/netlink",
+          "Version": "v1.1.1-0.20211118161826-650dca95af54",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/vishvananda/netlink/@v/v1.1.1-0.20211118161826-650dca95af54.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/vishvananda/netns",
+          "Version": "v0.0.0-20210104183010-2eb08e3e575f",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/vishvananda/netns/@v/v0.0.0-20210104183010-2eb08e3e575f.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "go.opencensus.io",
+          "Version": "v0.24.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/go.opencensus.io/@v/v0.24.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/crypto",
+          "Version": "v0.37.0",
+          "Sum": "h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=",
+          "GoModSum": "h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=",
+          "source": "https://proxy.golang.org/golang.org/x/crypto/@v/v0.37.0.zip",
+          "archive_sha256": "7ce6b2be21be1ce9e04dc784830e08931f09b5903596b8017839322c9e828667",
+          "license": "Licenses/golang.org_x_crypto-v0.37.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/exp",
+          "Version": "v0.0.0-20230725093048-515e97ebf090",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/exp/@v/v0.0.0-20230725093048-515e97ebf090.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/mod",
+          "Version": "v0.21.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/mod/@v/v0.21.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/net",
+          "Version": "v0.39.0",
+          "Sum": "h1:ZCu7HMWDxpXpaiKdhzIfaltL9Lp31x/3fCP11bc6/fY=",
+          "GoModSum": "h1:X7NRbYVEA+ewNkCNyJ513WmMdQ3BineSwVtN2zD/d+E=",
+          "source": "https://proxy.golang.org/golang.org/x/net/@v/v0.39.0.zip",
+          "archive_sha256": "d8434ce72d2356472570adbbd38c538d24fe9a9678bffaa6ef99ec47ca3be0a5",
+          "license": "Licenses/golang.org_x_net-v0.39.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/oauth2",
+          "Version": "v0.23.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/oauth2/@v/v0.23.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/sync",
+          "Version": "v0.8.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/sync/@v/v0.8.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/sys",
+          "Version": "v0.32.0",
+          "Sum": "h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=",
+          "GoModSum": "h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=",
+          "source": "https://proxy.golang.org/golang.org/x/sys/@v/v0.32.0.zip",
+          "archive_sha256": "85d47075d21fd7ef35d9a47fc73f2356fb3cd2e7fab7f45c874b814bf312127d",
+          "license": "Licenses/golang.org_x_sys-v0.32.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/term",
+          "Version": "v0.31.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/term/@v/v0.31.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/text",
+          "Version": "v0.24.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/text/@v/v0.24.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/time",
+          "Version": "v0.7.0",
+          "Sum": "h1:ntUhktv3OPE6TgYxXWv9vKvUSJyIFJlyohwbkEwPrKQ=",
+          "GoModSum": "h1:3BpzKBy/shNhVucY/MWOyx10tF3SFh9QdLuxbVysPQM=",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/time/@v/v0.7.0.zip",
+          "archive_sha256": "ce9157f4961055bd942bbb02666ca5be9f92c92f8e64361aede9d1090df44464",
+          "license": "Licenses/golang.org_x_time-v0.7.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/tools",
+          "Version": "v0.26.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/tools/@v/v0.26.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/xerrors",
+          "Version": "v0.0.0-20220907171357-04be3eba64a2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/xerrors/@v/v0.0.0-20220907171357-04be3eba64a2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.zx2c4.com/wintun",
+          "Version": "v0.0.0-20230126152724-0fa3db229ce2",
+          "Sum": "h1:B82qJJgjvYKsXS9jeunTOisW56dUokqW/FOteYJJ/yg=",
+          "GoModSum": "h1:deeaetjYA+DHMHg+sMSMI58GrEteJUUzzw7en6TJQcI=",
+          "source": "https://proxy.golang.org/golang.zx2c4.com/wintun/@v/v0.0.0-20230126152724-0fa3db229ce2.zip",
+          "archive_sha256": "06599222daa6af8547045c446cefa9a2bab19d57bde1fc6436114308d79a2b4b",
+          "license": "Licenses/golang.zx2c4.com_wintun-v0.0.0-20230126152724-0fa3db229ce2-LICENSE",
+          "license_sha256": "91276db973f25602d1aa43491f59cbc84cb88e6f151e1d0cc82a755563ce0195",
+          "spdx": "MIT",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/appengine",
+          "Version": "v1.6.7",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/appengine/@v/v1.6.7.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/genproto",
+          "Version": "v0.0.0-20230920204549-e6e6cdab5c13",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/genproto/@v/v0.0.0-20230920204549-e6e6cdab5c13.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/genproto/googleapis/rpc",
+          "Version": "v0.0.0-20231002182017-d307bd883b97",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20231002182017-d307bd883b97.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/grpc",
+          "Version": "v1.59.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/grpc/@v/v1.59.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+          "Version": "v1.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/grpc/cmd/protoc-gen-go-grpc/@v/v1.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/protobuf",
+          "Version": "v1.33.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/protobuf/@v/v1.33.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/inf.v0",
+          "Version": "v0.9.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/inf.v0/@v/v0.9.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/tomb.v1",
+          "Version": "v1.0.0-20141024135613-dd632973f1e7",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/tomb.v1/@v/v1.0.0-20141024135613-dd632973f1e7.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/yaml.v2",
+          "Version": "v2.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/yaml.v2/@v/v2.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/yaml.v3",
+          "Version": "v3.0.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/yaml.v3/@v/v3.0.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gotest.tools/v3",
+          "Version": "v3.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gotest.tools/v3/@v/v3.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gvisor.dev/gvisor",
+          "Version": "v0.0.0-20250503011706-39ed1f5ac29c",
+          "Sum": "h1:m/r7OM+Y2Ty1sgBQ7Qb27VgIMBW8ZZhT4gLnUyDIhzI=",
+          "GoModSum": "h1:3r5CMtNQMKIvBlrmM9xWUNamjKBYPOWyXOjmg5Kts3g=",
+          "source": "https://proxy.golang.org/gvisor.dev/gvisor/@v/v0.0.0-20250503011706-39ed1f5ac29c.zip",
+          "archive_sha256": "f325eeae7ec217a3379d2845999344533562ffe4f4ca204cc18a1f78037eb43b",
+          "license": "Licenses/gvisor.dev_gvisor-v0.0.0-20250503011706-39ed1f5ac29c-LICENSE",
+          "license_sha256": "5af94223052169198cfa2195455b7d87209d9aa0fff4705822f328b4b272facb",
+          "spdx": "Apache-2.0",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "honnef.co/go/tools",
+          "Version": "v0.5.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/honnef.co/go/tools/@v/v0.5.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/api",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/api/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/apimachinery",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/apimachinery/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/client-go",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/client-go/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/klog/v2",
+          "Version": "v2.30.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/klog/v2/@v/v2.30.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/kube-openapi",
+          "Version": "v0.0.0-20211115234752-e816edb12b65",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/kube-openapi/@v/v0.0.0-20211115234752-e816edb12b65.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/utils",
+          "Version": "v0.0.0-20211116205334-6203023598ed",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/utils/@v/v0.0.0-20211116205334-6203023598ed.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/json",
+          "Version": "v0.0.0-20211020170558-c049b76a60c6",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/json/@v/v0.0.0-20211020170558-c049b76a60c6.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/structured-merge-diff/v4",
+          "Version": "v4.2.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/structured-merge-diff/v4/@v/v4.2.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/yaml",
+          "Version": "v1.2.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/yaml/@v/v1.2.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        }
+      ]
+    },
+    {
+      "name": "wireguard-go",
+      "role": "candidate",
+      "source": "https://git.zx2c4.com/wireguard-go/",
+      "commit": "2631ce99a06f27120d581611cf125d68bc6aa565",
+      "git_tree": "1e1449d5c60efde2f7427a307802bda85dc02e60",
+      "tag": null,
+      "archive_sha256": "cdcabbe098a4ca2b9b270941e5ec421da2db76660a163deace1c5d41ae5345c0",
+      "archive_format": "git archive zip",
+      "spdx": "MIT",
+      "license": "Vendor/wireguard-candidate/LICENSE",
+      "path": "Vendor/wireguard-candidate",
+      "patches": [],
+      "high_sierra": "NOT_RUN",
+      "release_approved": false,
+      "signature": "NOT_VERIFIED; see Docs/Evidence/upstream-tag-verification.txt",
+      "source_tree_sha256": "f4a363005e93aa6df7186caad8808450a29559151aafa2a917f755c472f68789",
+      "tree_hash_algorithm": "sha256(sorted(relative-path + NUL + sha256(file-bytes)))",
+      "go_mod_sha256": "87e5574c17f1c8d3badd9195d933237c289c07b5813f4e60ceae36c7b270e288",
+      "go_sum_sha256": "1aa8ba6a11e01ea4554607a7dd5402132b6912e6d4704474986d3044cef1ff69",
+      "module_graph": "Docs/Evidence/graph-candidate.txt",
+      "modules": [
+        {
+          "Path": "github.com/BurntSushi/toml",
+          "Version": "v1.4.1-0.20240526193622-a339e1f7089c",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/BurntSushi/toml/@v/v1.4.1-0.20240526193622-a339e1f7089c.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/Microsoft/go-winio",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/Microsoft/go-winio/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/Microsoft/hcsshim",
+          "Version": "v0.9.12",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/Microsoft/hcsshim/@v/v0.9.12.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/bazelbuild/rules_go",
+          "Version": "v0.44.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/bazelbuild/rules_go/@v/v0.44.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/cenkalti/backoff",
+          "Version": "v2.2.1+incompatible",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/cenkalti/backoff/@v/v2.2.1+incompatible.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/cilium/ebpf",
+          "Version": "v0.12.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/cilium/ebpf/@v/v0.12.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/cgroups",
+          "Version": "v1.0.4",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/cgroups/@v/v1.0.4.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/console",
+          "Version": "v1.0.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/console/@v/v1.0.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/containerd",
+          "Version": "v1.6.36",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/containerd/@v/v1.6.36.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/continuity",
+          "Version": "v0.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/continuity/@v/v0.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/errdefs",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/errdefs/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/fifo",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/fifo/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/go-runc",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/go-runc/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/log",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/log/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/ttrpc",
+          "Version": "v1.1.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/ttrpc/@v/v1.1.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/containerd/typeurl",
+          "Version": "v1.0.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/containerd/typeurl/@v/v1.0.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/coreos/go-systemd/v22",
+          "Version": "v22.5.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/coreos/go-systemd/v22/@v/v22.5.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/davecgh/go-spew",
+          "Version": "v1.1.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/davecgh/go-spew/@v/v1.1.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/docker/go-events",
+          "Version": "v0.0.0-20190806004212-e31b211e4f1c",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/docker/go-events/@v/v0.0.0-20190806004212-e31b211e4f1c.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/docker/go-units",
+          "Version": "v0.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/docker/go-units/@v/v0.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/go-logr/logr",
+          "Version": "v1.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/go-logr/logr/@v/v1.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/godbus/dbus/v5",
+          "Version": "v5.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/godbus/dbus/v5/@v/v5.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gofrs/flock",
+          "Version": "v0.8.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gofrs/flock/@v/v0.8.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gogo/googleapis",
+          "Version": "v1.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gogo/googleapis/@v/v1.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/gogo/protobuf",
+          "Version": "v1.3.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/gogo/protobuf/@v/v1.3.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/groupcache",
+          "Version": "v0.0.0-20210331224755-41bb18bfe9da",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/groupcache/@v/v0.0.0-20210331224755-41bb18bfe9da.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/mock",
+          "Version": "v1.7.0-rc.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/mock/@v/v1.7.0-rc.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/golang/protobuf",
+          "Version": "v1.5.4",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/golang/protobuf/@v/v1.5.4.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/btree",
+          "Version": "v1.1.2",
+          "Sum": "h1:xf4v41cLI2Z6FxbKm+8Bu+m8ifhj15JuZ9sa0jZCMUU=",
+          "GoModSum": "h1:qOPhT0dTNdNzV6Z/lhRX0YXUafgPLFUh+gZMl761Gm4=",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/btree/@v/v1.1.2.zip",
+          "archive_sha256": "faee8550c5fffb4ae1dadde5ccaccb13298726f9fad226bb4eed0c03c90a481d",
+          "license": "Licenses/github.com_google_btree-v1.1.2-LICENSE",
+          "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/go-cmp",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/go-cmp/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/go-github/v56",
+          "Version": "v56.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/go-github/v56/@v/v56.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/gofuzz",
+          "Version": "v1.2.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/gofuzz/@v/v1.2.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/subcommands",
+          "Version": "v1.0.2-0.20190508160503-636abe8753b8",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/subcommands/@v/v1.0.2-0.20190508160503-636abe8753b8.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/google/uuid",
+          "Version": "v1.3.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/google/uuid/@v/v1.3.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/googleapis/gnostic",
+          "Version": "v0.5.5",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/googleapis/gnostic/@v/v0.5.5.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hanwen/go-fuse/v2",
+          "Version": "v2.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hanwen/go-fuse/v2/@v/v2.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hashicorp/errwrap",
+          "Version": "v1.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hashicorp/errwrap/@v/v1.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/hashicorp/go-multierror",
+          "Version": "v1.1.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/hashicorp/go-multierror/@v/v1.1.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/json-iterator/go",
+          "Version": "v1.1.12",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/json-iterator/go/@v/v1.1.12.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/klauspost/compress",
+          "Version": "v1.15.9",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/klauspost/compress/@v/v1.15.9.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/kr/pty",
+          "Version": "v1.1.5",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/kr/pty/@v/v1.1.5.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/mattbaird/jsonpatch",
+          "Version": "v0.0.0-20171005235357-81af80346b1a",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/mattbaird/jsonpatch/@v/v0.0.0-20171005235357-81af80346b1a.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/locker",
+          "Version": "v1.0.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/locker/@v/v1.0.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/capability",
+          "Version": "v0.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/capability/@v/v0.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/mountinfo",
+          "Version": "v0.6.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/mountinfo/@v/v0.6.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/signal",
+          "Version": "v0.6.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/signal/@v/v0.6.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/moby/sys/user",
+          "Version": "v0.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/moby/sys/user/@v/v0.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/modern-go/concurrent",
+          "Version": "v0.0.0-20180306012644-bacd9c7ef1dd",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/modern-go/concurrent/@v/v0.0.0-20180306012644-bacd9c7ef1dd.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/modern-go/reflect2",
+          "Version": "v1.0.2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/modern-go/reflect2/@v/v1.0.2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/mohae/deepcopy",
+          "Version": "v0.0.0-20170308212314-bb9b5e7adda9",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/mohae/deepcopy/@v/v0.0.0-20170308212314-bb9b5e7adda9.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/go-digest",
+          "Version": "v1.0.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/go-digest/@v/v1.0.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/image-spec",
+          "Version": "v1.1.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/image-spec/@v/v1.1.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/runtime-spec",
+          "Version": "v1.1.0-rc.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/runtime-spec/@v/v1.1.0-rc.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/opencontainers/selinux",
+          "Version": "v1.10.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/opencontainers/selinux/@v/v1.10.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/pkg/errors",
+          "Version": "v0.9.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/pkg/errors/@v/v0.9.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/sirupsen/logrus",
+          "Version": "v1.9.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/sirupsen/logrus/@v/v1.9.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/vishvananda/netlink",
+          "Version": "v1.1.1-0.20211118161826-650dca95af54",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/vishvananda/netlink/@v/v1.1.1-0.20211118161826-650dca95af54.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "github.com/vishvananda/netns",
+          "Version": "v0.0.0-20210104183010-2eb08e3e575f",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/github.com/vishvananda/netns/@v/v0.0.0-20210104183010-2eb08e3e575f.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "go.opencensus.io",
+          "Version": "v0.24.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/go.opencensus.io/@v/v0.24.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/crypto",
+          "Version": "v0.37.0",
+          "Sum": "h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=",
+          "GoModSum": "h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=",
+          "source": "https://proxy.golang.org/golang.org/x/crypto/@v/v0.37.0.zip",
+          "archive_sha256": "7ce6b2be21be1ce9e04dc784830e08931f09b5903596b8017839322c9e828667",
+          "license": "Licenses/golang.org_x_crypto-v0.37.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/exp",
+          "Version": "v0.0.0-20230725093048-515e97ebf090",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/exp/@v/v0.0.0-20230725093048-515e97ebf090.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/mod",
+          "Version": "v0.21.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/mod/@v/v0.21.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/net",
+          "Version": "v0.39.0",
+          "Sum": "h1:ZCu7HMWDxpXpaiKdhzIfaltL9Lp31x/3fCP11bc6/fY=",
+          "GoModSum": "h1:X7NRbYVEA+ewNkCNyJ513WmMdQ3BineSwVtN2zD/d+E=",
+          "source": "https://proxy.golang.org/golang.org/x/net/@v/v0.39.0.zip",
+          "archive_sha256": "d8434ce72d2356472570adbbd38c538d24fe9a9678bffaa6ef99ec47ca3be0a5",
+          "license": "Licenses/golang.org_x_net-v0.39.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/oauth2",
+          "Version": "v0.23.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/oauth2/@v/v0.23.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/sync",
+          "Version": "v0.8.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/sync/@v/v0.8.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/sys",
+          "Version": "v0.32.0",
+          "Sum": "h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=",
+          "GoModSum": "h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=",
+          "source": "https://proxy.golang.org/golang.org/x/sys/@v/v0.32.0.zip",
+          "archive_sha256": "85d47075d21fd7ef35d9a47fc73f2356fb3cd2e7fab7f45c874b814bf312127d",
+          "license": "Licenses/golang.org_x_sys-v0.32.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": true,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/term",
+          "Version": "v0.31.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/term/@v/v0.31.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/text",
+          "Version": "v0.24.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/text/@v/v0.24.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/time",
+          "Version": "v0.7.0",
+          "Sum": "h1:ntUhktv3OPE6TgYxXWv9vKvUSJyIFJlyohwbkEwPrKQ=",
+          "GoModSum": "h1:3BpzKBy/shNhVucY/MWOyx10tF3SFh9QdLuxbVysPQM=",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/time/@v/v0.7.0.zip",
+          "archive_sha256": "ce9157f4961055bd942bbb02666ca5be9f92c92f8e64361aede9d1090df44464",
+          "license": "Licenses/golang.org_x_time-v0.7.0-LICENSE",
+          "license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "spdx": "BSD-3-Clause",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/tools",
+          "Version": "v0.26.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/tools/@v/v0.26.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.org/x/xerrors",
+          "Version": "v0.0.0-20220907171357-04be3eba64a2",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/golang.org/x/xerrors/@v/v0.0.0-20220907171357-04be3eba64a2.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "golang.zx2c4.com/wintun",
+          "Version": "v0.0.0-20230126152724-0fa3db229ce2",
+          "Sum": "h1:B82qJJgjvYKsXS9jeunTOisW56dUokqW/FOteYJJ/yg=",
+          "GoModSum": "h1:deeaetjYA+DHMHg+sMSMI58GrEteJUUzzw7en6TJQcI=",
+          "source": "https://proxy.golang.org/golang.zx2c4.com/wintun/@v/v0.0.0-20230126152724-0fa3db229ce2.zip",
+          "archive_sha256": "06599222daa6af8547045c446cefa9a2bab19d57bde1fc6436114308d79a2b4b",
+          "license": "Licenses/golang.zx2c4.com_wintun-v0.0.0-20230126152724-0fa3db229ce2-LICENSE",
+          "license_sha256": "91276db973f25602d1aa43491f59cbc84cb88e6f151e1d0cc82a755563ce0195",
+          "spdx": "MIT",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/appengine",
+          "Version": "v1.6.7",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/appengine/@v/v1.6.7.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/genproto",
+          "Version": "v0.0.0-20230920204549-e6e6cdab5c13",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/genproto/@v/v0.0.0-20230920204549-e6e6cdab5c13.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/genproto/googleapis/rpc",
+          "Version": "v0.0.0-20231002182017-d307bd883b97",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20231002182017-d307bd883b97.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/grpc",
+          "Version": "v1.59.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/grpc/@v/v1.59.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+          "Version": "v1.3.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/grpc/cmd/protoc-gen-go-grpc/@v/v1.3.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "google.golang.org/protobuf",
+          "Version": "v1.33.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/google.golang.org/protobuf/@v/v1.33.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/inf.v0",
+          "Version": "v0.9.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/inf.v0/@v/v0.9.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/tomb.v1",
+          "Version": "v1.0.0-20141024135613-dd632973f1e7",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/tomb.v1/@v/v1.0.0-20141024135613-dd632973f1e7.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/yaml.v2",
+          "Version": "v2.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/yaml.v2/@v/v2.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gopkg.in/yaml.v3",
+          "Version": "v3.0.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gopkg.in/yaml.v3/@v/v3.0.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gotest.tools/v3",
+          "Version": "v3.4.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/gotest.tools/v3/@v/v3.4.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "gvisor.dev/gvisor",
+          "Version": "v0.0.0-20250503011706-39ed1f5ac29c",
+          "Sum": "h1:m/r7OM+Y2Ty1sgBQ7Qb27VgIMBW8ZZhT4gLnUyDIhzI=",
+          "GoModSum": "h1:3r5CMtNQMKIvBlrmM9xWUNamjKBYPOWyXOjmg5Kts3g=",
+          "source": "https://proxy.golang.org/gvisor.dev/gvisor/@v/v0.0.0-20250503011706-39ed1f5ac29c.zip",
+          "archive_sha256": "f325eeae7ec217a3379d2845999344533562ffe4f4ca204cc18a1f78037eb43b",
+          "license": "Licenses/gvisor.dev_gvisor-v0.0.0-20250503011706-39ed1f5ac29c-LICENSE",
+          "license_sha256": "5af94223052169198cfa2195455b7d87209d9aa0fff4705822f328b4b272facb",
+          "spdx": "Apache-2.0",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "honnef.co/go/tools",
+          "Version": "v0.5.1",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/honnef.co/go/tools/@v/v0.5.1.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/api",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/api/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/apimachinery",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/apimachinery/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/client-go",
+          "Version": "v0.23.16",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/client-go/@v/v0.23.16.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/klog/v2",
+          "Version": "v2.30.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/klog/v2/@v/v2.30.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/kube-openapi",
+          "Version": "v0.0.0-20211115234752-e816edb12b65",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/kube-openapi/@v/v0.0.0-20211115234752-e816edb12b65.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "k8s.io/utils",
+          "Version": "v0.0.0-20211116205334-6203023598ed",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/k8s.io/utils/@v/v0.0.0-20211116205334-6203023598ed.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/json",
+          "Version": "v0.0.0-20211020170558-c049b76a60c6",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/json/@v/v0.0.0-20211020170558-c049b76a60c6.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/structured-merge-diff/v4",
+          "Version": "v4.2.3",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/structured-merge-diff/v4/@v/v4.2.3.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        },
+        {
+          "Path": "sigs.k8s.io/yaml",
+          "Version": "v1.2.0",
+          "Indirect": true,
+          "source": "https://proxy.golang.org/sigs.k8s.io/yaml/@v/v1.2.0.zip",
+          "spdx": "NOASSERTION",
+          "darwin_engine_included": false,
+          "local_patches": []
+        }
+      ]
+    }
+  ],
+  "analyzer": {
+    "module": "golang.org/x/vuln",
+    "version": "v1.8.0",
+    "commit": "709015412431dd2b5b28a53c06c70bc02d49074c",
+    "spdx": "BSD-3-Clause",
+    "role": "build-time-analysis-only",
+    "build_info": "Docs/Evidence/analyzer-buildinfo.txt"
+  }
+}
