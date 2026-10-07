@@ -37,15 +37,18 @@ def main() -> None:
         assert cdhash(APP) in (POLICY/'AllowedClient.req').read_text()
         assert cdhash(POLICY/'legacywg-worker') in (POLICY/'Worker.req').read_text()
         run(['/usr/bin/sudo','-n','/bin/launchctl','print','system/'+SERVICE])
-        self_test=json.loads(run([str(APP/'Contents/MacOS/LegacyWG'),'--self-test']))
+        self_test=json.loads(run([str(APP/'Contents/MacOS/LegacyWG'),'--self-test-installed']))
         assert self_test['keychain_write_read_delete']=='PASS'
+        assert self_test['installed_helper_authentication']=='PASS'
+        assert self_test['core_dumps_disabled'] is True
         client=ROOT/'Build/MachAuth/allowed-client'
         requirement='identifier "'+SERVICE+'" and cdhash H"'+cdhash(HELPER)+'"'
         denial=subprocess.run([str(client),requirement],capture_output=True,text=True,timeout=20)
         assert denial.returncode==1 and json.loads(denial.stdout)['error']=='Unauthorized client'
         results={'status':'PASS','installer_cli':'PASS','root_ownership':'PASS','component_signatures':'PASS',
             'launchd_postinstall':'PASS','app_policy_pin':'PASS','foreign_client_denied':'PASS',
-            'installed_app_keychain':'PASS','installer_gui':'NOT_RUN','target_high_sierra':'NOT_RUN',
+            'installed_app_keychain':'PASS','installed_app_helper_authentication':'PASS',
+            'installer_gui':'NOT_RUN','target_high_sierra':'NOT_RUN',
             'developer_id':'NOT_RUN','signed_for_distribution':False}
     finally:
         if attempted:

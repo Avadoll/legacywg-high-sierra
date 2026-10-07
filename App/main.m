@@ -4,6 +4,7 @@
 #import "../Shared/LWMach.h"
 #include <signal.h>
 #include <string.h>
+#include <sys/resource.h>
 
 static NSString *ServerRequirement(void) {
     NSURL *url = [NSBundle.mainBundle URLForResource:@"Helper" withExtension:@"req"];
@@ -173,17 +174,24 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @end
 
 int main(int argc,const char *argv[]) {
+    struct rlimit coreLimit = {0,0};
+    if (setrlimit(RLIMIT_CORE,&coreLimit)!=0) return 5;
     @autoreleasepool {
-        if(argc==2 && strcmp(argv[1],"--self-test")==0) {
+        BOOL installedTest=argc==2 && strcmp(argv[1],"--self-test-installed")==0;
+        if(argc==2 && (strcmp(argv[1],"--self-test")==0 || installedTest)) {
             NSString *requirement=ServerRequirement();
             NSError *error=nil; NSString *identifier=nil;
             NSData *sample=[@"LegacyWG ephemeral Keychain self-test" dataUsingEncoding:NSUTF8StringEncoding];
             BOOL keychain=LWStoreProfile(sample,@"LegacyWG CI self-test",&identifier,&error);
             if(keychain)keychain=[LWReadProfile(identifier,&error) isEqualToData:sample];
             if(identifier)keychain=LWDeleteProfile(identifier,&error) && keychain;
-            BOOL passed=requirement.length && keychain;
+            NSDictionary *health=installedTest ? LWRequest(@{@"version":@1,@"op":@"health"},requirement) : nil;
+            BOOL helper=installedTest && [health[@"ok"] isEqual:@YES] && [health[@"state"] isEqual:@"Available"];
+            BOOL passed=requirement.length && keychain && (!installedTest || helper);
             NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",@"kind":@"client-bundle-self-test",
-                @"keychain_write_read_delete":keychain ? @"PASS" : @"FAIL",@"keychain_error_code":@(error.code),@"vpn_ready":@NO} options:0 error:NULL];
+                @"keychain_write_read_delete":keychain ? @"PASS" : @"FAIL",@"keychain_error_code":@(error.code),
+                @"installed_helper_authentication":installedTest ? (helper ? @"PASS" : @"FAIL") : @"NOT_RUN",
+                @"core_dumps_disabled":@YES,@"vpn_ready":@NO} options:0 error:NULL];
             [NSFileHandle.fileHandleWithStandardOutput writeData:json]; return passed ? 0 : 1;
         }
         [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
