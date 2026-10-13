@@ -97,7 +97,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title=@"LegacyWG — тестовая сборка"; self.window.minSize=NSMakeSize(720,440);
     self.window.releasedWhenClosed=NO;
-    NSTextField *notice = [NSTextField labelWithString:@"Исследовательская версия: IPv4/IPv6 split tunnel; DNS профиля идёт через туннель.\nПолный туннель пока отклоняется; защита всего трафика не заявлена."];
+    NSTextField *notice = [NSTextField wrappingLabelWithString:@"Исследовательская версия: IPv4/IPv6 split tunnel; DNS профиля идёт через туннель.\nПолный туннель пока отклоняется; защита всего трафика не заявлена."];
     notice.frame=NSMakeRect(20,365,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:notice];
     NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,105,290,245)];
@@ -341,27 +341,42 @@ static int UILayoutTest(void) {
     BOOL bounds=YES;
     for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect])
         bounds=bounds && NSContainsRect(controller.window.contentView.bounds,view.frame);
-    [controller.window.contentView displayIfNeeded];
-    NSBitmapImageRep *bitmap=[controller.window.contentView bitmapImageRepForCachingDisplayInRect:controller.window.contentView.bounds];
-    [controller.window.contentView cacheDisplayInRect:controller.window.contentView.bounds toBitmapImageRep:bitmap];
-    // cacheDisplay omits the window backing color. Composite on that actual
-    // color so black label text remains visible in an opaque QA artifact.
+    controller.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    [controller.window.contentView layoutSubtreeIfNeeded];
+    // A native Aqua layout fixture. Layer-backed NSTextField labels are not
+    // consistently included by parent cacheDisplay on the headless CI host;
+    // render those actual cells and cache the remaining native widgets.
+    NSRect canvas=controller.window.contentView.bounds;
     NSBitmapImageRep *opaque=[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
-        pixelsWide:bitmap.pixelsWide pixelsHigh:bitmap.pixelsHigh bitsPerSample:8 samplesPerPixel:4
+        pixelsWide:(NSInteger)canvas.size.width pixelsHigh:(NSInteger)canvas.size.height bitsPerSample:8 samplesPerPixel:4
         hasAlpha:YES isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:0 bitsPerPixel:0];
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:[NSGraphicsContext graphicsContextWithBitmapImageRep:opaque]];
-    [controller.window.backgroundColor setFill];
-    NSRect canvas=NSMakeRect(0,0,bitmap.pixelsWide,bitmap.pixelsHigh);NSRectFill(canvas);
-    [bitmap drawInRect:canvas];[NSGraphicsContext restoreGraphicsState];
+    [[NSColor colorWithCalibratedWhite:0.93 alpha:1] setFill];NSRectFill(canvas);
+    for(NSView *view in controller.window.contentView.subviews) {
+        if([view isKindOfClass:NSTextField.class]) {
+            [((NSTextField *)view).cell drawWithFrame:view.frame inView:controller.window.contentView];
+        } else {
+            NSBitmapImageRep *widget=[view bitmapImageRepForCachingDisplayInRect:view.bounds];
+            [view cacheDisplayInRect:view.bounds toBitmapImageRep:widget];
+            NSImage *image=[[NSImage alloc] initWithSize:view.bounds.size];[image addRepresentation:widget];
+            [image drawInRect:view.frame fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1];
+        }
+    }
+    [NSGraphicsContext restoreGraphicsState];
+    NSUInteger labelPixels=0;
+    for(NSInteger y=20;y<75;y++)for(NSInteger x=20;x<700;x++) {
+        NSColor *pixel=[[opaque colorAtX:x y:y] colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+        if(pixel && pixel.alphaComponent>0.99 && pixel.redComponent<0.5 && pixel.greenComponent<0.5 && pixel.blueComponent<0.5)labelPixels++;
+    }
     NSData *png=[opaque representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
-    BOOL passed=menu && bounds && saved;
+    BOOL passed=menu && bounds && saved && labelPixels>30;
     NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
-        @"screenshot_saved":@(saved),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
+        @"screenshot_saved":@(saved),@"notice_label_pixels":@(labelPixels),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
     [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
 }
 
