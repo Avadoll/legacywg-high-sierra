@@ -1,0 +1,41 @@
+name: Journal-bound PF anchor effects
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-effects:
+    runs-on: macos-15-intel
+    timeout-minutes: 8
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: '0'
+      GOOS: darwin
+      GOARCH: amd64
+      GOAMD64: v1
+    steps:
+      - name: Check out reviewed coordinator source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify pinned source and native toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Exercise actual disabled-PF anchor effects and SIGKILL gaps
+        run: python3 Scripts/test_pf_anchor_macos.py
+      - name: Save sanitized effect evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-pf-anchor-${{ github.sha }}
+          path: |
+            Build/CI/pf-anchor-ci.json
+            Build/CI/pf-anchor-tests.json
+          if-no-files-found: error
+          retention-days: 3

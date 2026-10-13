@@ -56,7 +56,11 @@ func (store *Store) readPF(name string) (*PFRecord, error) {
 // Future guard integration must verify the external effect before choosing
 // its phase. Failed or partial commits are retained for explicit attention.
 func (store *Store) writePF(record PFRecord) error {
-	if store.closed || record.Boot != store.boot || record.PID != os.Getpid() {
+	return store.writePFForOwner(record, false)
+}
+
+func (store *Store) writePFForOwner(record PFRecord, preReferenceRecovery bool) error {
+	if store.closed || record.Boot != store.boot || (record.PID != os.Getpid() && (!preReferenceRecovery || !store.preReferenceOwner(record))) {
 		return ErrRecoveryRequired
 	}
 	data, err := EncodePF(record)
