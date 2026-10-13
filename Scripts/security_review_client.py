@@ -36,9 +36,9 @@ def verify_reviewed_source(commit: str) -> dict:
     if not re.fullmatch(r'[0-9a-f]{40}',commit):raise SystemExit('Expected full reviewed source commit')
     checkout=ROOT/'.cache/ci-source'
     paths=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'--',
-        'ConfigCore','NetworkCore','Engine/session','Engine/worker','Vendor/wireguard-candidate','go.mod','go.sum'],cwd=checkout,text=True).splitlines()
+        'ConfigCore','NetworkCore','RecoveryCore','Engine/session','Engine/worker','Vendor/wireguard-candidate','go.mod','go.sum'],cwd=checkout,text=True).splitlines()
     paths=[path for path in paths if Path(path).suffix in ('.go','.mod','.sum')]
-    local=[path.relative_to(ROOT).as_posix() for directory in ('ConfigCore','NetworkCore','Engine/session','Engine/worker','Vendor/wireguard-candidate')
+    local=[path.relative_to(ROOT).as_posix() for directory in ('ConfigCore','NetworkCore','RecoveryCore','Engine/session','Engine/worker','Vendor/wireguard-candidate')
         for path in (ROOT/directory).rglob('*') if path.is_file() and path.suffix in ('.go','.mod','.sum')]+['go.mod','go.sum']
     if set(paths)!=set(local):raise SystemExit('Production Go file set differs from reviewed native source')
     records=[]

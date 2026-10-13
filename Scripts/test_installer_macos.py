@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
-from test_mach_auth_macos import cdhash, run
+from test_mach_auth_macos import cdhash, run, cleanup_recovery_directory
 
 ROOT=Path(__file__).resolve().parents[1]
 APP=Path('/Applications/LegacyWG.app')
@@ -56,6 +56,7 @@ def main() -> None:
     finally:
         if attempted:
             subprocess.run(['/usr/bin/sudo','-n','/bin/launchctl','bootout','system/'+SERVICE],capture_output=True)
+            cleanup_recovery_directory()
             for path in (HELPER,PLIST,POLICY/'AllowedClient.req',POLICY/'Worker.req',POLICY/'legacywg-worker',
                          POLICY/'legacywg-network',POLICY/'Network.req'):
                 subprocess.run(['/usr/bin/sudo','-n','/bin/rm','-f',str(path)],check=True)

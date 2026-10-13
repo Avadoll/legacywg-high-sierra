@@ -149,7 +149,7 @@ func (session *Session) watchNetwork(network *nativeNetwork, done <-chan struct{
 	session.engine.Close()
 	session.engine = nil
 	session.failure = reason
-	if network.close() == nil {
+	if network.close() == nil && network.finishRecovery() == nil {
 		session.network = nil
 		session.peers = 0
 		session.peerIndices = nil
@@ -169,6 +169,9 @@ func (session *Session) Stop() error {
 	}
 	if session.network != nil && cleanupError != nil {
 		cleanupError = session.network.close()
+	}
+	if cleanupError == nil && session.network != nil {
+		cleanupError = session.network.finishRecovery()
 	}
 	if cleanupError != nil {
 		return cleanupError

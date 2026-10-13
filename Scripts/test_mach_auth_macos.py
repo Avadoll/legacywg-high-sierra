@@ -7,6 +7,7 @@ import plistlib
 import re
 import subprocess
 import base64
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Build' / 'CI'
@@ -30,6 +31,26 @@ def cdhash(path: Path) -> str:
     match = re.search(r'^CDHash=([0-9a-f]{40})$', output, re.M)
     if not match: raise RuntimeError('Code directory hash missing')
     return match[1]
+
+
+def cleanup_recovery_directory() -> None:
+    # Called only after a fresh disposable installation created by this test.
+    # Never clear an ambiguous journal; an unfinished transaction must fail QA.
+    state=POLICY_DIR/'State'
+    if not state.exists():return
+    deadline=time.monotonic()+5
+    while time.monotonic()<deadline:
+        result=subprocess.run(['/usr/bin/sudo','-n','/usr/bin/pgrep','-f',
+            '^/Library/Application Support/LegacyWG/legacywg-worker$'],capture_output=True)
+        if result.returncode==1:break
+        if result.returncode!=0:raise RuntimeError('Cannot verify owned worker exit')
+        time.sleep(.05)
+    else:raise RuntimeError('Owned worker did not exit before journal cleanup')
+    info=state.lstat()
+    if state.is_symlink() or info.st_uid!=0 or info.st_mode&0o777!=0o700:
+        raise RuntimeError('Recovery test directory ownership mismatch')
+    run(['/usr/bin/sudo','-n','/bin/rm','-f',str(state/'lock')])
+    run(['/usr/bin/sudo','-n','/bin/rmdir',str(state)])
 
 
 def main() -> None:
@@ -135,6 +156,7 @@ def main() -> None:
     finally:
         if installed:
             subprocess.run(['/usr/bin/sudo', '-n', '/bin/launchctl', 'bootout', 'system/' + SERVICE], capture_output=True)
+            cleanup_recovery_directory()
             # Exact files created by this test only; no recursive deletion.
             for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req', POLICY_DIR/'legacywg-worker', POLICY_DIR/'Worker.req',
                          POLICY_DIR/'legacywg-network',POLICY_DIR/'Network.req'):

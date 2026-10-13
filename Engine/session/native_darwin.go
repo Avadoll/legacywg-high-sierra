@@ -14,14 +14,16 @@ import (
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun"
 	configcore "legacywg/ConfigCore"
+	recoverycore "legacywg/RecoveryCore"
 )
 
 type nativeNetwork struct {
-	iface  string
-	index  int
-	routes []netip.Prefix
-	dns    *dnsProcess
-	path   *pathWatch
+	iface   string
+	index   int
+	routes  []netip.Prefix
+	dns     *dnsProcess
+	path    *pathWatch
+	journal *recoverycore.Store
 }
 
 func (network *nativeNetwork) name() string    { return network.iface }
@@ -38,6 +40,13 @@ func (network *nativeNetwork) pathDone() <-chan struct{} {
 		return nil
 	}
 	return network.path.lost
+}
+
+func (network *nativeNetwork) finishRecovery() error {
+	if network.journal == nil {
+		return nil
+	}
+	return network.journal.Finish()
 }
 
 func nativeCommand(program string, arguments ...string) error {
@@ -113,32 +122,54 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if err != nil {
 		return nil, nil, err
 	}
+	journal, err := recoverycore.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+	failBeforeEngine := func(tunnel tun.Device, reason error) (*device.Device, *nativeNetwork, error) {
+		if tunnel != nil {
+			tunnel.Close()
+		}
+		if journal.Finish() != nil {
+			reason = recoverycore.ErrRecoveryRequired
+		}
+		journal.Close()
+		return nil, nil, reason
+	}
 	mtu := int(config.MTU)
 	if mtu == 0 {
 		mtu = 1420
 	}
 	tunnel, err := tun.CreateTUN("utun", mtu)
 	if err != nil {
-		return nil, nil, errors.New("cannot create native utun")
+		return failBeforeEngine(nil, errors.New("cannot create native utun"))
 	}
 	name, err := tunnel.Name()
 	if err != nil || !regexp.MustCompile(`^utun[0-9]+$`).MatchString(name) {
-		tunnel.Close()
-		return nil, nil, errors.New("invalid native interface identity")
+		return failBeforeEngine(tunnel, errors.New("invalid native interface identity"))
 	}
 	iface, err := net.InterfaceByName(name)
 	if err != nil {
-		tunnel.Close()
-		return nil, nil, errors.New("cannot identify native interface")
+		return failBeforeEngine(tunnel, errors.New("cannot identify native interface"))
 	}
-	network := &nativeNetwork{iface: name, index: iface.Index}
+	if err := journal.MarkInterface(name, iface.Index); err != nil {
+		return failBeforeEngine(tunnel, err)
+	}
+	network := &nativeNetwork{iface: name, index: iface.Index, journal: journal}
 	engine := device.NewDevice(tunnel, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	fail := func() (*device.Device, *nativeNetwork, error) {
+		if network.path != nil {
+			network.path.close()
+		}
 		if network.dns != nil {
 			network.dns.close()
 		}
 		// Removing the utun automatically removes its interface-bound routes.
 		engine.Close()
+		if network.finishRecovery() != nil {
+			journal.Close()
+			return nil, nil, recoverycore.ErrRecoveryRequired
+		}
 		return nil, nil, errors.New("tunnel transaction failed; native interface closed")
 	}
 	if err := engine.IpcSet(uapi); err != nil {
@@ -185,6 +216,9 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	err = verifyEndpointPaths(ctx, paths, nativeEndpointPath)
 	cancel()
 	if err != nil {
+		return fail()
+	}
+	if journal.MarkConfigured(network.dns != nil) != nil {
 		return fail()
 	}
 	network.path = startPathWatch(paths, nativeEndpointPath)

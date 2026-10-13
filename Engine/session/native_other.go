@@ -16,6 +16,7 @@ func (*nativeNetwork) close() error              { return nil }
 func (*nativeNetwork) dnsActive() bool           { return false }
 func (*nativeNetwork) dnsDone() <-chan struct{}  { return nil }
 func (*nativeNetwork) pathDone() <-chan struct{} { return nil }
+func (*nativeNetwork) finishRecovery() error     { return nil }
 func openNative(*configcore.Config, string, []netip.AddrPort) (*device.Device, *nativeNetwork, error) {
 	return nil, nil, errors.New("native VPN sessions require macOS")
 }

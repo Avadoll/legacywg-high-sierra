@@ -22,8 +22,20 @@ def main() -> None:
     go=ROOT/'.tools/go1.24.13/go/bin/go'
     os.environ['GOCACHE']=str(ROOT/'.cache/macos-build')
     os.environ['GOMODCACHE']=str(ROOT/'.cache/gomod')
-    run([str(go),'test','-count=1','./ConfigCore','./NetworkCore','./Engine/session','./Engine/worker'])
-    run([str(go),'vet','./ConfigCore','./NetworkCore','./Engine/session','./Engine/worker'])
+    run([str(go),'test','-count=1','./ConfigCore','./NetworkCore','./RecoveryCore','./Engine/session','./Engine/worker'])
+    run([str(go),'vet','./ConfigCore','./NetworkCore','./RecoveryCore','./Engine/session','./Engine/worker'])
+    # Privileged journal tests use only their own TempDir and kernel utun. They
+    # never open the production State directory or inspect its private contents.
+    journal_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n','./RecoveryCore'],timeout=120)
+    (OUT/'recovery-journal-tests.txt').write_text(journal_tests)
+    events=[json.loads(line) for line in journal_tests.splitlines() if line.strip()]
+    required={'TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
+              'TestRootJournalLiveAndReusedInterface','TestRootCrashRecovery'}
+    passed={event.get('Test') for event in events if event.get('Action')=='pass'}
+    if not required<=passed:raise SystemExit('Privileged journal tests not actually exercised')
+    (OUT/'recovery-journal-ci.json').write_text(json.dumps({'status':'PASS','kind':'native-root-owned-utun-journal',
+        'required_root_tests':sorted(required),'sigkill_checkpoints':5,'schema':'utun/DNS only; no PF or physical route undo',
+        'high_sierra':'NOT_RUN','power_loss':'NOT_RUN'},indent=2)+'\n')
     worker=BUILD/'legacywg-worker'
     run([str(go),'build','-trimpath','-buildvcs=false','-o',str(worker),'./Engine/worker'],timeout=180)
     run([str(go),'build','-trimpath','-buildvcs=false','-o',str(BUILD/'peercheck'),'./Engine/peercheck'],timeout=180)
