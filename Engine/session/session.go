@@ -4,6 +4,7 @@ package session
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"net/netip"
 	"strconv"
@@ -36,15 +37,13 @@ type Session struct {
 	failure string
 }
 
-// Initial executor intentionally rejects unsupported policies before side
-// effects. It is a real IPv4 split tunnel, never a fake full-tunnel safeguard.
 func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 	plan, err := networkcore.Build(config, true)
 	if err != nil {
 		return nil, err
 	}
 	if plan.FullIPv4 || plan.FullIPv6 {
-		return nil, errors.New("full tunnel is unavailable until IPv6 and DNS protection are implemented")
+		return nil, errors.New("full tunnel requires endpoint escape routing and verified traffic protection")
 	}
 	if len(config.DNS) > 8 {
 		return nil, errors.New("at most eight DNS servers are supported")
@@ -84,7 +83,9 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 		}
 		address, err := netip.ParseAddr(peer.Endpoint.Host)
 		if err != nil {
-			return nil, errors.New("hostname endpoint resolution is not available")
+			// Pure validation must never issue DNS requests. Start resolves
+			// these entries before creating an interface or changing DNS.
+			continue
 		}
 		for _, route := range plan.Routes {
 			if route.Contains(address) {
@@ -108,6 +109,12 @@ func (session *Session) Start(profile []byte) error {
 	}
 	defer config.Destroy()
 	endpoints, err := CheckCapabilities(config)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	endpoints, err = resolveEndpoints(ctx, config, endpoints, systemLookup)
+	cancel()
 	if err != nil {
 		return err
 	}

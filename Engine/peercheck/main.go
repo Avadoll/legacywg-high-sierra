@@ -79,7 +79,7 @@ func physicalRoute(address netip.Addr) (string, error) {
 	return strings.Join(selected, "\n"), nil
 }
 
-func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool) error {
+func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool, hostname ...bool) error {
 	var dnsBefore dnsSnapshot
 	if dnsMode != "" {
 		var err error
@@ -189,6 +189,9 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		echoResult <- err
 	}()
 	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s\n[Peer]\nPublicKey=%s\nEndpoint=%s\nAllowedIPs=%s\nPersistentKeepalive=1\n", clientPrivate, clientAddresses, serverPublic, net.JoinHostPort(endpointHost, strconv.Itoa(port)), serverRoutes)
+	if len(hostname) > 0 && hostname[0] {
+		profile = strings.Replace(profile, net.JoinHostPort(endpointHost, strconv.Itoa(port)), net.JoinHostPort("localhost", strconv.Itoa(port)), 1)
+	}
 	if dnsMode != "" {
 		profile = strings.Replace(profile, "Address=", "DNS="+serverIP.String()+"\nAddress=", 1)
 	}
@@ -332,11 +335,16 @@ func main() {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "dual_stack": true, "reason": err.Error()})
 		os.Exit(1)
 	}
+	if err := check(os.Args[1], os.Args[2], false, os.Args[3], "disconnect", false, false, true); err != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "hostname_endpoint": true, "reason": err.Error()})
+		os.Exit(1)
+	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
 		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
 		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
 		"dns_agent_crash_recovery": "PASS", "foreign_dns_restoration": "PASS",
 		"ipv6_encrypted_split": "PASS", "ipv6_endpoint": "PASS", "ipv6_dns_transport_udp_tcp": "PASS",
-		"dual_stack_encrypted_split": "PASS",
-		"external_server":            "NOT_RUN", "high_sierra": "NOT_RUN"})
+		"dual_stack_encrypted_split":         "PASS",
+		"localhost_endpoint_encrypted_split": "PASS",
+		"external_server":                    "NOT_RUN", "high_sierra": "NOT_RUN"})
 }

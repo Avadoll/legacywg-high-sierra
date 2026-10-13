@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "verification": "baseline annotated tag signature against maintainer published key",
+  "tag": "0.0.20250522",
+  "baseline_commit": "f333402bd9cbe0f3eeb02507bd14e23d7d639280",
+  "signer_fingerprint": "AB9942E6D4A4CFC3412620A749FC7012A5DE03AE",
+  "published_key_url": "https://www.zx2c4.com/keys/AB9942E6D4A4CFC3412620A749FC7012A5DE03AE.asc",
+  "public_key_sha256": "f674d7cfe3e6088894a02dc0ca8addc03fb4795e3137fe9ba25c300628637be5",
+  "identity_source": "HTTPS GPG link on https://www.zx2c4.com/ (upstream maintainer website)",
+  "limitations": [
+    "No Web of Trust claim",
+    "Candidate commit 2631ce9 is not covered by this older tag signature"
+  ]
+}

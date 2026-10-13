@@ -1,17 +1,13 @@
 # LegacyWG experimental client
 
-Этот репозиторий содержит диагностический этап разработки WireGuard-клиента для Intel macOS 10.13.6. **Полного готового продукта здесь пока нет.**
+Research AppKit client for Intel macOS 10.13.6. The full product is not ready. Current native CI has verified IPv4/IPv6 split tunnels, simultaneous dual stack, routed OS DNS over UDP/TCP, authenticated Mach helper, Keychain, crash cleanup and a fresh unsigned research package on Intel macOS 15.7.9.
 
-Приложение `LegacyWGPlatformProbe` проверяет целостность bundle и запуск двух встроенных официальных engine через фиксированный `--version`. Оно не принимает VPN-ключи, не включает туннель, не меняет DNS/маршруты/firewall и не устанавливает root helper. Результат можно сохранить через GUI; автоматической отправки данных нет.
+Hostname bootstrap is added for a new native check. It uses the existing system resolver before tunnel changes, a five-second total deadline and typed route overlap checks. Validation performs no lookup. It selects one address, prefers IPv4 and supports IPv6-only answers; protected reconnect and automatic fallback are not implemented.
 
-Workflow запускается вручную: Actions → macOS feasibility build → Run workflow. Используется standard runner `macos-15-intel`, scoped Xcode 16.4 / SDK 15.5 и официальный Go 1.24.13 с проверкой SHA256. На private repository до запуска необходимо подтвердить отсутствие оплачиваемого расходования. Создание public repository требует разрешения владельца исходников.
+Full tunnel, kill switch, durable recovery journal, sleep/network reconnect, GUI uninstall/update, High Sierra runtime and Developer ID distribution remain unfinished. Ad-hoc components and unsigned research pkg are not a trusted end-user installer. Do not disable Gatekeeper, SIP or quarantine.
 
-Артефакты — исследовательские `.zip`/`.dmg`, source commit/SHA256 и фактические CI-логи. По умолчанию используется ad-hoc подпись: это не Developer ID поставка. Не отключайте Gatekeeper/SIP/quarantine. Для передачи обычному пользователю требуется согласованный доверенный signing path.
+Run the manually dispatched free standard macOS feasibility workflow. Official unmodified WireGuard/toolchains are pinned with SHA256 in deps.lock.json; third-party licenses are retained. Candidate commit is unsigned; the older upstream baseline tag signature was verified against the key linked on the maintainer site. The project is independent of official WireGuard. Own-code license remains undecided.
 
-Проверки на современном CI host не доказывают работу на High Sierra. Native encrypted peer, helper authentication, split routes и research package installation проверяются workflow. Target runtime, существующий пользовательский сервер, full tunnel/DNS/IPv6/kill switch, Installer GUI и доверенная поставка остаются непроверенными или не реализованы.
+[Current scope](Docs/READINESS.md), [verified native evidence](Docs/CLIENT_RESEARCH.md), [hostname limits](Docs/ENDPOINT_RESOLUTION.md).
 
-Upstream WireGuard закреплён в `deps.lock.json`, без собственных изменений криптографии. Лицензии сторонних компонентов сохранены в `Vendor` и `Licenses`; см. `THIRD_PARTY_NOTICES.md`. Это собственный проект LegacyWG, не официальное приложение WireGuard. Лицензия собственного кода ещё не выбрана.
-
-Исходное пользовательское ТЗ, личные документы, локальные toolchains/cache, реальные конфигурации/ключи и первоначальная история проекта не включены. Этот repository начинается с отдельного проверенного снимка исходников.
-
-Настоящий limited research client уже реализован: AppKit/Keychain, authenticated Mach helper, official worker, IPv4 split без DNS. Native handshake/шифрованный обмен, 20 Connect/Disconnect циклов и crash/route cleanup прошли на macOS 15.7.9. Full tunnel/DNS/IPv6/hostname endpoints пока отвергаются до сетевых изменений. Test pkg реально установлен и удалён только на disposable CI через CLI; root ownership, launchd и доступ установленного GUI к helper прошли. Pkg unsigned, Installer GUI и High Sierra не проверены. Подробности, source commit и SHA256 — [CLIENT_RESEARCH.md](Docs/CLIENT_RESEARCH.md).
+Only reviewed source files are published. Private specification, original Git history, local tools/caches and user configuration/keys are excluded.

@@ -19,7 +19,6 @@ func TestUnsupportedPoliciesRefusedBeforeNativeSideEffects(t *testing.T) {
 	for name, profile := range map[string]string{
 		"full":          strings.Replace(splitProfile(), "198.18.0.2/32", "0.0.0.0/0", 1),
 		"unrouted_dns":  strings.Replace(splitProfile(), "Address=", "DNS=1.1.1.1\nAddress=", 1),
-		"hostname":      strings.Replace(splitProfile(), "127.0.0.1", "example.com", 1),
 		"ipv6":          strings.Replace(splitProfile(), "198.18.0.2/32", "::/0", 1),
 		"loop":          strings.Replace(splitProfile(), "198.18.0.2/32", "127.0.0.0/8", 1),
 		"ipv6_no_local": strings.Replace(splitProfile(), "198.18.0.2/32", "2001:db8:77::2/128", 1),

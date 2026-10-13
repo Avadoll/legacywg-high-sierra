@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "review_date": "2026-10-07",
+  "review_date": "2026-10-13",
   "release_approved": false,
   "toolchains": [
     {
@@ -94,7 +94,7 @@
       "patches": [],
       "high_sierra": "NOT_RUN",
       "release_approved": false,
-      "signature": "NOT_VERIFIED; see Docs/Evidence/upstream-tag-verification.txt",
+      "signature": "BASELINE_TAG_VERIFIED_WITH_MAINTAINER_PUBLISHED_KEY; see Docs/Evidence/SourceTrust",
       "source_tree_sha256": "c922d1a8475686e8f25d14beafc645b1cb4606fbd25948f2c3e7d396857e00d0",
       "tree_hash_algorithm": "sha256(sorted(relative-path + NUL + sha256(file-bytes)))",
       "go_mod_sha256": "87e5574c17f1c8d3badd9195d933237c289c07b5813f4e60ceae36c7b270e288",
@@ -994,7 +994,7 @@
       "patches": [],
       "high_sierra": "NOT_RUN",
       "release_approved": false,
-      "signature": "NOT_VERIFIED; see Docs/Evidence/upstream-tag-verification.txt",
+      "signature": "UNSIGNED_CANDIDATE_COMMIT; baseline tag signature does not cover this commit",
       "source_tree_sha256": "f4a363005e93aa6df7186caad8808450a29559151aafa2a917f755c472f68789",
       "tree_hash_algorithm": "sha256(sorted(relative-path + NUL + sha256(file-bytes)))",
       "go_mod_sha256": "87e5574c17f1c8d3badd9195d933237c289c07b5813f4e60ceae36c7b270e288",
