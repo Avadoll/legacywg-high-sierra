@@ -114,6 +114,10 @@ func TestRootPFAnchorCancellationRefusesChangedRulesAndBoot(t *testing.T) {
 	originalBoot := store.boot
 	defer func() {
 		store.boot = originalBoot
+		current, err := store.readPF(pfJournalFile)
+		if err != nil || current == nil || current.ID != record.ID || current.PID != record.PID || current.RulesSHA256 != record.RulesSHA256 || !store.preReferenceOwner(*current) {
+			return
+		}
 		cleanup, stop := context.WithTimeout(context.Background(), 15*time.Second)
 		defer stop()
 		info, err := runOwnedPF(cleanup, "", "-s", "info")
