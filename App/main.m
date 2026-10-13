@@ -436,6 +436,10 @@ int main(int argc,const char *argv[]) {
                         @"close_window_keeps_app_and_timer":@(launchPassed),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"}
                         options:0 error:NULL];
                     [NSFileHandle.fileHandleWithStandardOutput writeData:json];[controller.timer invalidate];[NSApp stop:nil];
+                    // stop: sets the flag; a dispatch callback must also wake nextEventMatchingMask:.
+                    NSEvent *wake=[NSEvent otherEventWithType:NSEventTypeApplicationDefined location:NSZeroPoint
+                        modifierFlags:0 timestamp:0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
+                    [NSApp postEvent:wake atStart:YES];
                 });
             });
         }
