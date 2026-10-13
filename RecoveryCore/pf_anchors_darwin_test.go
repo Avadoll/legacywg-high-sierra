@@ -21,6 +21,10 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal("complete native baseline enumeration unavailable")
 	}
+	baselineTree, err := enumeratePFAnchors(ctx)
+	if err != nil {
+		t.Fatal("baseline kernel tree unavailable")
+	}
 	parent := "com.apple/lw-enum-ci-" + probe.ID
 	child := parent + "/hidden"
 	const parentRule = "anchor \"hidden\" all\n"
@@ -48,6 +52,26 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 		after, err := readDisabledPF(cleanup, probe.Anchor)
 		if err != nil || after != before {
 			t.Errorf("enumeration cleanup mismatch: readable=%t root_same=%t filter_tree_same=%t nat_tree_same=%t", err == nil, after.root == before.root, after.recursive == before.recursive, after.nat == before.nat)
+			tree, treeErr := enumeratePFAnchors(cleanup)
+			known := make(map[string]pfAnchorObservation)
+			for _, node := range baselineTree {
+				known[node.path] = node
+			}
+			newFixture, newOther, changedContent := 0, 0, 0
+			for _, node := range tree {
+				old, exists := known[node.path]
+				if exists && (old.rules != node.rules || old.nat != node.nat) {
+					changedContent++
+				}
+				if !exists && node.path != probe.Anchor {
+					if node.path == parent || node.path == child {
+						newFixture++
+					} else {
+						newOther++
+					}
+				}
+			}
+			t.Errorf("enumeration cleanup detail: tree_readable=%t baseline_nodes=%d final_nodes=%d new_fixture_nodes=%d new_other_nodes=%d changed_existing_content=%d", treeErr == nil, len(baselineTree), len(tree), newFixture, newOther, changedContent)
 		}
 	}()
 	if _, err := runOwnedPF(ctx, parentRule, "-o", "none", "-a", parent, "-f", "-"); err != nil {
