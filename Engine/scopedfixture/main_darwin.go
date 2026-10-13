@@ -505,6 +505,13 @@ func main() {
 		}
 		report[name] = proof
 	}
+	dualProof, err := checkSimultaneous()
+	report["dual_stack_multi_peer"] = dualProof
+	if err != nil {
+		report["reason"] = err.Error()
+		json.NewEncoder(os.Stdout).Encode(report)
+		os.Exit(1)
+	}
 	finalInterfaces, err := net.Interfaces()
 	if err != nil || len(finalInterfaces) != len(baselineInterfaces) {
 		report["reason"] = "interface baseline not restored"
