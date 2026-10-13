@@ -170,8 +170,9 @@ def capture_counts(path):
 def transmit(warm,fresh):
     # Darwin can surface asynchronous ICMP refusal from the nonexistent
     # benchmark peer on a later send, including on an unconnected UDP socket.
-    # Five attempts still require three actual captured packets in controls.
-    for _ in range(5):
+    # Eight attempts still require three actual captured packets in controls,
+    # even when the first send consumes a pending ICMP error.
+    for _ in range(8):
         for stream,port in ((warm,WARM),(fresh,FRESH)):
             if stream is not None:
                 try:stream.sendto(b'LegacyWG-disposable-PF-fixture',(DEST,port))
@@ -290,7 +291,8 @@ def experiment(report):
         report['last_step']='owned_utun_tcp_state_policy'
         from test_pf_tcp_macos import test_tcp
         base_rules=f'block drop out quick on {iface} inet proto udp from any to {DEST} port {{ {WARM}, {FRESH} }}\n'
-        report['tcp_fixture']=test_tcp(data,base_rules,load=load,pf=pf,enabled=enabled,admit=admit_stateless_candidate)
+        report['tcp_fixture']={'status':'RUNNING'}
+        test_tcp(data,base_rules,load=load,pf=pf,enabled=enabled,admit=admit_stateless_candidate,report=report['tcp_fixture'])
         report['established_tcp']='PASS on owned-utun fixture; physical Ethernet TCP NOT_RUN'
         report['ipv6']='PASS on owned-utun TCP fixture; physical IPv6 NOT_RUN'
         load(data,base_rules)
