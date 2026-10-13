@@ -420,7 +420,27 @@ int main(int argc,const char *argv[]) {
             [NSFileHandle.fileHandleWithStandardOutput writeData:json]; return passed ? 0 : 1;
         }
         [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-        ClientController *controller=[[ClientController alloc] init];NSApp.delegate=controller;[NSApp run];
+        ClientController * __attribute__((objc_precise_lifetime)) controller=[[ClientController alloc] init];
+        NSApp.delegate=controller;
+        BOOL launchTest=argc==2 && strcmp(argv[1],"--launch-self-test")==0;
+        __block BOOL launchPassed=NO;
+        if(launchTest) {
+            const char *ci=getenv("GITHUB_ACTIONS");if(!ci || strcmp(ci,"true")!=0)return 3;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.5*NSEC_PER_SEC)),dispatch_get_main_queue(),^{
+                BOOL visible=NSApp.delegate==controller && controller.window.visible && controller.timer.valid;
+                [controller.window performClose:nil];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.5*NSEC_PER_SEC)),dispatch_get_main_queue(),^{
+                    launchPassed=visible && NSApp.running && !controller.window.visible && controller.timer.valid;
+                    NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":launchPassed ? @"PASS" : @"FAIL",
+                        @"kind":@"native-gui-live-lifecycle",@"automatic_delegate_launch":@(visible),
+                        @"close_window_keeps_app_and_timer":@(launchPassed),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"}
+                        options:0 error:NULL];
+                    [NSFileHandle.fileHandleWithStandardOutput writeData:json];[controller.timer invalidate];[NSApp stop:nil];
+                });
+            });
+        }
+        [NSApp run];
+        if(launchTest)return launchPassed ? 0 : 1;
     }
     return 0;
 }

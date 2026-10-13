@@ -70,6 +70,9 @@ def main() -> None:
     ui_test=run([str(app/'Contents/MacOS/LegacyWG'),'--ui-self-test'])
     (OUT/'client-ui-test.json').write_text(ui_test)
     if json.loads(ui_test)['status']!='PASS':raise SystemExit('Client UI layout test failed')
+    launch_test=run([str(app/'Contents/MacOS/LegacyWG'),'--launch-self-test'])
+    (OUT/'client-launch-test.json').write_text(launch_test)
+    if json.loads(launch_test)['status']!='PASS':raise SystemExit('Client live launch/close-window test failed')
     payload=BUILD/'payload'
     for directory in ('Applications','Library/PrivilegedHelperTools','Library/Application Support/LegacyWG','Library/LaunchDaemons'):
         (payload/directory).mkdir(parents=True)
