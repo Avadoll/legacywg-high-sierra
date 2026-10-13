@@ -173,6 +173,22 @@ func check(ipv6 bool) (map[string]any, error) {
 	if err != nil || !strings.Contains(original, "interface:"+name) {
 		return nil, errors.New("outer fixture prefix not selected")
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	beforePath, err := queryKernelPath(ctx, remote, iface.Index)
+	cancel()
+	if err != nil || beforePath.index != iface.Index || beforePath.name != name || !beforePath.scoped || !beforePath.direct {
+		return nil, errors.New("scoped kernel baseline path not confirmed")
+	}
+	canceled, stop := context.WithCancel(context.Background())
+	stop()
+	if _, err := queryKernelPath(canceled, remote, iface.Index); err == nil {
+		return nil, errors.New("canceled route query admitted")
+	}
+	wrong := beforePath
+	wrong.name = "invalid0"
+	if admitPath(context.Background(), remote, local, wrong) == nil {
+		return nil, errors.New("interface name mismatch admitted")
+	}
 	serverTun, stack, err := netstack.CreateNetTUN([]netip.Addr{remote}, nil, 1420)
 	if err != nil {
 		return nil, failure
@@ -247,7 +263,7 @@ func check(ipv6 bool) (map[string]any, error) {
 	if !echo(plain, remote) || !echo(bound, remote) {
 		return nil, errors.New("kernel baseline echo failed")
 	}
-	encrypted, err := startEncrypted(stack, local, remote, iface.Index)
+	encrypted, err := startEncrypted(stack, local, remote, beforePath)
 	if err != nil {
 		return nil, err
 	}
@@ -308,6 +324,13 @@ func check(ipv6 bool) (map[string]any, error) {
 	if err != nil || !strings.Contains(conflict, "interface:"+decoyName) {
 		return map[string]any{"decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, errors.New("more specific conflict did not select decoy")
 	}
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	unscoped, queryErr := queryKernelPath(ctx, remote, 0)
+	scoped, scopedErr := queryKernelPath(ctx, remote, iface.Index)
+	cancel()
+	if queryErr != nil || unscoped.index != configuredDecoy.Index || scopedErr != nil || scoped != beforePath {
+		return nil, errors.New("kernel scoped and unscoped path distinction failed")
+	}
 	// The old plain socket may cache a route, so test a fresh unbound socket.
 	negative, err := socket(local, 0)
 	if err != nil {
@@ -355,6 +378,13 @@ func check(ipv6 bool) (map[string]any, error) {
 	if !lost || dropped.Load() != before {
 		return nil, errors.New("bound socket escaped after interface loss")
 	}
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	_, queryErr = queryKernelPath(ctx, remote, iface.Index)
+	cancel()
+	openCount := encrypted.transport.opens.Load()
+	if queryErr == nil || encrypted.client.Down() != nil || encrypted.client.Up() == nil || encrypted.transport.opens.Load() != openCount {
+		return nil, errors.New("missing scoped path did not refuse official reopen")
+	}
 	if decoy.Close() != nil {
 		return nil, failure
 	}
@@ -372,6 +402,8 @@ func check(ipv6 bool) (map[string]any, error) {
 		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS",
 		"official_handshake_and_counters": "PASS", "encrypted_bound_round_trips": 6, "encrypted_decoy_packets": 0,
 		"old_receive_callback_stays_closed_after_reopen": "PASS", "official_device_down_up_scoped_reopen": "PASS",
+		"scoped_kernel_query_vs_unscoped_conflict": "PASS", "pre_post_open_path_admission": "PASS",
+		"canceled_query_and_wrong_interface_name_refused": "PASS", "lost_path_official_reopen_refused": "PASS",
 		"wildcard_listeners": true, "scoped_prefix_added": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
 }
 

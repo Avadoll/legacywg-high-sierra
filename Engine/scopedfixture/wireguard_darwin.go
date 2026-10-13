@@ -202,8 +202,8 @@ func (fixture *encryptedFixture) close() {
 	fixture.server.Close()
 }
 
-func startEncrypted(outerStack *netstack.Net, local, remote netip.Addr, index int) (*encryptedFixture, error) {
-	factory := func(port uint16) (net.PacketConn, error) { return socketPort(local, index, port) }
+func startEncrypted(outerStack *netstack.Net, local, remote netip.Addr, before kernelPath) (*encryptedFixture, error) {
+	factory := admittedFactory(local, remote, before)
 	if err := leaseProof(factory); err != nil {
 		return nil, err
 	}
