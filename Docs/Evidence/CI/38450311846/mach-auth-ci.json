@@ -1,0 +1,12 @@
+{
+  "allowed_client": "PASS",
+  "same_identifier_different_binary": "PASS",
+  "wrong_server_requirement": "PASS",
+  "unauthorized_recovery_refused": "PASS",
+  "substituted_network_component": "PASS",
+  "public_startup_and_explicit_journal_recovery": "PASS",
+  "native_authenticated_encrypted_peer": "PASS",
+  "live_gui_encrypted_long_sheet_and_hidden_window": "PASS",
+  "audit_identity": "kernel Mach trailer + SecCode audit guest",
+  "status": "PASS"
+}

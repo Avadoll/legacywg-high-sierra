@@ -125,7 +125,7 @@ Worker byte-identical to RecoveryState scoped scan; receipt security-byte-identi
 | `LegacyWG-research-0.2.pkg` | `13405e7f8e7f28031144095ed321e86765dfdd35d805950a75c10beb9b398675` |
 | `LegacyWG-research-0.2-app.zip` | `0738d1113cae60fa30d42bc2ebfd84273488df1c09db47ca2b840738d9bfb378` |
 
-## Текущая проверенная сборка (private profile preview / licenses)
+## Предыдущая проверенная сборка (private profile preview / licenses)
 
 [Run38446849175](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38446849175), source `ec3fc4775e3e8cfd23b2cc8eb545238cced7af7e`, Intel macOS15.7.9/Xcode16.4/SDK15.5: private selected-profile preview and actual About/license sheet PASS. Native CLI validation/metadata formatting, complete bundled license files, actual Keychain selected-profile read/preview, profile delete/changed-state refusal/copy Cancel sheets PASS with eight separate proof booleans. New readable Aqua layout inspected. All previous authenticated encrypted IPv4/IPv6/dual-stack peers, native UDP/TCP DNS, route loss, recovery/crash, 20 cycles, GUI lifecycle and fresh research installer PASS.
 
@@ -135,3 +135,14 @@ Worker SHA256 `250527c8874a451bc86fa92b4d4940ee3cc01bc5b3228198cfef640bcc58f19f`
 | --- | --- |
 | `LegacyWG-research-0.2.pkg` | `3d7902625bb724589d397a1d0a83e7ef3dbe2ca37e72a5f76fddcebc86364d1b` |
 | `LegacyWG-research-0.2-app.zip` | `e8c1df6ed058378ff6d24e637eb70071e52c1ab4e3c2a7ac527c6c24e0ae944d` |
+
+## Current research build / live encrypted GUI sheet
+
+[Run 38450311846](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38450311846), source `0fb5bbf6e08864844c26b930dfca50c48467cf3c`, Intel macOS15.7.9/Xcode16.4/SDK15.5: настоящий controller приложения наблюдал активный encrypted WireGuard tunnel через authenticated helper. About/license sheet оставался открытым 19.45s (watchdog helper15s); 9 actual Connected replies подтвердили тот же interface. Connect/disconnect/recover/Quit actions при открытом sheet refused; menu controls disabled. После закрытия sheet main window закрыто на5s, timer/app/tunnel remained active (3 replies). Четыре native encrypted UDP round trips прошли во время sheet и hidden window; test coordinator не посылал helper requests в этот интервал. После обычного Stop проверены исчезновение interface и restoration исходных route gateway/interface.
+
+- `LegacyWG-research-0.2.pkg` SHA256 `90560ad110c4479d476e85c2ee8fa9f362dc883fc0f5a44ee7607730641d841a`
+- `LegacyWG-research-0.2-app.zip` SHA256 `3316bf05ba0b9b03887ebfd0dff439b94eb6e023b703c9fe7ef5b55bbf9f7aaa`
+
+Worker unchanged: `250527c8874a451bc86fa92b4d4940ee3cc01bc5b3228198cfef640bcc58f19f`. Exact132-file production Go identity `b2071b2b7d111da2e195eba999d48903da5b9f08a0ce424e6b26293bb3e632ff` совпадает с fresh ProfilePreview scan source `ec3fc4775e3e8cfd23b2cc8eb545238cced7af7e`. Previous scan applies to byte-identical worker; no changed production Go/ObjC code in this checkpoint. New developer tests/build orchestration were reviewed separately; this does not expand the Go scan into a complete security audit.
+
+Это отдельный developer test executable с exact included App/main.m и subclass, считающим реальные replies; runtime state не подменяется. Clone собран ПОСЛЕ app ZIP/pkg: test executable и временная OR-policy двух точных cdhash не входят в installer. Ordinary production app/helper policy остались прежними. Test opens sheet/controller actions programmatically; это не mouse/accessibility/menu-tracking acceptance. Long runModal Quit confirmation/accepted async Quit, GUI SIGKILL/heartbeat-loss negative control, actual recovery/file-picker/typed-copy/replacement, locked/foreign Keychain и High Sierra ещё не проверены. Внешний сервер/полная защита/подписанная поставка остаются открытыми.

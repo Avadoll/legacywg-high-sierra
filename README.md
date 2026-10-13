@@ -15,3 +15,5 @@ Run the manually dispatched free standard macOS feasibility workflow. Official u
 [Current scope](Docs/READINESS.md), [verified native evidence](Docs/CLIENT_RESEARCH.md), [hostname limits](Docs/ENDPOINT_RESOLUTION.md).
 
 Only reviewed source files are published. Private specification, original Git history, local tools/caches and user configuration/keys are excluded.
+
+Live encrypted native controller About sheet >18s and hidden-window heartbeat/traffic passed [run 38450311846](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38450311846). Test observer and temporary policy are excluded from the installer. Nested Quit/recovery/GUI crash/High Sierra/full protection remain open.
