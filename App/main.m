@@ -79,6 +79,8 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @property(nonatomic,strong) NSArray<NSDictionary *> *profiles;
 @property(nonatomic,strong) NSTimer *timer;
 @property(nonatomic) BOOL busy;
+@property(nonatomic) BOOL interactionPending;
+@property(nonatomic) BOOL statusKnown;
 @property(nonatomic) BOOL tunnelActive;
 @property(nonatomic) BOOL recoveryRequired;
 @property(nonatomic,strong) NSStatusItem *statusItem;
@@ -170,79 +172,152 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSDictionary *selected=[self selectedProfile];
     NSString *name=self.tunnelActive ? self.activeProfileName : selected[@"name"];
     self.menuProfile.title=name.length ? name : @"Профиль не выбран";
-    self.menuConnect.enabled=!self.busy && self.connect.enabled && selected!=nil;
-    self.menuDisconnect.enabled=!self.busy && self.tunnelActive;
-    self.menuRecover.enabled=!self.busy && self.recoveryRequired;
+    self.menuConnect.enabled=!self.busy && !self.interactionPending && self.connect.enabled && selected!=nil;
+    self.menuDisconnect.enabled=!self.busy && !self.interactionPending && self.tunnelActive;
+    self.menuRecover.enabled=!self.busy && !self.interactionPending && self.recoveryRequired;
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView { (void)tableView; return (NSInteger)self.profiles.count; }
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)column row:(NSInteger)row {
     (void)tableView; (void)column; return self.profiles[(NSUInteger)row][@"name"];
 }
 - (void)alert:(NSString *)message {
+    if(self.interactionPending)return;
+    self.interactionPending=YES;
     NSAlert *alert=[[NSAlert alloc] init]; alert.messageText=message ?: @"Операция не выполнена";
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        (void)response;self.interactionPending=NO;
+    }];
 }
 - (NSDictionary *)selectedProfile {
     NSInteger row=self.table.selectedRow;
     return row>=0 && (NSUInteger)row<self.profiles.count ? self.profiles[(NSUInteger)row] : nil;
 }
+- (BOOL)canChangeStoredProfile {
+    return self.statusKnown && !self.tunnelActive && !self.recoveryRequired && !self.quitting;
+}
+- (void)commitImport:(NSData *)data name:(NSString *)name replacing:(NSString *)identifier validation:(NSDictionary *)validation {
+    if(![validation[@"ok"] isEqual:@YES]) {
+        self.interactionPending=NO;[self alert:@"Невалидный профиль не сохранён."];return;
+    }
+    if(self.quitting || self.tunnelActive || (identifier && ![self canChangeStoredProfile])) {
+        self.interactionPending=NO;[self alert:@"Профиль не изменён. Сначала подтвердите отключение туннеля."];return;
+    }
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+        NSError *error=nil;NSString *stored=identifier;
+        BOOL ok=identifier ? LWReplaceProfile(identifier,data,&error) :
+            (LWProfileNameAvailable(name,&error) && LWStoreProfile(data,name,&stored,&error));
+        dispatch_async(dispatch_get_main_queue(),^{
+            self.interactionPending=NO;
+            if(!ok){[self alert:error.localizedDescription];return;}
+            self.profiles=LWListProfiles();[self.table reloadData];
+            for(NSUInteger row=0;row<self.profiles.count;row++)if([self.profiles[row][@"id"] isEqual:stored])
+                [self.table selectRowIndexes:[NSIndexSet indexSetWithIndex:row] byExtendingSelection:NO];
+            if(![validation[@"native_supported"] isEqual:@YES]) {
+                NSString *limitation=[validation[@"limitation"] isKindOfClass:NSString.class] ? validation[@"limitation"] : @"ограничение backend";
+                [self alert:[@"Профиль сохранён, но пока не поддерживается этой сборкой: " stringByAppendingString:limitation]];
+            }
+        });
+    });
+}
+- (void)importCopy:(NSData *)data validation:(NSDictionary *)validation {
+    NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Сохранить профиль под новым именем";
+    alert.informativeText=@"Существующие профили сохранятся. Введите свободное имя.";
+    [alert addButtonWithTitle:@"Сохранить"];[alert addButtonWithTitle:@"Отмена"];
+    NSTextField *input=[[NSTextField alloc] initWithFrame:NSMakeRect(0,0,360,24)];
+    [input setAccessibilityLabel:@"Новое имя импортируемого профиля"];alert.accessoryView=input;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        if(response!=NSAlertFirstButtonReturn){self.interactionPending=NO;return;}
+        NSString *name=[input.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        [self commitImport:data name:name replacing:nil validation:validation];
+    }];
+}
+- (void)chooseImport:(NSData *)data name:(NSString *)name conflicts:(NSArray<NSDictionary *> *)conflicts validation:(NSDictionary *)validation {
+    if(!conflicts.count){[self commitImport:data name:name replacing:nil validation:validation];return;}
+    NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Этот профиль уже импортирован";
+    alert.informativeText=@"Найдено совпадение имени или содержимого. Выберите конкретный профиль для замены либо сохраните копию с новым именем. Замена сохраняет имя выбранного профиля.";
+    NSButton *replace=[alert addButtonWithTitle:@"Заменить выбранный"];
+    replace.enabled=[self canChangeStoredProfile];
+    [alert addButtonWithTitle:@"С новым именем…"];[alert addButtonWithTitle:@"Отмена"];
+    NSPopUpButton *choice=[[NSPopUpButton alloc] initWithFrame:NSMakeRect(0,0,400,28) pullsDown:NO];
+    for(NSDictionary *profile in conflicts)[choice addItemWithTitle:[NSString stringWithFormat:@"%@ — %@",profile[@"name"],[profile[@"id"] substringToIndex:8]]];
+    [choice setAccessibilityLabel:@"Профиль для замены"];alert.accessoryView=choice;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        if(response==NSAlertFirstButtonReturn && choice.indexOfSelectedItem>=0 && (NSUInteger)choice.indexOfSelectedItem<conflicts.count)
+            [self commitImport:data name:nil replacing:conflicts[(NSUInteger)choice.indexOfSelectedItem][@"id"] validation:validation];
+        else if(response==NSAlertSecondButtonReturn)[self importCopy:data validation:validation];
+        else self.interactionPending=NO;
+    }];
+}
 - (void)importProfile:(id)sender {
-    (void)sender;
-    if(self.busy || self.tunnelActive)return;
-    NSOpenPanel *panel=[NSOpenPanel openPanel]; panel.allowedFileTypes=@[@"conf"]; panel.allowsMultipleSelection=NO;
+    (void)sender;if(self.busy || self.interactionPending || self.tunnelActive || self.quitting)return;
+    self.interactionPending=YES;
+    NSOpenPanel *panel=[NSOpenPanel openPanel];panel.allowedFileTypes=@[@"conf"];panel.allowsMultipleSelection=NO;
     [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
-        if(response!=NSModalResponseOK)return;
-        NSNumber *size=nil; [panel.URL getResourceValue:&size forKey:NSURLFileSizeKey error:NULL];
-        if(!size || size.unsignedLongLongValue>256*1024){[self alert:@"Профиль слишком большой"];return;}
-        NSFileHandle *file=[NSFileHandle fileHandleForReadingFromURL:panel.URL error:NULL];
-        NSData *data=file ? [file readDataOfLength:256*1024+1] : nil; [file closeFile];
-        if(!data || data.length>256*1024){[self alert:@"Не удалось прочитать профиль или превышен лимит размера"];return;}
-        self.busy=YES;
+        if(response!=NSModalResponseOK){self.interactionPending=NO;return;}
+        NSURL *url=panel.URL;
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
-            NSDictionary *validation=ValidateProfile(data);
+            NSData *data=nil;
+            @try {
+                NSNumber *size=nil;[url getResourceValue:&size forKey:NSURLFileSizeKey error:NULL];
+                if(size && size.unsignedLongLongValue<=256*1024) {
+                    NSFileHandle *file=[NSFileHandle fileHandleForReadingFromURL:url error:NULL];
+                    @try {if(file)data=[file readDataOfLength:256*1024+1];}
+                    @finally {[file closeFile];}
+                }
+            } @catch(NSException *exception) {(void)exception;data=nil;}
+            NSDictionary *validation=ValidateProfile(data);NSError *error=nil;
+            NSString *name=[url.lastPathComponent.stringByDeletingPathExtension stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            NSArray *conflicts=[validation[@"ok"] isEqual:@YES] ? LWProfileImportConflicts(data,name,&error) : nil;
             dispatch_async(dispatch_get_main_queue(),^{
-                self.busy=NO;
-                if(![validation[@"ok"] isEqual:@YES]){[self alert:validation[@"error"]];return;}
-                NSError *error=nil;
-                NSString *name=panel.URL.lastPathComponent.stringByDeletingPathExtension;
-                if(name.length>80)name=[name substringToIndex:80];
-                if(!LWStoreProfile(data,name,NULL,&error)){[self alert:error.localizedDescription];return;}
-                self.profiles=LWListProfiles();[self.table reloadData];
-                if(![validation[@"native_supported"] isEqual:@YES])
-                    [self alert:[@"Профиль сохранён, но пока не поддерживается этой сборкой: " stringByAppendingString:validation[@"limitation"] ?: @"ограничение backend"]];
+                if(![validation[@"ok"] isEqual:@YES] || !conflicts) {
+                    self.interactionPending=NO;[self alert:error.localizedDescription ?: validation[@"error"]];return;
+                }
+                [self chooseImport:data name:name conflicts:conflicts validation:validation];
             });
         });
     }];
 }
 - (void)deleteProfile:(id)sender {
     (void)sender;
-    NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.tunnelActive)return;
+    NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.interactionPending || ![self canChangeStoredProfile])return;
+    self.interactionPending=YES;
     NSAlert *alert=[[NSAlert alloc] init]; alert.messageText=@"Удалить профиль и его ключи из Keychain?";
     [alert addButtonWithTitle:@"Удалить"]; [alert addButtonWithTitle:@"Отмена"];
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
-        if(response!=NSAlertFirstButtonReturn)return;
-        NSError *error=nil;if(!LWDeleteProfile(profile[@"id"],&error)){[self alert:error.localizedDescription];return;}
-        self.profiles=LWListProfiles();[self.table reloadData];
+        if(response!=NSAlertFirstButtonReturn){self.interactionPending=NO;return;}
+        if(![self canChangeStoredProfile]){self.interactionPending=NO;[self alert:@"Профиль не удалён. Сначала подтвердите отключение туннеля."];return;}
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+            NSError *error=nil;BOOL ok=LWDeleteProfile(profile[@"id"],&error);
+            dispatch_async(dispatch_get_main_queue(),^{
+                self.interactionPending=NO;if(!ok){[self alert:error.localizedDescription];return;}
+                self.profiles=LWListProfiles();[self.table reloadData];
+            });
+        });
     }];
 }
 - (void)renameProfile:(id)sender {
-    (void)sender;NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.quitting)return;
+    (void)sender;NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.interactionPending || self.quitting)return;
+    self.interactionPending=YES;
     NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Новое имя профиля";
     [alert addButtonWithTitle:@"Сохранить"];[alert addButtonWithTitle:@"Отмена"];
     NSTextField *input=[[NSTextField alloc] initWithFrame:NSMakeRect(0,0,360,24)];
     input.stringValue=profile[@"name"];[input setAccessibilityLabel:@"Имя профиля"];
     alert.accessoryView=input;
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
-        if(response!=NSAlertFirstButtonReturn)return;
+        if(response!=NSAlertFirstButtonReturn){self.interactionPending=NO;return;}
         NSString *name=[input.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-        NSError *error=nil;
-        if(!LWRenameProfile(profile[@"id"],name,&error)){[self alert:error.localizedDescription];return;}
-        if([profile[@"id"] isEqual:self.activeProfileIdentifier])self.activeProfileName=name;
-        self.profiles=LWListProfiles();[self.table reloadData];
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+            NSError *error=nil;BOOL ok=LWRenameProfile(profile[@"id"],name,&error);
+            dispatch_async(dispatch_get_main_queue(),^{
+                self.interactionPending=NO;if(!ok){[self alert:error.localizedDescription];return;}
+                if([profile[@"id"] isEqual:self.activeProfileIdentifier])self.activeProfileName=name;
+                self.profiles=LWListProfiles();[self.table reloadData];
+            });
+        });
     }];
 }
 - (void)diagnostics:(id)sender {
-    (void)sender;if(self.busy || self.quitting)return;
+    (void)sender;if(self.busy || self.interactionPending || self.quitting)return;
     self.busy=YES;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
         NSDictionary *reply=LWRequest(@{@"version":@1,@"op":@"status"},ServerRequirement());
@@ -250,6 +325,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
         dispatch_async(dispatch_get_main_queue(),^{
             self.busy=NO;
             if(!data){[self alert:@"Не удалось подготовить диагностику"];return;}
+            self.interactionPending=YES;
             [self openWindow:nil];
             NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Просмотр диагностики перед сохранением";
             alert.informativeText=@"Отчёт сохраняется только локально по вашему выбору.";
@@ -259,9 +335,10 @@ static NSDictionary *ValidateProfile(NSData *data) {
             text.editable=NO;text.font=[NSFont userFixedPitchFontOfSize:11];
             text.string=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];scroll.documentView=text;alert.accessoryView=scroll;
             [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
-                if(response!=NSAlertFirstButtonReturn)return;
+                if(response!=NSAlertFirstButtonReturn){self.interactionPending=NO;return;}
                 NSSavePanel *panel=[NSSavePanel savePanel];panel.allowedFileTypes=@[@"json"];panel.nameFieldStringValue=@"LegacyWG-diagnostics.json";
                 [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result) {
+                    self.interactionPending=NO;
                     if(result==NSModalResponseOK && ![data writeToURL:panel.URL options:NSDataWritingAtomic error:NULL])
                         [self alert:@"Не удалось сохранить диагностику"];
                 }];
@@ -284,8 +361,10 @@ static NSDictionary *ValidateProfile(NSData *data) {
         self.state.stringValue=@"Состояние не подтверждено";
         self.details.stringValue=[reply[@"error"] isKindOfClass:NSString.class] ? reply[@"error"] : @"Не удалось получить состояние сетевого компонента. Повторите проверку.";
         self.connect.enabled=NO;
+        self.statusKnown=NO;
         return;
     }
+    self.statusKnown=YES;
     self.tunnelActive=[state isEqual:@"Connected"] || [state isEqual:@"Connecting"];
     self.recoveryRequired=[state isEqual:@"RecoveryRequired"];
     self.state.stringValue=[state isEqual:@"Connected"] ? @"Handshake получен" :
@@ -306,7 +385,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     self.statusItem.button.toolTip=[@"LegacyWG — " stringByAppendingString:self.state.stringValue];
 }
 - (void)connectProfile:(id)sender {
-    (void)sender; NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || !self.connect.enabled)return;
+    (void)sender; NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.interactionPending || self.quitting || !self.connect.enabled)return;
     NSError *error=nil;NSData *data=LWReadProfile(profile[@"id"],&error);
     if(!data){[self alert:error.localizedDescription];return;}
     NSString *text=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -315,9 +394,9 @@ static NSDictionary *ValidateProfile(NSData *data) {
     self.activeProfileIdentifier=profile[@"id"];
     [self performRequest:@{@"version":@1,@"op":@"start",@"profile":text}];
 }
-- (void)disconnectProfile:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"stop"}]; }
+- (void)disconnectProfile:(id)sender { (void)sender;if(self.interactionPending)return;[self performRequest:@{@"version":@1,@"op":@"stop"}]; }
 - (void)recoverNetwork:(id)sender {
-    (void)sender;if(self.busy || self.quitting || !self.recoveryRequired)return;
+    (void)sender;if(self.busy || self.interactionPending || self.quitting || !self.recoveryRequired)return;
     [self openWindow:nil];self.busy=YES;
     NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Восстановить обычную сеть?";
     alert.informativeText=@"Приложение попробует завершить восстановление собственных изменений. Если трафик блокировался, обычная сеть снова станет доступна. VPN не подключится автоматически.";
@@ -330,6 +409,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
 - (void)refreshStatus:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"status"}]; }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
     (void)application;
+    if(self.interactionPending){[self openWindow:nil];return NSTerminateCancel;}
     if(self.quitting)return NSTerminateLater;
     if(self.busy){[self openWindow:nil];[self alert:@"Дождитесь завершения текущей операции перед выходом."];return NSTerminateCancel;}
     if(!self.tunnelActive){
@@ -337,14 +417,16 @@ static NSDictionary *ValidateProfile(NSData *data) {
             NSAlert *warning=[[NSAlert alloc] init];warning.messageText=@"Восстановление сети не подтверждено";
             warning.informativeText=@"Закрытие программы не означает, что сеть восстановлена. Выйти сейчас?";
             [warning addButtonWithTitle:@"Выйти"];[warning addButtonWithTitle:@"Отмена"];
-            if([warning runModal]!=NSAlertFirstButtonReturn)return NSTerminateCancel;
+            self.interactionPending=YES;NSModalResponse response=[warning runModal];self.interactionPending=NO;
+            if(response!=NSAlertFirstButtonReturn)return NSTerminateCancel;
         }
         [self.timer invalidate];return NSTerminateNow;
     }
     NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Отключить туннель и выйти?";
     alert.informativeText=@"После отключения трафик снова использует обычную сеть.";
     [alert addButtonWithTitle:@"Отключить и выйти"];[alert addButtonWithTitle:@"Отмена"];
-    if([alert runModal]!=NSAlertFirstButtonReturn)return NSTerminateCancel;
+    self.interactionPending=YES;NSModalResponse response=[alert runModal];self.interactionPending=NO;
+    if(response!=NSAlertFirstButtonReturn)return NSTerminateCancel;
     self.quitting=YES;self.busy=YES;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
         NSDictionary *reply=LWRequest(@{@"version":@1,@"op":@"stop"},ServerRequirement());
@@ -359,6 +441,57 @@ static NSDictionary *ValidateProfile(NSData *data) {
 }
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)application { (void)application;return NO; }
 @end
+
+static BOOL WaitFor(BOOL (^condition)(void)) {
+    NSDate *deadline=[NSDate dateWithTimeIntervalSinceNow:3];
+    while(!condition() && deadline.timeIntervalSinceNow>0)
+        [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.02]];
+    return condition();
+}
+
+static BOOL ProfileSheetTest(ClientController *controller) {
+    NSString *identifier=nil;NSError *error=nil;
+    NSData *original=[@"LegacyWG private sheet-test marker" dataUsingEncoding:NSUTF8StringEncoding];
+    NSString *name=[@"Sheet test " stringByAppendingString:NSUUID.UUID.UUIDString];
+    if(!LWStoreProfile(original,name,&identifier,&error))return NO;
+    controller.profiles=@[@{@"id":identifier,@"name":name}];[controller.table reloadData];
+    [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected"}}];controller.busy=NO;
+    [controller deleteProfile:nil];
+    BOOL opened=WaitFor(^BOOL{return controller.window.attachedSheet!=nil;});
+    [controller menuNeedsUpdate:controller.statusItem.menu];
+    BOOL guarded=opened && controller.interactionPending && !controller.busy && !controller.menuConnect.enabled &&
+        [controller applicationShouldTerminate:NSApp]==NSTerminateCancel;
+    [controller connectProfile:nil]; // Entry point must return before sending Start.
+    guarded=guarded && !controller.busy;
+    [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Connecting"}}];
+    NSWindow *deletionSheet=controller.window.attachedSheet;
+    if(opened)[NSApp endSheet:deletionSheet returnCode:NSAlertFirstButtonReturn];
+    BOOL refused=WaitFor(^BOOL{return controller.window.attachedSheet!=nil && controller.interactionPending &&
+        controller.window.attachedSheet!=deletionSheet;});
+    // Drain the original sheet animation/callback. The refusal presents a new
+    // informational sheet; the real Keychain item must still be unchanged.
+    [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.3]];
+    refused=refused && [LWReadProfile(identifier,&error) isEqualToData:original];
+    if(controller.window.attachedSheet)[NSApp endSheet:controller.window.attachedSheet returnCode:NSAlertFirstButtonReturn];
+    BOOL closed=WaitFor(^BOOL{return !controller.interactionPending && !controller.window.attachedSheet;});
+    [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected"}}];
+    NSArray *conflicts=LWProfileImportConflicts(original,name,&error);
+    [controller chooseImport:original name:name conflicts:conflicts validation:@{@"ok":@YES,@"native_supported":@YES}];
+    // chooseImport is called with the same pending state as the real importer.
+    controller.interactionPending=YES;
+    BOOL duplicate=WaitFor(^BOOL{return controller.window.attachedSheet!=nil;});
+    NSWindow *duplicateSheet=controller.window.attachedSheet;
+    if(duplicate)[NSApp endSheet:duplicateSheet returnCode:NSAlertSecondButtonReturn];
+    duplicate=duplicate && WaitFor(^BOOL{return controller.interactionPending && controller.window.attachedSheet!=nil && controller.window.attachedSheet!=duplicateSheet;});
+    if(controller.window.attachedSheet)[NSApp endSheet:controller.window.attachedSheet returnCode:NSAlertSecondButtonReturn];
+    BOOL canceled=WaitFor(^BOOL{return !controller.interactionPending && !controller.window.attachedSheet;}) &&
+        [LWReadProfile(identifier,&error) isEqualToData:original];
+    BOOL removed=LWDeleteProfile(identifier,&error);
+    controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];[controller.table reloadData];
+    [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    return guarded && refused && closed && duplicate && canceled && removed;
+}
 
 static int UILayoutTest(void) {
     // Only an authorized disposable GitHub runner may produce this developer
@@ -388,6 +521,7 @@ static int UILayoutTest(void) {
     BOOL unknown=!controller.connect.enabled && controller.recoveryRequired;
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
     recovery=recovery && unknown && !controller.recoveryRequired && !controller.recover.enabled;
+    BOOL profileSheets=ProfileSheetTest(controller);
     BOOL bounds=YES;
     for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect,controller.recover])
         bounds=bounds && NSContainsRect(controller.window.contentView.bounds,view.frame);
@@ -423,10 +557,11 @@ static int UILayoutTest(void) {
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
-    BOOL passed=menu && recovery && bounds && saved && labelPixels>30;
+    BOOL passed=menu && recovery && profileSheets && bounds && saved && labelPixels>30;
     NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
         @"recovery_controls_and_unknown_state":@(recovery),
+        @"actual_profile_sheets_guard_cancel_and_changed_state_refusal":@(profileSheets),
         @"screenshot_saved":@(saved),@"notice_label_pixels":@(labelPixels),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
     [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
 }
@@ -451,6 +586,28 @@ int main(int argc,const char *argv[]) {
             for(NSDictionary *profile in LWListProfiles())
                 if([profile[@"id"] isEqual:identifier] && [profile[@"name"] isEqual:@"LegacyWG renamed CI profile"])renamedLabel=YES;
             keychain=keychain && rename && nameValidation && renamedLabel;
+            NSData *updated=[@"LegacyWG replacement marker" dataUsingEncoding:NSUTF8StringEncoding];
+            NSData *otherData=[@"LegacyWG unrelated marker" dataUsingEncoding:NSUTF8StringEncoding];
+            NSString *otherIdentifier=nil;
+            BOOL other=LWStoreProfile(otherData,@"LegacyWG unrelated CI profile",&otherIdentifier,&error);
+            NSArray *contentConflicts=LWProfileImportConflicts(sample,@"LegacyWG different filename",&error);
+            NSArray *nameConflicts=LWProfileImportConflicts(updated,@"legacywg RENAMED ci PROFILE",&error);
+            NSDictionary *expectedProfile=@{@"id":identifier ?: @"",@"name":@"LegacyWG renamed CI profile"};
+            BOOL conflicts=keychain && [contentConflicts containsObject:expectedProfile] && [nameConflicts containsObject:expectedProfile];
+            BOOL replacement=other && LWReplaceProfile(identifier,updated,&error) &&
+                [LWReadProfile(identifier,&error) isEqualToData:updated] && [LWReadProfile(otherIdentifier,&error) isEqualToData:otherData];
+            BOOL labelAfterReplace=NO;
+            for(NSDictionary *profile in LWListProfiles())if([profile[@"id"] isEqual:identifier] &&
+                [profile[@"name"] isEqual:@"LegacyWG renamed CI profile"])labelAfterReplace=YES;
+            NSError *refusal=nil;
+            BOOL refused=replacement && !LWReplaceProfile(identifier,[NSMutableData dataWithLength:256*1024+1],&refusal) &&
+                !LWReplaceProfile(NSUUID.UUID.UUIDString,updated,&refusal) &&
+                !LWProfileNameAvailable(@"LEGACYWG RENAMED CI PROFILE",&refusal) &&
+                !LWProfileNameAvailable(@"invalid\nlabel",&refusal) && [LWReadProfile(identifier,&error) isEqualToData:updated];
+            BOOL copy=LWProfileNameAvailable([@"Free CI name " stringByAppendingString:NSUUID.UUID.UUIDString],&error);
+            BOOL invalidValidation=![ValidateProfile(sample)[@"ok"] isEqual:@YES];
+            if(otherIdentifier)other=LWDeleteProfile(otherIdentifier,&error) && other;
+            keychain=keychain && conflicts && replacement && labelAfterReplace && refused && copy && invalidValidation && other;
             NSDictionary *fixture=@{@"ok":@YES,@"status":@{@"state":@"Connected",@"rx_bytes":@12,@"tx_bytes":@34,
                 @"private_key":@"private-marker",@"endpoint":@"endpoint-marker",@"interface":@"interface-marker",
                 @"peers":@2,@"profile_name":@"profile-marker",@"dns_servers":@[@"dns-marker"]}};
@@ -465,6 +622,10 @@ int main(int argc,const char *argv[]) {
                 @"keychain_write_read_delete":keychain ? @"PASS" : @"FAIL",@"keychain_error_code":@(error.code),
                 @"rename_preserves_id_and_data":rename && renamedLabel ? @"PASS" : @"FAIL",
                 @"unsafe_profile_label_refused":nameValidation ? @"PASS" : @"FAIL",
+                @"duplicate_name_and_exact_content_detected":conflicts ? @"PASS" : @"FAIL",
+                @"exact_item_replacement_preserves_id_label_and_other_item":replacement && labelAfterReplace ? @"PASS" : @"FAIL",
+                @"oversized_missing_item_and_duplicate_name_refused":refused ? @"PASS" : @"FAIL",
+                @"invalid_profile_validation_refused":invalidValidation ? @"PASS" : @"FAIL",
                 @"diagnostic_metadata_privacy":privacy ? @"PASS" : @"FAIL",
                 @"installed_helper_authentication":installedTest ? (helper ? @"PASS" : @"FAIL") : @"NOT_RUN",
                 @"core_dumps_disabled":@YES,@"vpn_ready":@NO} options:0 error:NULL];
