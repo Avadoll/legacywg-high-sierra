@@ -79,7 +79,7 @@ Latest research artifacts (ad-hoc components / unsigned pkg, release_approved=fa
 | `LegacyWG-research-0.2.pkg` | `07bb6b421cbc6d57a5ed0d4bb5c67294a4262a771028e9079a9b933a8b00054a` |
 | `LegacyWG-research-0.2-app.zip` | `d1e1fe756426c0b6bd3f0e84ad1bda591a8ecd81f453ffa9894b0b3ae52cadcb` |
 
-## Текущая проверенная сборка
+## Предыдущая проверенная сборка (route loss)
 
 Native [run 38419688718](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38419688718), source `90efb8b8583422f857d8b1054299b2493babb0cf`: прежние IPv4/IPv6/dual-stack/DNS/crash/hostname/multi-peer/auth/Keychain/installer scenarios PASS; real NSApp launch/close-window lifecycle PASS; controlled endpoint path loss после настоящего encrypted traffic закрывает worker tunnel/Error с восстановлением own routes. Scope/limits — NETWORK_CHANGE.md. Full tunnel, guard/journal/reconnect/target/signing остаются незавершёнными.
 
@@ -89,3 +89,14 @@ Worker SHA256 `e35a8a25f7c1c0911949fd5ad93d98d86ed0fa691b5c7ec58bd136128a259e9b`
 | --- | --- |
 | `LegacyWG-research-0.2.pkg` | `f3ba3c52cec122ccc317459d5afc8d90dcf39c3625babbfeee37f788f98b589b` |
 | `LegacyWG-research-0.2-app.zip` | `fe514cda6242c3d4b85df36d6f2ad28da0a2dfb255d59ff5a7da82d75e3350cd` |
+
+## Текущая проверенная сборка (utun journal)
+
+Native [run 38428112392](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38428112392), source `4600283770206273c9ded5acb960d3131ca491a9`: root-only typed journal с native FD metadata/ACL checks, exclusive lock, canonical bounded records, foreign/reused identity refusal и five SIGKILL checkpoints PASS. Все прежние encrypted peers/20 cycles/DNS/helper crash/path loss/GUI lifecycle/fresh unsigned installer scenarios PASS на Intel macOS15.7.9. Схема охватывает только utun/DNS; physical route/PF journal, GUI/startup recovery, full tunnel, protection, target/signing остаются незавершёнными.
+
+Worker SHA256 `0a41089d252ac766e4842946e97d6cf5a127e805711d9c7b9f70722b5ee0fda7`; 132-file production Go identity, новый binary/source scoped scanner PASS (90/92 findings, только documented Windows-only GO-2026-4971 exclusions). Это не независимый аудит Objective-C, root installation или High Sierra.
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `7d0fbe257a30638b5b9d2ebe518fbb9a9fd0d57c9b6553229d2eb94122f06fab` |
+| `LegacyWG-research-0.2-app.zip` | `885b43d761f965af41ed8add665d6b789554e73265884a972663c0be29ffbcee` |

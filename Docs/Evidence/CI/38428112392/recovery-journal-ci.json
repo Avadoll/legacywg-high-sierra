@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "kind": "native-root-owned-utun-journal",
+  "required_root_tests": [
+    "TestRootACLDescriptor",
+    "TestRootCrashRecovery",
+    "TestRootJournalDurabilityAndExclusiveLock",
+    "TestRootJournalLiveAndReusedInterface",
+    "TestRootJournalRejectsUntrustedFiles"
+  ],
+  "sigkill_checkpoints": 5,
+  "schema": "utun/DNS only; no PF or physical route undo",
+  "high_sierra": "NOT_RUN",
+  "power_loss": "NOT_RUN"
+}
