@@ -1,0 +1,237 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop",
+    "Elapsed": 2.37
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire",
+    "Elapsed": 0.79
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFReferenceEffectCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed",
+    "Elapsed": 0.9
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel",
+    "Elapsed": 1.33
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed",
+    "Elapsed": 1.37
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed",
+    "Elapsed": 1.31
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed",
+    "Elapsed": 1.67
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel",
+    "Elapsed": 1.56
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed",
+    "Elapsed": 1.63
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied",
+    "Elapsed": 1.81
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery",
+    "Elapsed": 11.58
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved",
+    "Elapsed": 1.53
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 16.34
+  }
+]

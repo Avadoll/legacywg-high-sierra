@@ -1,0 +1,10 @@
+{
+  "run_id": 38481414640,
+  "source_commit": "cbe66c0152d51e74e96f81ae3538bfa3c6268f45",
+  "artifact_id": 11858795028,
+  "client_checksums": "PASS",
+  "embedded_source": "PASS",
+  "worker_sha256": "69bfffc86ebd064d47890e454162fe67950e900280df937464191a642025bedc",
+  "archive_sha256": "f77729a74818bc2a9147ec80cc056a4238a64778a221b3a5db4bdf6bc5ac4df1",
+  "bytes_downloaded": 21801609
+}

@@ -1,0 +1,75 @@
+{
+  "conclusion": "success",
+  "headSha": "cbe66c0152d51e74e96f81ae3538bfa3c6268f45",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T22:57:52Z",
+      "conclusion": "success",
+      "databaseId": 115583491995,
+      "name": "native-effects",
+      "startedAt": "2026-10-13T22:56:24Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:56:27Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:56:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:56:31Z",
+          "conclusion": "success",
+          "name": "Check out reviewed coordinator source",
+          "number": 2,
+          "startedAt": "2026-10-13T22:56:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:57:08Z",
+          "conclusion": "success",
+          "name": "Verify pinned source and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-13T22:56:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:57:48Z",
+          "conclusion": "success",
+          "name": "Exercise actual disabled-PF anchor effects and SIGKILL gaps",
+          "number": 4,
+          "startedAt": "2026-10-13T22:57:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:57:49Z",
+          "conclusion": "success",
+          "name": "Save sanitized effect evidence",
+          "number": 5,
+          "startedAt": "2026-10-13T22:57:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:57:50Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed coordinator source",
+          "number": 10,
+          "startedAt": "2026-10-13T22:57:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:57:50Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-13T22:57:50Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38481064418/job/115583491995"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38481064418"
+}

@@ -1,0 +1,33 @@
+{
+  "server_traffic" : "NOT_RUN",
+  "schema_version" : 1,
+  "source_commit" : "cbe66c0152d51e74e96f81ae3538bfa3c6268f45",
+  "status" : "PASS",
+  "native_utun" : "NOT_RUN",
+  "signed_for_distribution" : false,
+  "architecture" : "x86_64",
+  "os_build" : "24G830",
+  "handshake" : "NOT_RUN",
+  "target_high_sierra" : false,
+  "vpn_ready" : false,
+  "os_version" : "15.7.9",
+  "engines" : {
+    "baseline" : {
+      "status" : "PASS",
+      "commit" : "f333402bd9cbe0f3eeb02507bd14e23d7d639280",
+      "timed_out" : false,
+      "output" : "wireguard-go v0.0.20250522\n\nUserspace WireGuard daemon for darwin-amd64.\nInformation available at https:\/\/www.wireguard.com.\nCopyright (C) Jason A. Donenfeld <Jason@zx2c4.com>.\n",
+      "exit_code" : 0,
+      "sha256" : "7a117ae5ccf909a8d6864d1251d9aefc916994916298d8f2a0f5c7f1455ce8bc"
+    },
+    "candidate" : {
+      "status" : "PASS",
+      "commit" : "2631ce99a06f27120d581611cf125d68bc6aa565",
+      "timed_out" : false,
+      "output" : "wireguard-go v0.0.20250522\n\nUserspace WireGuard daemon for darwin-amd64.\nInformation available at https:\/\/www.wireguard.com.\nCopyright (C) Jason A. Donenfeld <Jason@zx2c4.com>.\n",
+      "exit_code" : 0,
+      "sha256" : "702717e4dea9894a7abb1d943841cb6deca326f7b44c762ef462b4bd100c4a63"
+    }
+  },
+  "kind" : "platform-probe"
+}

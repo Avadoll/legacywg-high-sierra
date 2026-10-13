@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "kind": "native-root-owned-PF-metadata-journal",
+  "source_commit": "cbe66c0152d51e74e96f81ae3538bfa3c6268f45",
+  "required_root_tests": [
+    "TestRootPFJournalCancellationAndRuleGenerations",
+    "TestRootPFJournalCrashPreservesUnknownEffects",
+    "TestRootPFJournalDurabilityAndPreservation",
+    "TestRootPFJournalRejectsUnsafeFiles",
+    "TestRootPFJournalUpdateCrashPreservesBothCandidates"
+  ],
+  "sigkill_checkpoints": 8,
+  "record_version": 2,
+  "kernel_pf_effects": "NOT_RUN",
+  "pre_reference_cancellation": "PASS",
+  "durable_rule_generation_confirmation_and_rollback": "PASS",
+  "pending_rule_update_crash_preserves_both_candidates": "PASS",
+  "recovery_policy": "refuse and preserve; no automatic PF release or rule removal",
+  "high_sierra": "NOT_RUN",
+  "power_loss": "NOT_RUN",
+  "protection_ready": false
+}
