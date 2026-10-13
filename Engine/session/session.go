@@ -123,7 +123,7 @@ func (session *Session) Start(profile []byte) error {
 		return err
 	}
 	defer clear(configuration.Bytes())
-	engine, network, err := openNative(config, configuration.String())
+	engine, network, err := openNative(config, configuration.String(), endpoints)
 	if err != nil {
 		return err
 	}
@@ -131,12 +131,15 @@ func (session *Session) Start(profile []byte) error {
 	session.peerIndices = peerIndices(configuration.String())
 	session.failure = ""
 	if done := network.dnsDone(); done != nil {
-		go session.watchDNS(network, done)
+		go session.watchNetwork(network, done, "native DNS configuration was lost; tunnel closed")
+	}
+	if done := network.pathDone(); done != nil {
+		go session.watchNetwork(network, done, "endpoint route changed or became unavailable; tunnel closed")
 	}
 	return nil
 }
 
-func (session *Session) watchDNS(network *nativeNetwork, done <-chan struct{}) {
+func (session *Session) watchNetwork(network *nativeNetwork, done <-chan struct{}, reason string) {
 	<-done
 	session.mutex.Lock()
 	defer session.mutex.Unlock()
@@ -145,7 +148,7 @@ func (session *Session) watchDNS(network *nativeNetwork, done <-chan struct{}) {
 	}
 	session.engine.Close()
 	session.engine = nil
-	session.failure = "native DNS configuration was lost; tunnel closed"
+	session.failure = reason
 	if network.close() == nil {
 		session.network = nil
 		session.peers = 0

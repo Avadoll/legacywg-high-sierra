@@ -21,6 +21,7 @@ type nativeNetwork struct {
 	index  int
 	routes []netip.Prefix
 	dns    *dnsProcess
+	path   *pathWatch
 }
 
 func (network *nativeNetwork) name() string    { return network.iface }
@@ -30,6 +31,13 @@ func (network *nativeNetwork) dnsDone() <-chan struct{} {
 		return nil
 	}
 	return network.dns.done
+}
+
+func (network *nativeNetwork) pathDone() <-chan struct{} {
+	if network.path == nil {
+		return nil
+	}
+	return network.path.lost
 }
 
 func nativeCommand(program string, arguments ...string) error {
@@ -53,6 +61,11 @@ func routeFamily(address netip.Addr) string {
 }
 
 func (network *nativeNetwork) close() error {
+	if network.path != nil {
+		if err := network.path.close(); err != nil {
+			return err
+		}
+	}
 	if network.dns != nil {
 		if err := network.dns.close(); err != nil {
 			return err
@@ -90,9 +103,15 @@ func (network *nativeNetwork) close() error {
 	return nil
 }
 
-func openNative(config *configcore.Config, uapi string) (*device.Device, *nativeNetwork, error) {
+func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPort) (*device.Device, *nativeNetwork, error) {
 	if os.Geteuid() != 0 {
 		return nil, nil, errors.New("authorized privileged component required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	paths, err := captureEndpointPaths(ctx, endpoints, nativeEndpointPath)
+	cancel()
+	if err != nil {
+		return nil, nil, err
 	}
 	mtu := int(config.MTU)
 	if mtu == 0 {
@@ -162,5 +181,12 @@ func openNative(config *configcore.Config, uapi string) (*device.Device, *native
 			return fail()
 		}
 	}
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	err = verifyEndpointPaths(ctx, paths, nativeEndpointPath)
+	cancel()
+	if err != nil {
+		return fail()
+	}
+	network.path = startPathWatch(paths, nativeEndpointPath)
 	return engine, network, nil
 }
