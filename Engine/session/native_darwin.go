@@ -49,6 +49,8 @@ func (network *nativeNetwork) finishRecovery() error {
 	return network.journal.Finish()
 }
 
+func reconcileNative() error { return recoverycore.Reconcile() }
+
 func nativeCommand(program string, arguments ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

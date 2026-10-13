@@ -11,6 +11,8 @@ import (
 
 type nativeNetwork struct{}
 
+func reconcileNative() error { return nil }
+
 func (*nativeNetwork) name() string              { return "" }
 func (*nativeNetwork) close() error              { return nil }
 func (*nativeNetwork) dnsActive() bool           { return false }

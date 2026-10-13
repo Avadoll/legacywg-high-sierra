@@ -2,10 +2,25 @@ package session
 
 import (
 	"encoding/base64"
+	"errors"
 	configcore "legacywg/ConfigCore"
+	recoverycore "legacywg/RecoveryCore"
 	"strings"
 	"testing"
 )
+
+func TestRecoveryBlocksBeforeProfileParsing(t *testing.T) {
+	engine := &Session{recoveryRequired: true}
+	// Invalid input would produce a parser error if recovery did not gate it.
+	if err := engine.Start([]byte("private-marker-not-a-profile")); !errors.Is(err, recoverycore.ErrRecoveryRequired) {
+		t.Fatal("recovery did not block before parsing/resolution")
+	}
+	status, err := engine.Status()
+	if err != nil || status.State != "RecoveryRequired" || status.TunnelStarted || status.Protected ||
+		status.Reason != recoverycore.ErrRecoveryRequired.Error() {
+		t.Fatal("recovery status is misleading")
+	}
+}
 
 func splitProfile() string {
 	private, public := make([]byte, 32), make([]byte, 32)

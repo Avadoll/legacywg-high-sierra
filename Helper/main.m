@@ -67,11 +67,15 @@ static BOOL VerifyInstalledBinary(const char *path,const char *policyPath) {
     return result == errSecSuccess;
 }
 
+static BOOL InstalledComponentsValid(void) {
+    return VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-worker",
+            "/Library/Application Support/LegacyWG/Worker.req") &&
+       VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-network",
+            "/Library/Application Support/LegacyWG/Network.req");
+}
+
 static BOOL StartWorker(void) {
-    if(!VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-worker",
-            "/Library/Application Support/LegacyWG/Worker.req") ||
-       !VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-network",
-            "/Library/Application Support/LegacyWG/Network.req"))return NO;
+    if(!InstalledComponentsValid())return NO;
     NSString *workerPath=@"/Library/Application Support/LegacyWG/legacywg-worker";
     worker = [[NSTask alloc] init]; worker.launchPath = workerPath; worker.arguments = @[];
     worker.environment = @{@"PATH": @"/usr/bin:/bin:/usr/sbin:/sbin", @"LANG": @"C"};
@@ -118,6 +122,11 @@ static NSDictionary *HandleRequest(NSData *data, uid_t uid) {
         return @{@"ok": @NO, @"error": @"Unsupported operation"};
     if ([operation isEqualToString:@"health"] && request.count == 2)
         return @{@"ok": @YES, @"version": @1, @"state": @"Available", @"authenticated_uid": @(uid), @"vpn_ready": @NO};
+    BOOL starts=[operation isEqualToString:@"start"] && request.count==3 &&
+        [request[@"profile"] isKindOfClass:NSString.class] &&
+        [request[@"profile"] lengthOfBytesUsingEncoding:NSUTF8StringEncoding]<=256*1024;
+    BOOL controls=request.count==2 && ([@[@"status",@"stop",@"recover"] containsObject:operation]);
+    if(!starts && !controls)return @{@"ok":@NO,@"error":@"Unsupported operation"};
     if (worker && !worker.running) StopWorker();
     if (ownerUID != (uid_t)-1 && ownerUID != uid) return @{@"ok": @NO, @"error": @"Tunnel belongs to another user session"};
     uid_t consoleUID = (uid_t)-1;
@@ -125,21 +134,18 @@ static NSDictionary *HandleRequest(NSData *data, uid_t uid) {
     if (console) CFRelease(console);
     if (consoleUID != uid) return @{@"ok": @NO, @"error": @"Active console user required"};
     lastOwnerMessage = NSProcessInfo.processInfo.systemUptime;
-    if ([operation isEqualToString:@"start"] && request.count == 3 && [request[@"profile"] isKindOfClass:[NSString class]]) {
-        if ([request[@"profile"] lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256*1024 || worker)
-            return @{@"ok": @NO, @"error": @"Profile too large or tunnel already active"};
-        if (!StartWorker()) return @{@"ok": @NO, @"error": @"Installed engine integrity check failed"};
-        NSDictionary *reply = WorkerRequest(request);
-        if (![reply[@"ok"] isEqual:@YES]) StopWorker(); else ownerUID = uid;
-        return reply;
+    // Status must inspect owned recovery state even after a process crash.
+    // A verified idle worker may subsequently handle Start; the session owns
+    // the active-tunnel check rather than inferring it from process presence.
+    if((starts || [operation isEqualToString:@"recover"]) && !InstalledComponentsValid())
+        return @{@"ok":@NO,@"error":@"Installed engine integrity check failed"};
+    if(!worker) {
+        if(!StartWorker())return @{@"ok":@NO,@"error":@"Installed engine integrity check failed"};
+        ownerUID=uid;
     }
-    if ([operation isEqualToString:@"stop"] && request.count == 2) {
-        NSDictionary *reply = worker ? WorkerRequest(request) : @{@"ok": @YES};
-        StopWorker(); return reply;
-    }
-    if ([operation isEqualToString:@"status"] && request.count == 2)
-        return worker ? WorkerRequest(request) : @{@"ok": @YES, @"status": @{@"state": @"Disconnected", @"protected": @NO}};
-    return @{@"ok": @NO, @"error": @"Unsupported operation"};
+    NSDictionary *reply=WorkerRequest(request);
+    if([operation isEqualToString:@"stop"] && [reply[@"ok"] isEqual:@YES])StopWorker();
+    return reply;
 }
 
 int main(void) {

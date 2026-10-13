@@ -53,6 +53,75 @@ def cleanup_recovery_directory() -> None:
     run(['/usr/bin/sudo','-n','/bin/rmdir',str(state)])
 
 
+def test_public_journal_recovery(client: Path, requirement: str) -> dict:
+    # The enclosing test owns this fresh disposable installation. None of
+    # these fixtures are installed on the user's Mac or shipped in the app.
+    state=POLICY_DIR/'State'
+    if state.exists():raise RuntimeError('Recovery fixture directory already exists')
+    interfaces=run(['/sbin/ifconfig','-l'])
+    def request(op: str, profile: str | None=None, ok: bool=True) -> dict:
+        result=subprocess.run([str(client),requirement,op],input=profile,
+            capture_output=True,text=True,timeout=25)
+        reply=json.loads(result.stdout)
+        assert reply['ok'] is ok and result.returncode==(0 if ok else 1)
+        return reply
+    def restart() -> None:
+        run(['/usr/bin/sudo','-n','/bin/launchctl','bootout','system/'+SERVICE])
+        # Avoid racing the old verified idle worker after helper pipe EOF.
+        deadline=time.monotonic()+5
+        while time.monotonic()<deadline:
+            old=subprocess.run(['/usr/bin/sudo','-n','/usr/bin/pgrep','-f',
+                '^/Library/Application Support/LegacyWG/legacywg-worker$'],capture_output=True)
+            if old.returncode==1:break
+            if old.returncode!=0:raise RuntimeError('Worker absence check failed')
+            time.sleep(0.05)
+        else:raise RuntimeError('Previous fixture worker remains live')
+        run(['/usr/bin/sudo','-n','/bin/launchctl','bootstrap','system',str(PLIST)])
+    clean=request('status')
+    assert clean['status']['state']=='Disconnected' and not state.exists()
+    # Stop the idle worker before inserting the owned startup crash fixture.
+    restart()
+    run(['/usr/bin/sudo','-n','/usr/bin/install','-d','-o','root','-g','wheel','-m','0700',str(state)])
+    marker=b'owned-corrupt-journal-fixture\n'
+    fixture=TEST/'owned-journal-fixture'
+    fixture.write_bytes(marker)
+    fixture.chmod(0o600)
+    run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0600',
+         str(fixture),str(state/'utun.json')])
+    startup=request('status')
+    assert startup['status']['state']=='RecoveryRequired' and startup['status']['tunnel_started'] is False
+    profile='[Interface]\nPrivateKey='+base64.b64encode(os.urandom(32)).decode()+\
+        '\nAddress=198.18.0.1/32\n[Peer]\nPublicKey='+base64.b64encode(os.urandom(32)).decode()+\
+        '\nEndpoint=blocked-journal.test:51820\nAllowedIPs=198.18.0.2/32\n'
+    for op in ('start','recover','stop'):
+        denied=request(op,profile if op=='start' else None,False)
+        assert denied['error']=='owned network recovery requires attention'
+        assert denied['status']['state']=='RecoveryRequired'
+        assert 'owned-corrupt-journal-fixture' not in json.dumps(denied)
+        assert run(['/usr/bin/sudo','-n','/bin/cat',str(state/'utun.json')]).encode()==marker
+    # Remove only the exact corrupt fixture created by this developer test.
+    # Production recovery refused to remove it; there is no public force flag.
+    run(['/usr/bin/sudo','-n','/bin/rm','-f',str(state/'utun.json')])
+    for _ in range(2):assert request('recover')['status']['state']=='Disconnected'
+    assert run(['/usr/bin/sudo','-n','/bin/ls','-A',str(state)]).strip()=='lock'
+    restart()
+    boot=run(['/usr/sbin/sysctl','-n','kern.bootsessionuuid']).strip().lower()
+    record={'version':1,'id':os.urandom(16).hex(),'boot':boot,'pid':2147483647,'phase':'intent',
+        'interface':'','interface_index':0,'dns_requested':False}
+    fixture.write_text(json.dumps(record,separators=(',',':'))+'\n')
+    run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0600',
+         str(fixture),str(state/'utun.json')])
+    assert request('status')['status']['state']=='Disconnected'
+    assert run(['/usr/bin/sudo','-n','/bin/ls','-A',str(state)]).strip()=='lock'
+    assert run(['/sbin/ifconfig','-l'])==interfaces
+    assert request('stop')['status']['state']=='Disconnected'
+    fixture.unlink()
+    return {'startup_corrupt_journal':'PASS','blocked_start_recover_stop':'PASS',
+        'ambiguous_record_preserved':'PASS','explicit_recovery_idempotent':'PASS',
+        'startup_stale_journal_cleanup':'PASS','no_connection_intent_or_interface_created':'PASS',
+        'high_sierra':'NOT_RUN'}
+
+
 def main() -> None:
     if os.uname().sysname != 'Darwin' or os.uname().machine != 'x86_64':
         raise SystemExit('Requires the authorized Intel macOS CI host')
@@ -122,6 +191,9 @@ def main() -> None:
         spoofed = subprocess.run([str(allowed), 'identifier "org.legacywg.wrong-server"'], capture_output=True, text=True, timeout=20)
         assert spoofed.returncode == 1 and json.loads(spoofed.stdout)['ok'] is False
         results['wrong_server_requirement'] = 'PASS'
+        rejected_recovery=subprocess.run([str(rejected),helper_requirement,'recover'],capture_output=True,text=True,timeout=20)
+        assert rejected_recovery.returncode==1 and json.loads(rejected_recovery.stdout)['error']=='Unauthorized client'
+        results['unauthorized_recovery_refused']='PASS'
         if (client_build/'legacywg-network').exists():
             # Same component identifier is insufficient: the helper must
             # reject a substituted root component before launching a worker.
@@ -146,6 +218,9 @@ def main() -> None:
                 run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',
                      str(client_build/'legacywg-network'),str(POLICY_DIR/'legacywg-network')])
         if (client_build/'peercheck').exists():
+            recovery=test_public_journal_recovery(allowed,helper_requirement)
+            (OUT/'public-recovery-ci.json').write_text(json.dumps({'status':'PASS',**recovery},indent=2)+'\n')
+            results['public_startup_and_explicit_journal_recovery']='PASS'
             peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement,str(client_build/'dns-probe')],timeout=180)
             report=json.loads(peer_result)
             assert report['status']=='PASS'

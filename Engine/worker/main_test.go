@@ -18,3 +18,16 @@ func TestPrivateProtocolRejectsUnknownAndTrailingData(t *testing.T) {
 		}
 	}
 }
+
+func TestRecoveryProtocolRejectsCallerSuppliedUndo(t *testing.T) {
+	for _, message := range []string{
+		`{"version":1,"op":"recover","path":"private-marker"}`,
+		`{"version":1,"op":"recover","profile":"private-marker"}`,
+		`{"version":1,"op":"recover","command":"private-marker"}`,
+	} {
+		data, err := json.Marshal(handle(&session.Session{}, []byte(message)))
+		if err != nil || !strings.Contains(string(data), `"ok":false`) || strings.Contains(string(data), "private-marker") {
+			t.Fatal("caller supplied recovery data accepted or echoed")
+		}
+	}
+}

@@ -80,8 +80,9 @@ func physicalRoute(address netip.Addr) (string, error) {
 }
 
 type checkOptions struct {
-	hostname  bool
-	routeLoss bool
+	hostname     bool
+	routeLoss    bool
+	recoveryTest bool
 }
 
 func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool, options ...checkOptions) error {
@@ -225,6 +226,18 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			call(client, requirement, "stop", "")
 		}
 	}()
+	if settings.recoveryTest {
+		data, failure := exec.Command(client, requirement, "recover").Output()
+		var refused map[string]any
+		if failure == nil || json.Unmarshal(data, &refused) != nil || refused["ok"] != false ||
+			refused["error"] != "disconnect required before recovery" {
+			return errors.New("recovery did not refuse an active tunnel")
+		}
+		state, ok := refused["status"].(map[string]any)
+		if !ok || state["tunnel_started"] != true || (state["state"] != "Connecting" && state["state"] != "Connected") {
+			return errors.New("active tunnel state was lost by recovery refusal")
+		}
+	}
 	socket, err := net.DialUDP(udpFamily, nil, &net.UDPAddr{IP: net.IP(serverIP.AsSlice()), Port: 54321})
 	if err != nil {
 		return errors.New("native client UDP socket failed")
@@ -357,7 +370,7 @@ func main() {
 	}
 	started := time.Now()
 	for cycle := 0; cycle < 21; cycle++ {
-		if err := check(os.Args[1], os.Args[2], cycle == 20, "", "", false, false); err != nil {
+		if err := check(os.Args[1], os.Args[2], cycle == 20, "", "", false, false, checkOptions{recoveryTest: cycle == 0}); err != nil {
 			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "cycle": cycle + 1, "reason": err.Error()})
 			os.Exit(1)
 		}
@@ -395,10 +408,11 @@ func main() {
 		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
 		"dns_agent_crash_recovery": "PASS", "foreign_dns_restoration": "PASS",
 		"ipv6_encrypted_split": "PASS", "ipv6_endpoint": "PASS", "ipv6_dns_transport_udp_tcp": "PASS",
-		"dual_stack_encrypted_split":              "PASS",
-		"localhost_endpoint_encrypted_split":      "PASS",
-		"multi_peer_encrypted_routing_and_status": "PASS",
-		"endpoint_route_loss_closes_tunnel":       "PASS",
-		"owned_outer_interface_cleanup":           "PASS",
-		"external_server":                         "NOT_RUN", "high_sierra": "NOT_RUN"})
+		"dual_stack_encrypted_split":                  "PASS",
+		"localhost_endpoint_encrypted_split":          "PASS",
+		"multi_peer_encrypted_routing_and_status":     "PASS",
+		"endpoint_route_loss_closes_tunnel":           "PASS",
+		"owned_outer_interface_cleanup":               "PASS",
+		"recovery_refusal_preserves_encrypted_tunnel": "PASS",
+		"external_server":                             "NOT_RUN", "high_sierra": "NOT_RUN"})
 }

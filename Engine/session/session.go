@@ -12,6 +12,7 @@ import (
 	"golang.zx2c4.com/wireguard/device"
 	configcore "legacywg/ConfigCore"
 	networkcore "legacywg/NetworkCore"
+	recoverycore "legacywg/RecoveryCore"
 )
 
 type Status struct {
@@ -29,12 +30,23 @@ type Status struct {
 }
 
 type Session struct {
-	mutex       sync.Mutex
-	engine      *device.Device
-	network     *nativeNetwork
-	peers       int
-	failure     string
-	peerIndices map[string]int
+	mutex            sync.Mutex
+	engine           *device.Device
+	network          *nativeNetwork
+	peers            int
+	failure          string
+	recoveryRequired bool
+	peerIndices      map[string]int
+}
+
+// Initialize is called by the private worker before processing requests.
+// It never creates a tunnel or profile and preserves ambiguous owned records.
+func (session *Session) Initialize() {
+	session.mutex.Lock()
+	defer session.mutex.Unlock()
+	if session.engine == nil && session.network == nil {
+		session.recoveryRequired = reconcileNative() != nil
+	}
 }
 
 func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
@@ -103,6 +115,9 @@ func (session *Session) Start(profile []byte) error {
 	if session.engine != nil || session.network != nil {
 		return errors.New("a tunnel is already active")
 	}
+	if session.recoveryRequired {
+		return recoverycore.ErrRecoveryRequired
+	}
 	config, err := configcore.Parse(profile)
 	if err != nil {
 		return err
@@ -125,11 +140,15 @@ func (session *Session) Start(profile []byte) error {
 	defer clear(configuration.Bytes())
 	engine, network, err := openNative(config, configuration.String(), endpoints)
 	if err != nil {
+		if errors.Is(err, recoverycore.ErrRecoveryRequired) {
+			session.recoveryRequired = true
+		}
 		return err
 	}
 	session.engine, session.network, session.peers = engine, network, len(config.Peers)
 	session.peerIndices = peerIndices(configuration.String())
 	session.failure = ""
+	session.recoveryRequired = false
 	if done := network.dnsDone(); done != nil {
 		go session.watchNetwork(network, done, "native DNS configuration was lost; tunnel closed")
 	}
@@ -159,6 +178,22 @@ func (session *Session) watchNetwork(network *nativeNetwork, done <-chan struct{
 func (session *Session) Stop() error {
 	session.mutex.Lock()
 	defer session.mutex.Unlock()
+	return session.stopLocked()
+}
+
+// Recover refuses to stop a live connection implicitly. Explicit Disconnect
+// retains its own semantics; recovery only completes an interrupted cleanup.
+func (session *Session) Recover() error {
+	session.mutex.Lock()
+	defer session.mutex.Unlock()
+	if session.engine != nil {
+		return errors.New("disconnect required before recovery")
+	}
+	session.recoveryRequired = true
+	return session.stopLocked()
+}
+
+func (session *Session) stopLocked() error {
 	var cleanupError error
 	if session.network != nil {
 		cleanupError = session.network.close()
@@ -174,9 +209,14 @@ func (session *Session) Stop() error {
 		cleanupError = session.network.finishRecovery()
 	}
 	if cleanupError != nil {
+		session.recoveryRequired = true
 		return cleanupError
 	}
 	session.network = nil
+	if session.recoveryRequired && reconcileNative() != nil {
+		return recoverycore.ErrRecoveryRequired
+	}
+	session.recoveryRequired = false
 	session.peers = 0
 	session.peerIndices = nil
 	session.failure = ""
@@ -188,8 +228,9 @@ func (session *Session) Status() (Status, error) {
 	defer session.mutex.Unlock()
 	result := Status{State: "Disconnected"}
 	if session.engine == nil {
-		if session.network != nil {
+		if session.network != nil || session.recoveryRequired {
 			result.State = "RecoveryRequired"
+			result.Reason = recoverycore.ErrRecoveryRequired.Error()
 		} else if session.failure != "" {
 			result.State = "Error"
 			result.Reason = session.failure

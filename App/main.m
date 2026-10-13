@@ -75,15 +75,18 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @property(nonatomic,strong) NSTextField *details;
 @property(nonatomic,strong) NSButton *connect;
 @property(nonatomic,strong) NSButton *disconnect;
+@property(nonatomic,strong) NSButton *recover;
 @property(nonatomic,strong) NSArray<NSDictionary *> *profiles;
 @property(nonatomic,strong) NSTimer *timer;
 @property(nonatomic) BOOL busy;
 @property(nonatomic) BOOL tunnelActive;
+@property(nonatomic) BOOL recoveryRequired;
 @property(nonatomic,strong) NSStatusItem *statusItem;
 @property(nonatomic,strong) NSMenuItem *menuState;
 @property(nonatomic,strong) NSMenuItem *menuProfile;
 @property(nonatomic,strong) NSMenuItem *menuConnect;
 @property(nonatomic,strong) NSMenuItem *menuDisconnect;
+@property(nonatomic,strong) NSMenuItem *menuRecover;
 @property(nonatomic,copy) NSString *activeProfileName;
 @property(nonatomic,copy) NSString *activeProfileIdentifier;
 @property(nonatomic) BOOL quitting;
@@ -127,6 +130,11 @@ static NSDictionary *ValidateProfile(NSData *data) {
     rename.title=@"Переименовать…";rename.bezelStyle=NSBezelStyleRounded;
     rename.target=self;rename.action=@selector(renameProfile:);[rename setAccessibilityLabel:rename.title];
     [self.window.contentView addSubview:rename];
+    self.recover=[[NSButton alloc] initWithFrame:NSMakeRect(510,110,190,28)];
+    self.recover.title=@"Восстановить сеть…";self.recover.bezelStyle=NSBezelStyleRounded;
+    self.recover.target=self;self.recover.action=@selector(recoverNetwork:);self.recover.enabled=NO;
+    [self.recover setAccessibilityLabel:self.recover.title];
+    [self.window.contentView addSubview:self.recover];
     self.timer=[NSTimer timerWithTimeInterval:2 target:self selector:@selector(refreshStatus:) userInfo:nil repeats:YES];
     [NSRunLoop.mainRunLoop addTimer:self.timer forMode:NSRunLoopCommonModes];
     NSMenu *menu=[[NSMenu alloc] initWithTitle:@"Main"], *submenu=[[NSMenu alloc] initWithTitle:@"LegacyWG"];
@@ -146,6 +154,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSMenuItem *open=[statusMenu addItemWithTitle:@"Открыть окно" action:@selector(openWindow:) keyEquivalent:@""];open.target=self;
     self.menuConnect=[statusMenu addItemWithTitle:@"Подключить" action:@selector(connectProfile:) keyEquivalent:@""];self.menuConnect.target=self;
     self.menuDisconnect=[statusMenu addItemWithTitle:@"Отключить" action:@selector(disconnectProfile:) keyEquivalent:@""];self.menuDisconnect.target=self;
+    self.menuRecover=[statusMenu addItemWithTitle:@"Восстановить сеть…" action:@selector(recoverNetwork:) keyEquivalent:@""];self.menuRecover.target=self;
     [statusMenu addItem:NSMenuItem.separatorItem];
     NSMenuItem *quit=[statusMenu addItemWithTitle:@"Выйти" action:@selector(terminate:) keyEquivalent:@"q"];quit.target=NSApp;
     self.statusItem.menu=statusMenu;
@@ -161,8 +170,9 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSDictionary *selected=[self selectedProfile];
     NSString *name=self.tunnelActive ? self.activeProfileName : selected[@"name"];
     self.menuProfile.title=name.length ? name : @"Профиль не выбран";
-    self.menuConnect.enabled=!self.busy && !self.tunnelActive && selected!=nil;
+    self.menuConnect.enabled=!self.busy && self.connect.enabled && selected!=nil;
     self.menuDisconnect.enabled=!self.busy && self.tunnelActive;
+    self.menuRecover.enabled=!self.busy && self.recoveryRequired;
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView { (void)tableView; return (NSInteger)self.profiles.count; }
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)column row:(NSInteger)row {
@@ -267,11 +277,17 @@ static NSDictionary *ValidateProfile(NSData *data) {
     });
 }
 - (void)showReply:(NSDictionary *)reply {
-    if(![reply[@"ok"] isEqual:@YES]) { self.state.stringValue=@"Нет подтверждения подключения"; self.details.stringValue=reply[@"error"] ?: @"Ошибка компонента"; return; }
     NSDictionary *status=reply[@"status"];
-    if(![status isKindOfClass:[NSDictionary class]])return;
-    NSString *state=status[@"state"];
+    NSString *state=[status isKindOfClass:NSDictionary.class] ? status[@"state"] : nil;
+    if(![state isKindOfClass:NSString.class] ||
+       ![@[@"Disconnected",@"Connecting",@"Connected",@"RecoveryRequired",@"Error"] containsObject:state]) {
+        self.state.stringValue=@"Состояние не подтверждено";
+        self.details.stringValue=[reply[@"error"] isKindOfClass:NSString.class] ? reply[@"error"] : @"Не удалось получить состояние сетевого компонента. Повторите проверку.";
+        self.connect.enabled=NO;
+        return;
+    }
     self.tunnelActive=[state isEqual:@"Connected"] || [state isEqual:@"Connecting"];
+    self.recoveryRequired=[state isEqual:@"RecoveryRequired"];
     self.state.stringValue=[state isEqual:@"Connected"] ? @"Handshake получен" :
         [state isEqual:@"Connecting"] ? @"Ожидание handshake…" : [state isEqual:@"RecoveryRequired"] ? @"Нужно восстановление сети" : [state isEqual:@"Error"] ? @"Соединение остановлено" : @"Не подключено";
     NSUInteger handshakes=0;
@@ -279,13 +295,18 @@ static NSDictionary *ValidateProfile(NSData *data) {
         for(NSDictionary *peer in status[@"peer_details"])
             if([peer[@"last_handshake_unix"] doubleValue]>0)handshakes++;
     self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"Туннель запущен: %@\nПоследний handshake: %@\nPeers с handshake: %lu из %@\nПолучено: %@ байт; отправлено: %@ байт\nDNS профиля: %@\nSplit tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",HandshakeDate(status[@"last_handshake_unix"]),(unsigned long)handshakes,status[@"peers"] ?: @0,status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
-        [state isEqual:@"Error"] ? @"DNS-компонент потерял настройки или завершился. Туннель закрыт; можно подключиться снова." : @"Выберите профиль для подключения.";
-    self.connect.enabled=!self.tunnelActive; self.disconnect.enabled=self.tunnelActive;
-    self.statusItem.button.title=self.tunnelActive ? @"WG •" : @"WG";
+        self.recoveryRequired ? @"Компонент не подтвердил восстановление прежних настроек. Подключение недоступно. Повторите безопасную проверку кнопкой «Восстановить сеть…»." :
+        [state isEqual:@"Error"] ? ([status[@"reason"] isEqual:@"endpoint route changed or became unavailable; tunnel closed"] ?
+            @"Изменился маршрут до сервера. Туннель закрыт; можно подключиться снова." : @"Сетевой компонент завершил туннель. Можно подключиться снова.") : @"Выберите профиль для подключения.";
+    if(![reply[@"ok"] isEqual:@YES] && !self.recoveryRequired && [reply[@"error"] isKindOfClass:NSString.class])
+        self.details.stringValue=reply[@"error"];
+    self.connect.enabled=!self.tunnelActive && !self.recoveryRequired;
+    self.disconnect.enabled=self.tunnelActive;self.recover.enabled=self.recoveryRequired;
+    self.statusItem.button.title=self.tunnelActive ? @"WG •" : self.recoveryRequired ? @"WG !" : @"WG";
     self.statusItem.button.toolTip=[@"LegacyWG — " stringByAppendingString:self.state.stringValue];
 }
 - (void)connectProfile:(id)sender {
-    (void)sender; NSDictionary *profile=[self selectedProfile];if(!profile || self.busy)return;
+    (void)sender; NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || !self.connect.enabled)return;
     NSError *error=nil;NSData *data=LWReadProfile(profile[@"id"],&error);
     if(!data){[self alert:error.localizedDescription];return;}
     NSString *text=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -295,12 +316,31 @@ static NSDictionary *ValidateProfile(NSData *data) {
     [self performRequest:@{@"version":@1,@"op":@"start",@"profile":text}];
 }
 - (void)disconnectProfile:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"stop"}]; }
+- (void)recoverNetwork:(id)sender {
+    (void)sender;if(self.busy || self.quitting || !self.recoveryRequired)return;
+    [self openWindow:nil];self.busy=YES;
+    NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Восстановить обычную сеть?";
+    alert.informativeText=@"Приложение попробует завершить восстановление собственных изменений. Если трафик блокировался, обычная сеть снова станет доступна. VPN не подключится автоматически.";
+    [alert addButtonWithTitle:@"Восстановить"];[alert addButtonWithTitle:@"Отмена"];
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        self.busy=NO;
+        if(response==NSAlertFirstButtonReturn)[self performRequest:@{@"version":@1,@"op":@"recover"}];
+    }];
+}
 - (void)refreshStatus:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"status"}]; }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
     (void)application;
     if(self.quitting)return NSTerminateLater;
     if(self.busy){[self openWindow:nil];[self alert:@"Дождитесь завершения текущей операции перед выходом."];return NSTerminateCancel;}
-    if(!self.tunnelActive){[self.timer invalidate];return NSTerminateNow;}
+    if(!self.tunnelActive){
+        if(self.recoveryRequired) {
+            NSAlert *warning=[[NSAlert alloc] init];warning.messageText=@"Восстановление сети не подтверждено";
+            warning.informativeText=@"Закрытие программы не означает, что сеть восстановлена. Выйти сейчас?";
+            [warning addButtonWithTitle:@"Выйти"];[warning addButtonWithTitle:@"Отмена"];
+            if([warning runModal]!=NSAlertFirstButtonReturn)return NSTerminateCancel;
+        }
+        [self.timer invalidate];return NSTerminateNow;
+    }
     NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Отключить туннель и выйти?";
     alert.informativeText=@"После отключения трафик снова использует обычную сеть.";
     [alert addButtonWithTitle:@"Отключить и выйти"];[alert addButtonWithTitle:@"Отмена"];
@@ -336,10 +376,20 @@ static int UILayoutTest(void) {
     controller.busy=NO;
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
     [controller menuNeedsUpdate:controller.statusItem.menu];
-    BOOL menu=controller.statusItem.menu.numberOfItems==8 && controller.menuConnect.enabled &&
+    BOOL menu=controller.statusItem.menu.numberOfItems==9 && controller.menuConnect.enabled &&
         !controller.menuDisconnect.enabled && ![controller applicationShouldTerminateAfterLastWindowClosed:NSApp];
+    [controller showReply:@{@"ok":@NO,@"error":@"owned network recovery requires attention",
+        @"status":@{@"state":@"RecoveryRequired",@"protected":@NO}}];
+    [controller menuNeedsUpdate:controller.statusItem.menu];
+    BOOL recovery=controller.recoveryRequired && !controller.tunnelActive && !controller.connect.enabled &&
+        controller.recover.enabled && controller.menuRecover.enabled && !controller.menuConnect.enabled &&
+        [controller.state.stringValue isEqual:@"Нужно восстановление сети"];
+    [controller showReply:@{@"ok":@NO,@"error":@"Unavailable"}];
+    BOOL unknown=!controller.connect.enabled && controller.recoveryRequired;
+    [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
+    recovery=recovery && unknown && !controller.recoveryRequired && !controller.recover.enabled;
     BOOL bounds=YES;
-    for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect])
+    for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect,controller.recover])
         bounds=bounds && NSContainsRect(controller.window.contentView.bounds,view.frame);
     controller.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameAqua];
     [controller.window.contentView layoutSubtreeIfNeeded];
@@ -373,9 +423,10 @@ static int UILayoutTest(void) {
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
-    BOOL passed=menu && bounds && saved && labelPixels>30;
+    BOOL passed=menu && recovery && bounds && saved && labelPixels>30;
     NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
+        @"recovery_controls_and_unknown_state":@(recovery),
         @"screenshot_saved":@(saved),@"notice_label_pixels":@(labelPixels),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
     [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
 }

@@ -77,6 +77,44 @@ func TestRootACLDescriptor(t *testing.T) {
 	}
 }
 
+func TestRootReconcileWithoutIntent(t *testing.T) {
+	path := ownedTestDirectory(t)
+	store, err := directoryStore(t, path)
+	if err != nil {
+		t.Fatal("reconcile fixture open failed")
+	}
+	defer store.Close()
+	if store.reconcile() != nil || store.reconcile() != nil {
+		t.Fatal("clean reconcile failed")
+	}
+	if _, err := os.Lstat(filepath.Join(path, journalFile)); !os.IsNotExist(err) {
+		t.Fatal("reconcile created connection intent")
+	}
+	record, _ := NewRecord(testBoot)
+	data, _ := Encode(record)
+	if os.WriteFile(filepath.Join(path, journalFile), data, 0600) != nil {
+		t.Fatal("live fixture failed")
+	}
+	if store.reconcile() == nil {
+		t.Fatal("live recorded process reclaimed")
+	}
+	after, err := os.ReadFile(filepath.Join(path, journalFile))
+	if err != nil || string(after) != string(data) {
+		t.Fatal("live record changed")
+	}
+	record.PID = 2147483647
+	data, _ = Encode(record)
+	if os.WriteFile(filepath.Join(path, journalFile), data, 0600) != nil {
+		t.Fatal("stale fixture failed")
+	}
+	if store.reconcile() != nil || store.reconcile() != nil {
+		t.Fatal("stale reconciliation failed")
+	}
+	if _, err := os.Lstat(filepath.Join(path, journalFile)); !os.IsNotExist(err) {
+		t.Fatal("stale record remains or new intent created")
+	}
+}
+
 func TestRootJournalDurabilityAndExclusiveLock(t *testing.T) {
 	path := ownedTestDirectory(t)
 	store, err := directoryStore(t, path)

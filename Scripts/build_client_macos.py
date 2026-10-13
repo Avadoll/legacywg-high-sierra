@@ -33,7 +33,7 @@ def main() -> None:
         '/usr/bin/sudo -n /usr/bin/env LEGACYWG_ACL_TEST_HELPER='+str(acl_probe),'./RecoveryCore'],timeout=120)
     (OUT/'recovery-journal-tests.txt').write_text(journal_tests)
     events=[json.loads(line) for line in journal_tests.splitlines() if line.strip()]
-    required={'TestRootACLDescriptor','TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
+    required={'TestRootACLDescriptor','TestRootReconcileWithoutIntent','TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
               'TestRootJournalLiveAndReusedInterface','TestRootCrashRecovery'}
     checkpoints={'TestRootCrashRecovery/'+stage for stage in
         ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}

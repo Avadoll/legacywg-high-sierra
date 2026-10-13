@@ -35,6 +35,40 @@ type Store struct {
 // Begin opens the fixed root-owned directory, exclusively locks it, refuses
 // ambiguous recovery and durably saves an intent before utun creation.
 func Begin() (*Store, error) {
+	store, err := openFixedStore(true)
+	if err != nil {
+		return nil, ErrRecoveryRequired
+	}
+	if err = store.begin(); err != nil {
+		store.Close()
+		return nil, ErrRecoveryRequired
+	}
+	return store, nil
+}
+
+// Reconcile examines the fixed owned journal without creating a connection
+// intent. Missing State is a clean result. It only removes verified stale
+// documents, never kernel interfaces/routes, DNS preferences or PF state.
+func Reconcile() error {
+	store, err := openFixedStore(false)
+	if err != nil {
+		return ErrRecoveryRequired
+	}
+	if store == nil {
+		return nil
+	}
+	defer store.Close()
+	return store.reconcile()
+}
+
+func (store *Store) reconcile() error {
+	if store.closed || store.recover() != nil || fullSync(store.lock) != nil {
+		return ErrRecoveryRequired
+	}
+	return nil
+}
+
+func openFixedStore(create bool) (*Store, error) {
 	if os.Geteuid() != 0 {
 		return nil, ErrRecoveryRequired
 	}
@@ -63,22 +97,23 @@ func Begin() (*Store, error) {
 			return nil, ErrRecoveryRequired
 		}
 	}
-	if err = unix.Mkdirat(parent, "State", 0700); err != nil && err != unix.EEXIST {
-		unix.Close(parent)
-		return nil, ErrRecoveryRequired
+	if create {
+		if err = unix.Mkdirat(parent, "State", 0700); err != nil && err != unix.EEXIST {
+			unix.Close(parent)
+			return nil, ErrRecoveryRequired
+		}
 	}
 	directory, err := unix.Openat(parent, "State", unix.O_RDONLY|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
 	unix.Close(parent)
+	if !create && err == unix.ENOENT {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, ErrRecoveryRequired
 	}
 	store, err := openDirectory(directory, boot)
 	if err != nil {
 		unix.Close(directory)
-		return nil, ErrRecoveryRequired
-	}
-	if err = store.begin(); err != nil {
-		store.Close()
 		return nil, ErrRecoveryRequired
 	}
 	return store, nil

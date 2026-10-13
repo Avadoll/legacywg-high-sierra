@@ -58,11 +58,17 @@ func handle(engine *session.Session, input []byte) any {
 		err = engine.Start(profile)
 	case "stop":
 		err = engine.Stop()
+	case "recover":
+		err = engine.Recover()
 	case "status":
 	default:
 		err = fmt.Errorf("unsupported private operation")
 	}
 	if err != nil {
+		status, statusError := engine.Status()
+		if statusError == nil {
+			return map[string]any{"ok": false, "error": err.Error(), "status": status}
+		}
 		return map[string]any{"ok": false, "error": err.Error()}
 	}
 	status, err := engine.Status()
@@ -95,6 +101,7 @@ func main() {
 	if len(os.Args) != 1 {
 		return
 	}
+	engine.Initialize()
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 4096), 1024*1024)
 	for scanner.Scan() {
