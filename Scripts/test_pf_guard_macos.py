@@ -158,9 +158,9 @@ def capture_counts(path):
 
 def transmit(warm,fresh):
     for _ in range(3):
-        for stream in (warm,fresh):
+        for stream,port in ((warm,WARM),(fresh,FRESH)):
             if stream is not None:
-                try:stream.send(b'LegacyWG-disposable-PF-fixture')
+                try:stream.sendto(b'LegacyWG-disposable-PF-fixture',(DEST,port))
                 except OSError:pass # PF can reject at send; packet capture is the assertion.
         time.sleep(0.08)
 
@@ -204,9 +204,12 @@ def experiment(report):
     write_state(data)
     if pf('-a',data['anchor'],'-s','rules'):raise RuntimeError('owned anchor already occupied')
     warm=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);fresh=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    warm.connect((DEST,WARM));fresh.connect((DEST,FRESH))
+    # Stable source ports retain the same UDP tuple without connected-socket
+    # asynchronous ICMP errors from a deliberately nonexistent benchmark peer.
+    warm.bind(('0.0.0.0',0));fresh.bind(('0.0.0.0',0))
     try:
         baseline=captured(data,iface,'baseline',warm,fresh)
+        report['baseline_packets']={'existing_udp':baseline[WARM],'fresh_udp':baseline[FRESH]}
         if min(baseline.values())<3:raise RuntimeError('synthetic baseline absent from egress capture')
         acquire(data)
         load(data,f'pass out quick on {iface} inet proto udp from any to {DEST} port {WARM} keep state\n')
