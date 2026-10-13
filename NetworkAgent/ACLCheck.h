@@ -1,5 +1,6 @@
 #ifndef LEGACYWG_ACL_CHECK_H
 #define LEGACYWG_ACL_CHECK_H
+#include <stddef.h>
 #include <sys/types.h>
 #include <sys/acl.h>
 #include <errno.h>
