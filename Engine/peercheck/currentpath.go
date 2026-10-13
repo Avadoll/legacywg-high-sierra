@@ -27,20 +27,34 @@ import (
 	configcore "legacywg/ConfigCore"
 )
 
-var currentLocal = netip.MustParseAddr("198.18.100.1")
-var currentOld = netip.MustParseAddr("198.18.100.3")
-var currentNew = netip.MustParseAddr("198.18.100.4")
-var currentInnerClient = netip.MustParseAddr("198.18.81.1")
-var currentInnerServer = netip.MustParseAddr("198.18.81.2")
+type currentAddresses struct {
+	local, old, next, decoy, innerClient, innerServer netip.Addr
+	prefix                                            netip.Prefix
+	family, udp, mode, label                          string
+}
+
+func currentTestAddresses(ipv6 bool) currentAddresses {
+	if ipv6 {
+		return currentAddresses{netip.MustParseAddr("2001:db8:100::1"), netip.MustParseAddr("2001:db8:100::3"), netip.MustParseAddr("2001:db8:100::4"), netip.MustParseAddr("2001:db8:100::9"), netip.MustParseAddr("2001:db8:81::1"), netip.MustParseAddr("2001:db8:81::2"), netip.MustParsePrefix("2001:db8:100::/64"), "-inet6", "udp6", "--current-path-fixture6", "ipv6"}
+	}
+	return currentAddresses{netip.MustParseAddr("198.18.100.1"), netip.MustParseAddr("198.18.100.3"), netip.MustParseAddr("198.18.100.4"), netip.MustParseAddr("198.18.100.9"), netip.MustParseAddr("198.18.81.1"), netip.MustParseAddr("198.18.81.2"), netip.MustParsePrefix("198.18.100.0/24"), "-inet", "udp4", "--current-path-fixture", "ipv4"}
+}
+func currentAssignAddress(name string, address netip.Addr) error {
+	if address.Is6() {
+		return currentCommand("/sbin/ifconfig", name, "inet6", address.String(), "prefixlen", "128", "alias")
+	}
+	return currentCommand("/sbin/ifconfig", name, "inet", address.String(), address.String(), "netmask", "255.255.255.255", "alias")
+}
 
 type currentLease struct {
 	socket net.PacketConn
 	closed atomic.Bool
 }
 type currentServerBind struct {
-	mutex sync.Mutex
-	lease *currentLease
-	stack *netstack.Net
+	addresses currentAddresses
+	mutex     sync.Mutex
+	lease     *currentLease
+	stack     *netstack.Net
 }
 
 var _ conn.Bind = (*currentServerBind)(nil)
@@ -65,9 +79,9 @@ func (bind *currentServerBind) Open(port uint16) ([]conn.ReceiveFunc, uint16, er
 	if bind.lease != nil {
 		return nil, 0, conn.ErrBindAlreadyOpen
 	}
-	address := currentOld
+	address := bind.addresses.old
 	if port == 54328 {
-		address = currentNew
+		address = bind.addresses.next
 	} else if port != 54324 {
 		return nil, 0, errors.New("fixture listener refused")
 	}
@@ -153,6 +167,7 @@ func currentCommand(program string, args ...string) error {
 }
 
 type currentFixture struct {
+	addresses                  currentAddresses
 	outer, stackTun, decoy     tun.Device
 	server                     *device.Device
 	echo                       net.PacketConn
@@ -213,7 +228,7 @@ func (fixture *currentFixture) closeOwned() bool {
 			clean = false
 		}
 	}
-	for i, address := range []netip.Addr{currentOld, currentNew} {
+	for i, address := range []netip.Addr{fixture.addresses.old, fixture.addresses.next} {
 		after, err := physicalRoute(address)
 		if err != nil || after != fixture.before[i] {
 			clean = false
@@ -238,12 +253,13 @@ func (fixture *currentFixture) closeOwned() bool {
 	}
 	return clean
 }
-func createCurrentFixture(private, public string) (*currentFixture, error) {
+func createCurrentFixture(private, public string, ipv6 bool) (*currentFixture, error) {
 	failure := errors.New("current-path fixture setup failed")
-	fixture := &currentFixture{}
+	a := currentTestAddresses(ipv6)
+	fixture := &currentFixture{addresses: a}
 	fail := func() (*currentFixture, error) { fixture.close(); return nil, failure }
 	var err error
-	for i, address := range []netip.Addr{currentOld, currentNew} {
+	for i, address := range []netip.Addr{a.old, a.next} {
 		fixture.before[i], err = physicalRoute(address)
 		if err != nil {
 			return nil, failure
@@ -260,7 +276,7 @@ func createCurrentFixture(private, public string) (*currentFixture, error) {
 		}
 		for _, value := range addresses {
 			prefix, err := netip.ParsePrefix(value.String())
-			if err == nil && prefix.Overlaps(netip.MustParsePrefix("198.18.100.0/24")) {
+			if err == nil && prefix.Overlaps(a.prefix) {
 				return nil, errors.New("current-path benchmark prefix already assigned")
 			}
 		}
@@ -273,14 +289,14 @@ func createCurrentFixture(private, public string) (*currentFixture, error) {
 	if err != nil {
 		return fail()
 	}
-	if currentCommand("/sbin/ifconfig", fixture.name, "inet", currentLocal.String(), currentLocal.String(), "netmask", "255.255.255.255", "alias") != nil {
+	if currentAssignAddress(fixture.name, a.local) != nil {
 		return fail()
 	}
-	if currentCommand("/sbin/route", "-n", "add", "-inet", "-net", "198.18.100.0/24", "-interface", fixture.name) != nil {
+	if currentCommand("/sbin/route", "-n", "add", a.family, "-net", a.prefix.String(), "-interface", fixture.name) != nil {
 		return fail()
 	}
 	var stack *netstack.Net
-	fixture.stackTun, stack, err = netstack.CreateNetTUN([]netip.Addr{currentOld, currentNew}, nil, 1420)
+	fixture.stackTun, stack, err = netstack.CreateNetTUN([]netip.Addr{a.old, a.next}, nil, 1420)
 	if err != nil {
 		return fail()
 	}
@@ -318,12 +334,12 @@ func createCurrentFixture(private, public string) (*currentFixture, error) {
 			}
 		}
 	}()
-	inner, innerStack, err := netstack.CreateNetTUN([]netip.Addr{currentInnerServer}, nil, 1420)
+	inner, innerStack, err := netstack.CreateNetTUN([]netip.Addr{a.innerServer}, nil, 1420)
 	if err != nil {
 		return fail()
 	}
-	fixture.server = device.NewDevice(inner, &currentServerBind{stack: stack}, device.NewLogger(device.LogLevelSilent, ""))
-	profile := "[Interface]\nPrivateKey=" + private + "\nAddress=" + currentInnerServer.String() + "/32\nListenPort=54324\n[Peer]\nPublicKey=" + public + "\nAllowedIPs=" + currentInnerClient.String() + "/32\n"
+	fixture.server = device.NewDevice(inner, &currentServerBind{stack: stack, addresses: a}, device.NewLogger(device.LogLevelSilent, ""))
+	profile := "[Interface]\nPrivateKey=" + private + "\nAddress=" + a.innerServer.String() + "/" + strconv.Itoa(a.innerServer.BitLen()) + "\nListenPort=54324\n[Peer]\nPublicKey=" + public + "\nAllowedIPs=" + a.innerClient.String() + "/" + strconv.Itoa(a.innerServer.BitLen()) + "\n"
 	config, err := configcore.Parse([]byte(profile))
 	if err != nil {
 		return fail()
@@ -342,7 +358,7 @@ func createCurrentFixture(private, public string) (*currentFixture, error) {
 	if fixture.server.IpcSet(buffer.String()) != nil || fixture.server.Up() != nil {
 		return fail()
 	}
-	fixture.echo, err = innerStack.ListenUDPAddrPort(netip.AddrPortFrom(currentInnerServer, 54321))
+	fixture.echo, err = innerStack.ListenUDPAddrPort(netip.AddrPortFrom(a.innerServer, 54321))
 	if err != nil {
 		return fail()
 	}
@@ -375,7 +391,8 @@ func (fixture *currentFixture) conflict() bool {
 	if !fixture.roamed || fixture.decoy != nil {
 		return false
 	}
-	before, err := physicalRoute(currentOld)
+	a := fixture.addresses
+	before, err := physicalRoute(a.old)
 	if err != nil {
 		return false
 	}
@@ -387,7 +404,7 @@ func (fixture *currentFixture) conflict() bool {
 	if err != nil {
 		return false
 	}
-	if currentCommand("/sbin/ifconfig", name, "inet", "198.18.100.9", "198.18.100.9", "netmask", "255.255.255.255", "alias") != nil {
+	if currentAssignAddress(name, a.decoy) != nil {
 		return false
 	}
 	fixture.decoyDone = make(chan struct{})
@@ -401,14 +418,14 @@ func (fixture *currentFixture) conflict() bool {
 			}
 		}
 	}()
-	if currentCommand("/sbin/route", "-n", "add", "-inet", "-net", currentNew.String()+"/32", "-interface", name) != nil {
+	if currentCommand("/sbin/route", "-n", "add", a.family, "-net", netip.PrefixFrom(a.next, a.next.BitLen()).String(), "-interface", name) != nil {
 		return false
 	}
-	after, err := physicalRoute(currentOld)
+	after, err := physicalRoute(a.old)
 	if err != nil || before != after {
 		return false
 	}
-	changed, err := physicalRoute(currentNew)
+	changed, err := physicalRoute(a.next)
 	if err != nil || !strings.Contains(changed, "interface:"+name) {
 		return false
 	}
@@ -416,7 +433,7 @@ func (fixture *currentFixture) conflict() bool {
 	return err == nil && outer.Flags&net.FlagUp != 0
 }
 
-func runCurrentPathFixture() int {
+func runCurrentPathFixture(ipv6 bool) int {
 	if os.Getenv("GITHUB_ACTIONS") != "true" || os.Geteuid() != 0 {
 		return 3
 	}
@@ -454,7 +471,7 @@ func runCurrentPathFixture() int {
 		}
 		clear(data)
 	}
-	fixture, err := createCurrentFixture(init.Private, init.Public)
+	fixture, err := createCurrentFixture(init.Private, init.Public, ipv6)
 	if err != nil {
 		json.NewEncoder(os.Stdout).Encode(map[string]bool{"ok": false})
 		return 1
@@ -494,12 +511,13 @@ func runCurrentPathFixture() int {
 	}
 }
 
-func checkCurrentEndpointRoaming(client, requirement string) (map[string]any, error) {
+func checkCurrentEndpointRoaming(client, requirement string, ipv6 bool) (map[string]any, error) {
 	failure := errors.New("native current endpoint roaming test failed")
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
 		return nil, failure
 	}
-	before, err := physicalRoute(currentInnerServer)
+	a := currentTestAddresses(ipv6)
+	before, err := physicalRoute(a.innerServer)
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +535,7 @@ func checkCurrentEndpointRoaming(client, requirement string) (map[string]any, er
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, "/usr/bin/sudo", "-n", "/usr/bin/env", "GITHUB_ACTIONS=true", executable, "--current-path-fixture")
+	command := exec.CommandContext(ctx, "/usr/bin/sudo", "-n", "/usr/bin/env", "GITHUB_ACTIONS=true", executable, a.mode)
 	input, err := command.StdinPipe()
 	if err != nil {
 		return nil, failure
@@ -561,12 +579,12 @@ func checkCurrentEndpointRoaming(client, requirement string) (map[string]any, er
 		return nil, failure
 	}
 	clear(init)
-	profile := "[Interface]\nPrivateKey=" + clientPrivate + "\nAddress=" + currentInnerClient.String() + "/32\n[Peer]\nPublicKey=" + serverPublic + "\nEndpoint=" + netip.AddrPortFrom(currentOld, 54324).String() + "\nAllowedIPs=" + currentInnerServer.String() + "/32\nPersistentKeepalive=1\n"
+	profile := "[Interface]\nPrivateKey=" + clientPrivate + "\nAddress=" + a.innerClient.String() + "/" + strconv.Itoa(a.innerClient.BitLen()) + "\n[Peer]\nPublicKey=" + serverPublic + "\nEndpoint=" + netip.AddrPortFrom(a.old, 54324).String() + "\nAllowedIPs=" + a.innerServer.String() + "/" + strconv.Itoa(a.innerClient.BitLen()) + "\nPersistentKeepalive=1\n"
 	if _, err = call(client, requirement, "start", profile); err != nil {
 		return nil, err
 	}
 	defer call(client, requirement, "stop", "")
-	socket, err := net.DialUDP("udp4", nil, net.UDPAddrFromAddrPort(netip.AddrPortFrom(currentInnerServer, 54321)))
+	socket, err := net.DialUDP(a.udp, nil, net.UDPAddrFromAddrPort(netip.AddrPortFrom(a.innerServer, 54321)))
 	if err != nil {
 		return nil, failure
 	}
@@ -638,7 +656,7 @@ func checkCurrentEndpointRoaming(client, requirement string) (map[string]any, er
 	if _, err = net.InterfaceByName(iface); err == nil {
 		return nil, errors.New("worker tunnel remains after new-address route loss")
 	}
-	after, err := physicalRoute(currentInnerServer)
+	after, err := physicalRoute(a.innerServer)
 	if err != nil || after != before {
 		return nil, errors.New("inner destination baseline not restored before Stop")
 	}
@@ -649,7 +667,7 @@ func checkCurrentEndpointRoaming(client, requirement string) (map[string]any, er
 	if !ready() {
 		return nil, errors.New("current-path fixture baseline not restored")
 	}
-	return map[string]any{"status": "PASS", "actual_authenticated_helper": "PASS", "numeric_ipv4_address_and_port_roaming": "PASS", "encrypted_echoes": 4,
+	return map[string]any{"status": "PASS", "actual_authenticated_helper": "PASS", "family": a.label, "numeric_address_and_port_roaming": "PASS", "encrypted_echoes": 4,
 		"connected_past_two_monitor_ticks": "PASS", "old_destination_route_unchanged": "PASS", "outer_interface_stays_up": "PASS",
 		"only_new_destination_redirected": "PASS", "worker_closes_before_coordinator_stop": "PASS", "new_route_loss_detection_ms": detectionMillis,
 		"inner_routes_restored_before_stop": "PASS", "outer_routes_and_interface_set_restored": "PASS", "physical_nic": "NOT_RUN", "high_sierra": "NOT_RUN", "protection_ready": false}, nil
