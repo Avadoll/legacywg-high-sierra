@@ -157,7 +157,10 @@ def capture_counts(path):
     return result
 
 def transmit(warm,fresh):
-    for _ in range(3):
+    # Darwin can surface asynchronous ICMP refusal from the nonexistent
+    # benchmark peer on a later send, including on an unconnected UDP socket.
+    # Five attempts still require three actual captured packets in controls.
+    for _ in range(5):
         for stream,port in ((warm,WARM),(fresh,FRESH)):
             if stream is not None:
                 try:stream.sendto(b'LegacyWG-disposable-PF-fixture',(DEST,port))
@@ -186,6 +189,7 @@ def experiment(report):
     before={'rules':pf('-s','rules'),'nat':pf('-s','nat'),
             'recursive_rules':pf('-a','*','-s','rules'),'recursive_nat':pf('-a','*','-s','nat')}
     active,states=enabled()
+    settings={'timeouts':pf('-s','timeouts'),'limits':pf('-s','limits')}
     report['preflight']={'pf_enabled':active,'state_count':states,
         'rule_sets':{name:{'sha256':digest(text),'only_empty_anchor_calls':only_default_calls(text),
             'line_count':len(text.splitlines()),'brace_count':text.count('{')+text.count('}')}
@@ -218,6 +222,10 @@ def experiment(report):
             raise RuntimeError('owned UDP state not confirmed')
         load(data,f'block drop out quick on {iface} inet proto udp from any to {DEST} port {{ {WARM}, {FRESH} }}\n')
         blocked=captured(data,iface,'blocked',warm,fresh)
+        counters=pf('-a',data['anchor'],'-v','-s','rules')
+        block_packets=sum(int(item) for item in re.findall(r'\bPackets:\s*(\d+)\b',counters))
+        report['block_rule_packet_count']=block_packets
+        if block_packets<3:raise RuntimeError('owned block rule did not confirm benchmark packets')
         if blocked[FRESH]!=0:raise RuntimeError('fresh UDP was not blocked at egress')
         report.update({'baseline_packets':{'existing_udp':baseline[WARM],'fresh_udp':baseline[FRESH]},
                        'blocked_phase_packets':{'existing_udp':blocked[WARM],'fresh_udp':blocked[FRESH]},
@@ -238,11 +246,14 @@ def experiment(report):
             'rules':('-s','rules'),'nat':('-s','nat'),
             'recursive_rules':('-a','*','-s','rules'),'recursive_nat':('-a','*','-s','nat')}.items()}
         if after!=before:raise RuntimeError('foreign rule text changed')
+        if settings!={'timeouts':pf('-s','timeouts'),'limits':pf('-s','limits')}:
+            raise RuntimeError('global timeout or limit settings changed')
         report.update({'ordinary_synthetic_egress_restored':True,'root_and_foreign_rules_unchanged':True,
                        'initial_rule_hashes':{key:digest(value) for key,value in before.items()},
                        'state_count_after_reference_release':enabled()[1],
                        'existing_state_cleanup':'NOT_TESTED; never kill/flush state table',
-                       'ruleset_packet_counter_proof':'NOT_TESTED'})
+                       'ruleset_packet_counter_proof':'PASS',
+                       'global_timeouts_and_limits_unchanged':True})
     finally:warm.close();fresh.close()
 
 def main():
