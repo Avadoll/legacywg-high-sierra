@@ -90,7 +90,7 @@ Worker SHA256 `e35a8a25f7c1c0911949fd5ad93d98d86ed0fa691b5c7ec58bd136128a259e9b`
 | `LegacyWG-research-0.2.pkg` | `f3ba3c52cec122ccc317459d5afc8d90dcf39c3625babbfeee37f788f98b589b` |
 | `LegacyWG-research-0.2-app.zip` | `fe514cda6242c3d4b85df36d6f2ad28da0a2dfb255d59ff5a7da82d75e3350cd` |
 
-## Текущая проверенная сборка (utun journal)
+## Предыдущая проверенная сборка (utun journal)
 
 Native [run 38428112392](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38428112392), source `4600283770206273c9ded5acb960d3131ca491a9`: root-only typed journal с native FD metadata/ACL checks, exclusive lock, canonical bounded records, foreign/reused identity refusal и five SIGKILL checkpoints PASS. Все прежние encrypted peers/20 cycles/DNS/helper crash/path loss/GUI lifecycle/fresh unsigned installer scenarios PASS на Intel macOS15.7.9. Схема охватывает только utun/DNS; physical route/PF journal, GUI/startup recovery, full tunnel, protection, target/signing остаются незавершёнными.
 
@@ -100,3 +100,15 @@ Worker SHA256 `0a41089d252ac766e4842946e97d6cf5a127e805711d9c7b9f70722b5ee0fda7`
 | --- | --- |
 | `LegacyWG-research-0.2.pkg` | `7d0fbe257a30638b5b9d2ebe518fbb9a9fd0d57c9b6553229d2eb94122f06fab` |
 | `LegacyWG-research-0.2-app.zip` | `885b43d761f965af41ed8add665d6b789554e73265884a972663c0be29ffbcee` |
+
+
+## Текущая проверенная сборка (startup / Recover)
+
+Native [run 38431568914](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38431568914), source `13cd2733631413af05f47f545d9c991c7cc10eeb`: actual authenticated startup/Recover/Stop/Start scenarios PASS на Intel macOS15.7.9. Corrupt journal вызывает RecoveryRequired; все операции сохраняют неоднозначную запись и fixed error. Clean recovery идемпотентен и не создаёт connection intent/utun; подтверждённо stale собственная запись удаляется при startup. Recover при активном VPN отклоняется, после чего настоящий encrypted round trip продолжает работать. Unauthorized Recover отказан. Шесть required root tests и пять actual SIGKILL checkpoints PASS; прежние 20 encrypted cycles/DNS/crash/path-loss/installer regression PASS. High Sierra/reboot/power loss/physical routes/PF — NOT_RUN.
+
+Worker SHA256 `8f6a6a93bb27023d0424aa8c0585c260079ae36761bcde2b1f33b02554a54d3c`; scoped Go binary/source analysis PASS, 132-file identity `e7ae54962fc015285427086f8b57fd1440892eb4cc5b7942943d383c4fc884fc`. Unknown-state/recovery GUI fixture and readable Aqua screenshot PASS; actual modal actions NOT_RUN. Ad-hoc components/unsigned pkg, release_approved=false.
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `c32540777e70f4ba59d730306e45f0ef4d13998a156bcdb4267d780a573079a4` |
+| `LegacyWG-research-0.2-app.zip` | `8cb236c8fc9008ea4b1da20453506dd74831bbb10f9c5db924ee4e016289e679` |
