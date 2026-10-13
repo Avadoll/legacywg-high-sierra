@@ -600,7 +600,7 @@ static NSTextView *LicenseView(NSView *view, NSUInteger depth) {
     return nil;
 }
 
-static BOOL ProfileSheetTest(ClientController *controller) {
+static BOOL ProfileSheetTest(ClientController *controller, NSMutableDictionary *proof) {
     NSString *identifier=nil;NSError *error=nil;
     NSData *original=UIProfileFixture();
     NSString *name=[@"Sheet test " stringByAppendingString:NSUUID.UUID.UUIDString];
@@ -608,6 +608,10 @@ static BOOL ProfileSheetTest(ClientController *controller) {
     controller.profiles=@[@{@"id":identifier,@"name":name}];[controller.table reloadData];
     [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected"}}];controller.busy=NO;
+    // Replacing the fixture rows at the same selected index does not emit a
+    // selection notification. Production reloadProfilesSelecting refreshes
+    // explicitly; exercise the same refresh here rather than stale text.
+    [controller refreshSelectedProfile];
     BOOL preview=WaitFor(^BOOL{return [controller.selectedProfileSupported isEqual:@YES];}) &&
         [controller.profileDetails.stringValue containsString:@"10.7.0.2/32"] && [controller.profileDetails.stringValue containsString:@"127.0.0.1:51820"];
     [controller deleteProfile:nil];
@@ -643,6 +647,9 @@ static BOOL ProfileSheetTest(ClientController *controller) {
     BOOL removed=LWDeleteProfile(identifier,&error);
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];[controller.table reloadData];
     [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    [proof addEntriesFromDictionary:@{@"preview":@(preview),@"delete_sheet_opened":@(opened),@"action_guard":@(guarded),
+        @"changed_state_refused":@(refused),@"refusal_sheet_closed":@(closed),@"copy_sheet_opened":@(duplicate),
+        @"copy_canceled_fixture_data_preserved":@(canceled),@"own_fixture_removed":@(removed)}];
     return preview && guarded && refused && closed && duplicate && canceled && removed;
 }
 
@@ -675,7 +682,8 @@ static int UILayoutTest(void) {
     BOOL unknown=!controller.connect.enabled && controller.recoveryRequired;
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
     recovery=recovery && unknown && !controller.recoveryRequired && !controller.recover.enabled;
-    BOOL profileSheets=ProfileSheetTest(controller);
+    NSMutableDictionary *profileProof=[NSMutableDictionary dictionary];
+    BOOL profileSheets=ProfileSheetTest(controller,profileProof);
     controller.previewGeneration++;controller.selectedProfileSupported=@YES;
     NSDictionary *preview=ValidateProfile(UIProfileFixture());
     controller.profileDetails.stringValue=PreviewText(preview,YES);controller.profileDetails.toolTip=PreviewText(preview,NO);
@@ -727,6 +735,7 @@ static int UILayoutTest(void) {
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
         @"recovery_controls_and_unknown_state":@(recovery),
         @"actual_profile_sheets_guard_cancel_and_changed_state_refusal":@(profileSheets),
+        @"profile_sheet_proof":profileProof,
         @"selected_profile_metadata":@(metadata),@"actual_about_license_sheet":@(about),
         @"screenshot_saved":@(saved),@"notice_label_pixels":@(labelPixels),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
     [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
