@@ -1,0 +1,75 @@
+{
+  "conclusion": "success",
+  "headSha": "be6643a42e3db2a21713f4cb66bbd0b6ad3bfccb",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T23:36:15Z",
+      "conclusion": "success",
+      "databaseId": 115596643839,
+      "name": "native-lifecycle",
+      "startedAt": "2026-10-13T23:34:35Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T23:34:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T23:34:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:34:41Z",
+          "conclusion": "success",
+          "name": "Check out reviewed lifecycle source",
+          "number": 2,
+          "startedAt": "2026-10-13T23:34:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:34:58Z",
+          "conclusion": "success",
+          "name": "Verify pinned source and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-13T23:34:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:36:10Z",
+          "conclusion": "success",
+          "name": "Exercise actual references and durable SIGKILL recovery",
+          "number": 4,
+          "startedAt": "2026-10-13T23:34:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:36:11Z",
+          "conclusion": "success",
+          "name": "Save sanitized lifecycle evidence",
+          "number": 5,
+          "startedAt": "2026-10-13T23:36:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:36:12Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed lifecycle source",
+          "number": 10,
+          "startedAt": "2026-10-13T23:36:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:36:13Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-13T23:36:12Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38485075643/job/115596643839"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38485075643"
+}

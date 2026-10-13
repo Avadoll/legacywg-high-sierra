@@ -1,0 +1,152 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals",
+    "Elapsed": 3.16
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy",
+    "Elapsed": 1.95
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent",
+    "Elapsed": 2.52
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleEffectCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed",
+    "Elapsed": 2.06
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel",
+    "Elapsed": 2.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed",
+    "Elapsed": 2.13
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution",
+    "Elapsed": 6.2
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 13.876
+  }
+]
