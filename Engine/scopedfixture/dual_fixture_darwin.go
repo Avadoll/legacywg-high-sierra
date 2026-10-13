@@ -21,6 +21,9 @@ import (
 
 var dualLocal = [2]netip.Addr{netip.MustParseAddr("198.18.80.1"), netip.MustParseAddr("2001:db8:80::1")}
 var dualRemote = [2]netip.Addr{netip.MustParseAddr("198.18.80.2"), netip.MustParseAddr("2001:db8:80::2")}
+var dualRoamed = [2]netip.Addr{netip.MustParseAddr("198.18.80.3"), netip.MustParseAddr("2001:db8:80::3")}
+var dualPorts = [2]uint16{54324, 54326}
+var dualRoamedPorts = [2]uint16{54328, 54329}
 var dualDecoyIP = [2]netip.Addr{netip.MustParseAddr("198.18.80.9"), netip.MustParseAddr("2001:db8:80::9")}
 var dualPrefix = [2]string{"198.18.80.0/24", "2001:db8:80::/64"}
 var dualFamily = [2]string{"-inet", "-inet6"}
@@ -44,6 +47,8 @@ type dualOuter struct {
 	inDone, outDone chan struct{}
 	once            sync.Once
 	clean           bool
+	captureEnabled  atomic.Bool
+	captured        [2]chan []byte
 }
 
 func (link *dualOuter) close() bool {
@@ -68,6 +73,17 @@ func (link *dualOuter) close() bool {
 				link.clean = false
 			}
 		}
+		for _, packets := range link.captured {
+			for {
+				select {
+				case packet := <-packets:
+					clear(packet)
+				default:
+					goto drained
+				}
+			}
+		drained:
+		}
 	})
 	return link.clean
 }
@@ -78,7 +94,7 @@ func createDualOuter() (*dualOuter, error) {
 	if err != nil {
 		return nil, failure
 	}
-	link := &dualOuter{outer: outer}
+	link := &dualOuter{outer: outer, captured: [2]chan []byte{make(chan []byte, 1), make(chan []byte, 1)}}
 	fail := func() (*dualOuter, error) { link.close(); return nil, failure }
 	name, err := outer.Name()
 	if err != nil {
@@ -105,7 +121,8 @@ func createDualOuter() (*dualOuter, error) {
 			return fail()
 		}
 	}
-	link.inner, link.stack, err = netstack.CreateNetTUN(dualRemote[:], nil, 1420)
+	addresses := []netip.Addr{dualRemote[0], dualRemote[1], dualRoamed[0], dualRoamed[1]}
+	link.inner, link.stack, err = netstack.CreateNetTUN(addresses, nil, 1420)
 	if err != nil {
 		return fail()
 	}
@@ -137,6 +154,9 @@ func createDualOuter() (*dualOuter, error) {
 				return
 			}
 			if count == 1 {
+				if link.captureEnabled.Load() {
+					link.captureTransport(buffers[0][4 : 4+sizes[0]])
+				}
 				if _, err = link.outer.Write([][]byte{buffers[0][:4+sizes[0]]}, 4); err != nil {
 					return
 				}
@@ -203,10 +223,10 @@ func createDualDecoy() (*dualDecoy, error) {
 				continue
 			}
 			packet := buffers[0][4 : 4+sizes[0]]
-			if len(packet) >= 20 && packet[0]>>4 == 4 && bytes.Equal(packet[16:20], dualRemote[0].AsSlice()) {
+			if len(packet) >= 20 && packet[0]>>4 == 4 && (bytes.Equal(packet[16:20], dualRemote[0].AsSlice()) || bytes.Equal(packet[16:20], dualRoamed[0].AsSlice())) {
 				link.packets[0].Add(1)
 			}
-			if len(packet) >= 40 && packet[0]>>4 == 6 && bytes.Equal(packet[24:40], dualRemote[1].AsSlice()) {
+			if len(packet) >= 40 && packet[0]>>4 == 6 && (bytes.Equal(packet[24:40], dualRemote[1].AsSlice()) || bytes.Equal(packet[24:40], dualRoamed[1].AsSlice())) {
 				link.packets[1].Add(1)
 			}
 		}
@@ -216,17 +236,23 @@ func createDualDecoy() (*dualDecoy, error) {
 		if _, err = command("/sbin/route", "-n", "add", dualFamily[i], "-net", host, "-interface", name); err != nil {
 			return fail()
 		}
+		host = netip.PrefixFrom(dualRoamed[i], dualRoamed[i].BitLen()).String()
+		if _, err = command("/sbin/route", "-n", "add", dualFamily[i], "-net", host, "-interface", name); err != nil {
+			return fail()
+		}
 	}
 	return link, nil
 }
 
 type simultaneousFixture struct {
-	client    *device.Device
-	servers   [2]*device.Device
-	transport *dualPacketBind
-	observers [2]*scopedObserver
-	sockets   [2]net.Conn
-	echoes    [2]net.PacketConn
+	client          *device.Device
+	servers         [2]*device.Device
+	transport       *dualPacketBind
+	observers       [2]*scopedObserver
+	sockets         [2]net.Conn
+	echoes          [2]net.PacketConn
+	clientPublicHex string
+	serverPublicHex [2]string
 }
 
 func (fixture *simultaneousFixture) close() bool {
@@ -275,8 +301,12 @@ func startSimultaneous(link *dualOuter) (*simultaneousFixture, error) {
 	if err != nil {
 		return fail()
 	}
+	fixture.clientPublicHex, err = ephemeralPublicHex(public)
+	if err != nil {
+		return fail()
+	}
 	clientProfile := fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s/32,%s/128\n", private, clientIP[0], clientIP[1])
-	ports := [2]uint16{54324, 54326}
+	ports := dualPorts
 	endpoints := make([]netip.AddrPort, 2)
 	for i := range serverIP {
 		serverTun, serverStack, err := netstack.CreateNetTUN([]netip.Addr{serverIP[i]}, nil, 1420)
@@ -285,13 +315,21 @@ func startSimultaneous(link *dualOuter) (*simultaneousFixture, error) {
 		}
 		index := i
 		serverBind := &packetBind{factory: func(port uint16) (net.PacketConn, error) {
-			if port != ports[index] {
+			if port != ports[index] && port != dualRoamedPorts[index] {
 				return nil, errors.New("dual server port refused")
 			}
-			return link.stack.ListenUDPAddrPort(netip.AddrPortFrom(dualRemote[index], port))
+			address := dualRemote[index]
+			if port == dualRoamedPorts[index] {
+				address = dualRoamed[index]
+			}
+			return link.stack.ListenUDPAddrPort(netip.AddrPortFrom(address, port))
 		}}
 		fixture.servers[i] = device.NewDevice(serverTun, serverBind, device.NewLogger(device.LogLevelSilent, ""))
 		serverPrivate, serverPublic, err := ephemeralKeys()
+		if err != nil {
+			return fail()
+		}
+		fixture.serverPublicHex[i], err = ephemeralPublicHex(serverPublic)
 		if err != nil {
 			return fail()
 		}
@@ -485,8 +523,9 @@ func concurrentPathProof(link *dualOuter, decoy *dualDecoy) (uint64, error) {
 
 func checkSimultaneous() (map[string]any, error) {
 	failure := errors.New("simultaneous scoped experiment failed")
-	var baseline [2]string
-	for i, remote := range dualRemote {
+	var baseline [4]string
+	allRemotes := [4]netip.Addr{dualRemote[0], dualRemote[1], dualRoamed[0], dualRoamed[1]}
+	for i, remote := range allRemotes {
 		var err error
 		baseline[i], err = path(remote)
 		if err != nil {
@@ -586,6 +625,12 @@ func checkSimultaneous() (map[string]any, error) {
 	if decoy.packets[0].Load() != before[0] || decoy.packets[1].Load() != before[1] {
 		return nil, errors.New("simultaneous transport reached decoy")
 	}
+	if err := proveAuthenticatedRoaming(fixture, link, decoy); err != nil {
+		return nil, err
+	}
+	if decoy.packets[0].Load() != before[0] || decoy.packets[1].Load() != before[1] {
+		return nil, errors.New("roamed transport reached decoy")
+	}
 	if _, err = command("/sbin/route", "-n", "delete", dualFamily[0], "-net", dualPrefix[0], "-interface", link.iface.Name, "-ifscope", link.iface.Name); err != nil {
 		return nil, err
 	}
@@ -628,18 +673,21 @@ func checkSimultaneous() (map[string]any, error) {
 	if !fixture.close() || !link.close() || !decoy.close() {
 		return nil, errors.New("dual topology cleanup failed")
 	}
-	for i, remote := range dualRemote {
+	for i, remote := range allRemotes {
 		restored, err := path(remote)
 		if err != nil || restored != baseline[i] {
 			return nil, errors.New("dual destination baseline not restored")
 		}
 	}
-	return map[string]any{"status": "PASS", "one_client_two_independent_peers": "PASS", "simultaneous_ipv4_ipv6_echo": "PASS", "successful_echoes_per_peer": 7,
+	return map[string]any{"status": "PASS", "one_client_two_independent_peers": "PASS", "simultaneous_ipv4_ipv6_echo": "PASS", "successful_echoes_per_peer": 9,
 		"individual_handshake_rx_tx": "PASS", "shared_native_port": "PASS", "both_unbound_negative_controls": "PASS", "both_conflicting_scoped_paths": "PASS",
 		"actual_device_down_up_reopens_both": "PASS", "old_callbacks_closed_after_reopen": "PASS", "second_family_open_failure_closes_first": "PASS",
 		"one_family_route_loss_stops_entire_client": "PASS", "other_family_path_still_admissible": "PASS", "old_context_refused_after_restore": "PASS",
 		"both_native_sockets_closed_after_loss": "PASS", "both_peers_no_echo_after_loss": "PASS",
 		"concurrent_kernel_query_correlation": "PASS", "concurrent_query_count": 64, "other_query_replies_ignored": ignoredReplies,
+		"tampered_transport_new_ip_port_does_not_roam": "PASS", "tampered_packets_received_per_family": 3,
+		"authenticated_new_ip_port_roaming_both_peers": "PASS", "roamed_endpoints_have_scoped_paths": "PASS",
+		"encrypted_echo_after_roaming": "PASS", "client_port_unchanged_during_roaming": "PASS",
 		"fresh_context_two_peer_encrypted_recovery": "PASS", "encrypted_decoy_packets_ipv4": 0, "encrypted_decoy_packets_ipv6": 0,
 		"observer_shutdown": "PASS", "baseline_destination_routes_restored": "PASS", "physical_nic": "NOT_RUN", "high_sierra": "NOT_RUN", "protection_ready": false}, nil
 }

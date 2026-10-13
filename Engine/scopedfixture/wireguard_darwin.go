@@ -28,11 +28,12 @@ type packetLease struct {
 	closed atomic.Bool
 }
 type packetBind struct {
-	mutex   sync.Mutex
-	lease   *packetLease
-	factory func(uint16) (net.PacketConn, error)
-	opens   atomic.Int64
-	refused atomic.Bool
+	mutex    sync.Mutex
+	lease    *packetLease
+	factory  func(uint16) (net.PacketConn, error)
+	opens    atomic.Int64
+	refused  atomic.Bool
+	receives atomic.Int64 // Developer proof that injected packets reached Bind.
 }
 
 var _ conn.Bind = (*packetBind)(nil)
@@ -97,6 +98,7 @@ func (bind *packetBind) Open(port uint16) ([]conn.ReceiveFunc, uint16, error) {
 		}
 		sizes[0] = size
 		endpoints[0] = &conn.StdNetEndpoint{AddrPort: netip.AddrPortFrom(address.Unmap(), uint16(udp.Port))}
+		bind.receives.Add(1)
 		return 1, nil
 	}
 	return []conn.ReceiveFunc{receive}, uint16(local.Port), nil
