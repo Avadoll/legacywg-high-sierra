@@ -57,12 +57,13 @@ func physicalRoute(address netip.Addr) (string, error) {
 	if address.Is6() {
 		family = "-inet6"
 	}
-	data, err := exec.Command("/sbin/route", "-n", "get", family, address.String()).Output()
+	data, err := exec.Command("/sbin/route", "-n", "get", family, address.String()).CombinedOutput()
+	// Darwin route can print this routing-socket error but return zero. It
+	// means an absent baseline route, which must also remain absent on cleanup.
+	if address.Is6() && strings.Contains(string(data), "not in table") {
+		return "NO_ROUTE", nil
+	}
 	if err != nil {
-		var failed *exec.ExitError
-		if address.Is6() && errors.As(err, &failed) && strings.Contains(string(failed.Stderr), "not in table") {
-			return "NO_ROUTE", nil
-		}
 		return "", errors.New("cannot capture benchmark route")
 	}
 	selected := []string{}
@@ -73,7 +74,7 @@ func physicalRoute(address netip.Addr) (string, error) {
 		}
 	}
 	if len(selected) == 0 {
-		return "", errors.New("benchmark route identity missing")
+		return "", fmt.Errorf("benchmark route identity missing: %q", strings.TrimSpace(string(data)))
 	}
 	return strings.Join(selected, "\n"), nil
 }
