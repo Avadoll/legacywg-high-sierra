@@ -1,0 +1,34 @@
+name: PF scoped egress experiment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    runs-on: macos-15-intel
+    timeout-minutes: 5
+    steps:
+      - name: Check out reviewed developer experiment
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Measure owned scoped IPv4 UDP guard and existing state
+        run: |
+          sudo -n /usr/bin/env GITHUB_ACTIONS=true RUNNER_OS=macOS GITHUB_SHA="$GITHUB_SHA" /usr/bin/python3 Scripts/test_pf_guard_macos.py
+      - name: Retry only verified owned cleanup
+        if: always()
+        run: |
+          sudo -n /usr/bin/env GITHUB_ACTIONS=true RUNNER_OS=macOS /usr/bin/python3 Scripts/test_pf_guard_macos.py --cleanup
+      - name: Save only sanitized experiment results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-pf-guard-${{ github.sha }}
+          path: Build/CI/pf-guard-ci.json
+          if-no-files-found: error
+          retention-days: 3
