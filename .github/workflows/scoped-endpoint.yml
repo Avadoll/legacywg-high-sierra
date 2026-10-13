@@ -1,0 +1,47 @@
+name: Scoped endpoint socket routing experiment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    runs-on: macos-15-intel
+    timeout-minutes: 6
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: '0'
+      GOOS: darwin
+      GOARCH: amd64
+      GOAMD64: v1
+    steps:
+      - name: Check out reviewed developer experiment
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify pinned source and toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Build separate fixture without changing the client
+        run: |
+          mkdir -p Build/Research Build/CI
+          export GOCACHE="$PWD/.cache/scoped-build"
+          export GOMODCACHE="$PWD/.cache/gomod"
+          .tools/go1.24.13/go/bin/go build -trimpath -buildvcs=false -o Build/Research/scoped-fixture ./Engine/scopedfixture
+          .tools/go1.24.13/go/bin/go vet ./Engine/scopedfixture
+      - name: Compare actual scoped sockets under competing owned routes
+        run: |
+          sudo -n /usr/bin/env GITHUB_ACTIONS=true GITHUB_SHA="$GITHUB_SHA" ./Build/Research/scoped-fixture > Build/CI/scoped-endpoint-ci.json
+      - name: Save only sanitized report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-scoped-endpoint-${{ github.sha }}
+          path: Build/CI/scoped-endpoint-ci.json
+          if-no-files-found: error
+          retention-days: 3
