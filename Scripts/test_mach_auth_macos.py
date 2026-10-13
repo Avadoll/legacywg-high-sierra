@@ -226,6 +226,20 @@ def main() -> None:
             assert report['status']=='PASS'
             (OUT/'native-peer-ci.json').write_text(json.dumps(report,indent=2)+'\n')
             results['native_authenticated_encrypted_peer']='PASS'
+            # Admit exactly the existing test client and the fresh, separate
+            # instrumented GUI. This policy never enters the product payload.
+            modal_app=client_build/'GUIModal.app'
+            policy.write_text('(identifier "org.legacywg.testclient" and cdhash H"'+cdhash(allowed)+'") or '+
+                '(identifier "org.legacywg.app" and cdhash H"'+cdhash(modal_app)+'")\n')
+            run(['/usr/bin/sudo','-n','/bin/launchctl','bootout','system/'+SERVICE])
+            run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0644',str(policy),str(POLICY_DIR/policy.name)])
+            run(['/usr/bin/sudo','-n','/bin/launchctl','bootstrap','system',str(PLIST)])
+            modal_result=run([str(client_build/'peercheck'),'--gui-modal',str(allowed),helper_requirement,
+                str(modal_app/'Contents/MacOS/LegacyWG')],timeout=65)
+            modal_report=json.loads(modal_result)
+            assert modal_report['status']=='PASS'
+            (OUT/'client-live-modal-ci.json').write_text(json.dumps(modal_report,indent=2)+'\n')
+            results['live_gui_encrypted_long_sheet_and_hidden_window']='PASS'
         results['audit_identity'] = 'kernel Mach trailer + SecCode audit guest'
         results['status'] = 'PASS'
     finally:

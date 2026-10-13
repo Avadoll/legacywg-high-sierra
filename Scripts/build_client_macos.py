@@ -126,6 +126,14 @@ def main() -> None:
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN',
         'artifacts':{path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in (package,archive)}}
     (OUT/'client-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    # Clone after packaging. The instrumented controller and its signing pin
+    # exist only in the disposable developer test; never in the app or pkg.
+    modal_app=BUILD/'GUIModal.app'
+    shutil.copytree(app,modal_app)
+    run(common+['-framework','Cocoa',str(ROOT/'Tests/GUIModal.m'),str(ROOT/'App/LWProfiles.m'),
+                '-o',str(modal_app/'Contents/MacOS/LegacyWG')])
+    run(['/usr/bin/codesign','--force','--sign','-','--timestamp=none','--options','restrict,hard,kill',str(modal_app)])
+    run(['/usr/bin/codesign','--verify','--strict','--deep',str(modal_app)])
     print('Real limited client and research package built; target installation is NOT_APPROVED.')
 
 if __name__=='__main__':main()

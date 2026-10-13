@@ -80,9 +80,11 @@ func physicalRoute(address netip.Addr) (string, error) {
 }
 
 type checkOptions struct {
-	hostname     bool
-	routeLoss    bool
-	recoveryTest bool
+	hostname      bool
+	routeLoss     bool
+	recoveryTest  bool
+	guiExecutable string
+	guiReport     *map[string]any
 }
 
 func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool, options ...checkOptions) error {
@@ -265,6 +267,13 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		return errors.New("actual handshake and traffic statistics missing")
 	}
 	iface, _ := status["interface"].(string)
+	if settings.guiExecutable != "" {
+		report, failure := guiModal(stack, serverIP, settings.guiExecutable)
+		if failure != nil {
+			return failure
+		}
+		*settings.guiReport = report
+	}
 	if dual {
 		if err = extraIPv4Echo(stack); err != nil {
 			return err
@@ -362,6 +371,18 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 }
 
 func main() {
+	if len(os.Args) == 5 && os.Args[1] == "--gui-modal" {
+		var proof map[string]any
+		err := check(os.Args[2], os.Args[3], false, "", "", false, false,
+			checkOptions{guiExecutable: os.Args[4], guiReport: &proof})
+		if err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "reason": err.Error()})
+			os.Exit(1)
+		}
+		proof["route_interface_restoration"] = "PASS"
+		json.NewEncoder(os.Stdout).Encode(proof)
+		return
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--outer-fixture" {
 		os.Exit(runOuterFixture())
 	}
