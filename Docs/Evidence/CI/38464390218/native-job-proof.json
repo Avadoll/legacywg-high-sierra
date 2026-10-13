@@ -1,0 +1,68 @@
+{
+  "status": "PASS",
+  "run_id": "38464390218",
+  "source_commit": "583c17f476858d22e8361fc0a809371b849a48a0",
+  "job_id": 115527452305,
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check out pinned project revision",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify pinned source and toolchain",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build native research engines",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build and test platform-check application",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Test native utun lifecycle on CI host",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build limited native VPN client and research installer",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Test real client helper and encrypted peer",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Test research installer ownership and component activation",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Upload research app and actual CI evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Check out pinned project revision",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

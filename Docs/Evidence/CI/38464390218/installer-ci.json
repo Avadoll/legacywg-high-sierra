@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "installer_cli": "PASS",
+  "root_ownership": "PASS",
+  "component_signatures": "PASS",
+  "launchd_postinstall": "PASS",
+  "app_policy_pin": "PASS",
+  "foreign_client_denied": "PASS",
+  "installed_app_keychain": "PASS",
+  "installed_app_helper_authentication": "PASS",
+  "installer_gui": "NOT_RUN",
+  "target_high_sierra": "NOT_RUN",
+  "developer_id": "NOT_RUN",
+  "signed_for_distribution": false
+}
