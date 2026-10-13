@@ -326,9 +326,11 @@ static int UILayoutTest(void) {
     const char *ci=getenv("GITHUB_ACTIONS");
     if(!ci || strcmp(ci,"true")!=0)return 3;
     [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    [NSApp finishLaunching];
     ClientController *controller=[[ClientController alloc] init];
     [controller applicationDidFinishLaunching:[NSNotification notificationWithName:NSApplicationDidFinishLaunchingNotification object:NSApp]];
     [controller.timer invalidate];
+    [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.2]];
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];
     [controller.table reloadData];[controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     controller.busy=NO;
