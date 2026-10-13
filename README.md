@@ -23,3 +23,5 @@ A separate [scoped UDP endpoint experiment](Docs/SCOPED_ENDPOINT.md) passed [run
 [Encrypted scoped prototype run 38456456242](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38456456242) passed official handshake/counters, six echoes per family, Down/Up reopen and old receive callback closure/no fallback on owned virtual interfaces. Developer-only adapter; current product transport/app/pkg unchanged. [Limits](Docs/SCOPED_ENDPOINT.md).
 
 [Scoped kernel admission run 38458097751](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38458097751) passed native encrypted IPv4/IPv6 queries, pre/post-open identity checks and official reopen refusal after interface loss. Developer-only bounded observations; continuous physical/target/guard proof remains open. [Limits](Docs/SCOPED_ENDPOINT.md).
+
+[Scoped route withdrawal run 38459104760](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38459104760) passed interface-UP path loss observation, official Device.Down, permanent old-transport refusal and fresh-context encrypted restart. Experimental poll200ms; no physical/target/production protection claim. [Limits](Docs/SCOPED_ENDPOINT.md).
