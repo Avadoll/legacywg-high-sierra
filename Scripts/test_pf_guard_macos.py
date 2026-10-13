@@ -186,10 +186,11 @@ def captured(data,iface,phase,warm,fresh):
     finally:path.unlink(missing_ok=True) # Own narrow capture is never uploaded.
 
 def experiment(report):
+    report['last_step']='read_only_preflight'
     before={'rules':pf('-s','rules'),'nat':pf('-s','nat'),
             'recursive_rules':pf('-a','*','-s','rules'),'recursive_nat':pf('-a','*','-s','nat')}
     active,states=enabled()
-    settings={'timeouts':pf('-s','timeouts'),'limits':pf('-s','limits')}
+    settings={'timeouts':pf('-s','timeouts'),'limits':pf('-s','memory')}
     report['preflight']={'pf_enabled':active,'state_count':states,
         'rule_sets':{name:{'sha256':digest(text),'only_empty_anchor_calls':only_default_calls(text),
             'line_count':len(text.splitlines()),'brace_count':text.count('{')+text.count('}')}
@@ -212,14 +213,18 @@ def experiment(report):
     # asynchronous ICMP errors from a deliberately nonexistent benchmark peer.
     warm.bind(('0.0.0.0',0));fresh.bind(('0.0.0.0',0))
     try:
+        report['last_step']='egress_baseline_capture'
         baseline=captured(data,iface,'baseline',warm,fresh)
         report['baseline_packets']={'existing_udp':baseline[WARM],'fresh_udp':baseline[FRESH]}
         if min(baseline.values())<3:raise RuntimeError('synthetic baseline absent from egress capture')
+        report['last_step']='owned_reference_and_pass_rule'
         acquire(data)
         load(data,f'pass out quick on {iface} inet proto udp from any to {DEST} port {WARM} keep state\n')
+        report['last_step']='warmed_udp_state_capture'
         warmed=captured(data,iface,'warmed',warm,None)
         if warmed[WARM]<3 or DEST+':'+str(WARM) not in pf('-s','states'):
             raise RuntimeError('owned UDP state not confirmed')
+        report['last_step']='owned_replacement_block_capture'
         load(data,f'block drop out quick on {iface} inet proto udp from any to {DEST} port {{ {WARM}, {FRESH} }}\n')
         blocked=captured(data,iface,'blocked',warm,fresh)
         counters=pf('-a',data['anchor'],'-v','-s','rules')
@@ -232,12 +237,14 @@ def experiment(report):
                        'new_udp_egress_blocked':True,'existing_udp_state_confirmed':True,
                        'existing_udp_bypasses_replacement_block':blocked[WARM]>0,
                        'capture':'guest egress Ethernet NIC, fixed synthetic IPv4 UDP only'})
+        report['last_step']='second_owned_reference'
         acquire(data);release(data)
         if not enabled()[0]:raise RuntimeError('other owned reference was lost')
         held=captured(data,iface,'second-reference',None,fresh)
         if held[FRESH]!=0:raise RuntimeError('guard lost while another owned reference held')
         report['second_owned_reference_preserved']=True
         # Clear only our verified child then release only our final token.
+        report['last_step']='release_and_egress_restoration'
         load(data,'');release(data)
         if enabled()[0]:raise RuntimeError('PF remained enabled after our final release')
         restored=captured(data,iface,'restored',None,fresh)
@@ -246,7 +253,7 @@ def experiment(report):
             'rules':('-s','rules'),'nat':('-s','nat'),
             'recursive_rules':('-a','*','-s','rules'),'recursive_nat':('-a','*','-s','nat')}.items()}
         if after!=before:raise RuntimeError('foreign rule text changed')
-        if settings!={'timeouts':pf('-s','timeouts'),'limits':pf('-s','limits')}:
+        if settings!={'timeouts':pf('-s','timeouts'),'limits':pf('-s','memory')}:
             raise RuntimeError('global timeout or limit settings changed')
         report.update({'ordinary_synthetic_egress_restored':True,'root_and_foreign_rules_unchanged':True,
                        'initial_rule_hashes':{key:digest(value) for key,value in before.items()},
@@ -254,6 +261,7 @@ def experiment(report):
                        'existing_state_cleanup':'NOT_TESTED; never kill/flush state table',
                        'ruleset_packet_counter_proof':'PASS',
                        'global_timeouts_and_limits_unchanged':True})
+        report['last_step']='completed'
     finally:warm.close();fresh.close()
 
 def main():
