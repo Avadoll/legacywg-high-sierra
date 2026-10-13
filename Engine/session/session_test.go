@@ -17,11 +17,11 @@ func splitProfile() string {
 
 func TestUnsupportedPoliciesRefusedBeforeNativeSideEffects(t *testing.T) {
 	for name, profile := range map[string]string{
-		"full":     strings.Replace(splitProfile(), "198.18.0.2/32", "0.0.0.0/0", 1),
-		"dns":      strings.Replace(splitProfile(), "Address=", "DNS=1.1.1.1\nAddress=", 1),
-		"hostname": strings.Replace(splitProfile(), "127.0.0.1", "example.com", 1),
-		"ipv6":     strings.Replace(splitProfile(), "198.18.0.2/32", "::/0", 1),
-		"loop":     strings.Replace(splitProfile(), "198.18.0.2/32", "127.0.0.0/8", 1),
+		"full":         strings.Replace(splitProfile(), "198.18.0.2/32", "0.0.0.0/0", 1),
+		"unrouted_dns": strings.Replace(splitProfile(), "Address=", "DNS=1.1.1.1\nAddress=", 1),
+		"hostname":     strings.Replace(splitProfile(), "127.0.0.1", "example.com", 1),
+		"ipv6":         strings.Replace(splitProfile(), "198.18.0.2/32", "::/0", 1),
+		"loop":         strings.Replace(splitProfile(), "198.18.0.2/32", "127.0.0.0/8", 1),
 	} {
 		t.Run(name, func(t *testing.T) {
 			engine := &Session{}
@@ -33,6 +33,18 @@ func TestUnsupportedPoliciesRefusedBeforeNativeSideEffects(t *testing.T) {
 				t.Fatal("unsupported policy caused a native side effect")
 			}
 		})
+	}
+}
+
+func TestRoutedProfileDNS(t *testing.T) {
+	profile := strings.Replace(splitProfile(), "Address=", "DNS=198.18.0.2\nAddress=", 1)
+	config, err := configcore.Parse([]byte(profile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer config.Destroy()
+	if _, err := CheckCapabilities(config); err != nil {
+		t.Fatal("routed DNS refused", err)
 	}
 }
 

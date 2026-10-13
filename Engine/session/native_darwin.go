@@ -20,9 +20,17 @@ type nativeNetwork struct {
 	iface  string
 	index  int
 	routes []netip.Prefix
+	dns    *dnsProcess
 }
 
-func (network *nativeNetwork) name() string { return network.iface }
+func (network *nativeNetwork) name() string    { return network.iface }
+func (network *nativeNetwork) dnsActive() bool { return network.dns != nil && network.dns.alive.Load() }
+func (network *nativeNetwork) dnsDone() <-chan struct{} {
+	if network.dns == nil {
+		return nil
+	}
+	return network.dns.done
+}
 
 func nativeCommand(program string, arguments ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -38,6 +46,11 @@ func nativeCommand(program string, arguments ...string) error {
 }
 
 func (network *nativeNetwork) close() error {
+	if network.dns != nil {
+		if err := network.dns.close(); err != nil {
+			return err
+		}
+	}
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return errors.New("cannot verify native interface ownership during recovery")
@@ -95,6 +108,9 @@ func openNative(config *configcore.Config, uapi string) (*device.Device, *native
 	network := &nativeNetwork{iface: name, index: iface.Index}
 	engine := device.NewDevice(tunnel, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	fail := func() (*device.Device, *nativeNetwork, error) {
+		if network.dns != nil {
+			network.dns.close()
+		}
 		// Removing the utun automatically removes its interface-bound routes.
 		engine.Close()
 		return nil, nil, errors.New("tunnel transaction failed; native interface closed")
@@ -125,6 +141,12 @@ func openNative(config *configcore.Config, uapi string) (*device.Device, *native
 			}
 			seen[prefix] = true
 			network.routes = append(network.routes, prefix)
+		}
+	}
+	if len(config.DNS) > 0 {
+		network.dns, err = startDNS(name, config.DNS)
+		if err != nil {
+			return fail()
 		}
 	}
 	return engine, network, nil

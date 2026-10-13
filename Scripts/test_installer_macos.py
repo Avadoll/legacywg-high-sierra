@@ -28,7 +28,8 @@ def main() -> None:
         output=run(['/usr/bin/sudo','-n','/usr/sbin/installer','-pkg',
                     str(ROOT/'Build/CI/LegacyWG-research-0.2.pkg'),'-target','/'],timeout=90)
         (ROOT/'Build/CI/installer-ci-log.txt').write_text(output)
-        for path in (APP,HELPER,POLICY,POLICY/'legacywg-worker',POLICY/'Worker.req',POLICY/'AllowedClient.req',PLIST):
+        for path in (APP,HELPER,POLICY,POLICY/'legacywg-worker',POLICY/'Worker.req',POLICY/'AllowedClient.req',PLIST,
+                     POLICY/'legacywg-network',POLICY/'Network.req'):
             stat=path.lstat()
             if path.is_symlink() or stat.st_uid!=0 or stat.st_mode&0o022:
                 raise RuntimeError('Installed component ownership or permissions are unsafe')
@@ -36,6 +37,8 @@ def main() -> None:
         run(['/usr/bin/codesign','--verify','--strict',str(HELPER)])
         assert cdhash(APP) in (POLICY/'AllowedClient.req').read_text()
         assert cdhash(POLICY/'legacywg-worker') in (POLICY/'Worker.req').read_text()
+        assert cdhash(POLICY/'legacywg-network') in (POLICY/'Network.req').read_text()
+        run(['/usr/bin/codesign','--verify','--strict',str(POLICY/'legacywg-network')])
         run(['/usr/bin/sudo','-n','/bin/launchctl','print','system/'+SERVICE])
         self_test=json.loads(run([str(APP/'Contents/MacOS/LegacyWG'),'--self-test-installed']))
         assert self_test['keychain_write_read_delete']=='PASS'
@@ -53,7 +56,8 @@ def main() -> None:
     finally:
         if attempted:
             subprocess.run(['/usr/bin/sudo','-n','/bin/launchctl','bootout','system/'+SERVICE],capture_output=True)
-            for path in (HELPER,PLIST,POLICY/'AllowedClient.req',POLICY/'Worker.req',POLICY/'legacywg-worker'):
+            for path in (HELPER,PLIST,POLICY/'AllowedClient.req',POLICY/'Worker.req',POLICY/'legacywg-worker',
+                         POLICY/'legacywg-network',POLICY/'Network.req'):
                 subprocess.run(['/usr/bin/sudo','-n','/bin/rm','-f',str(path)],check=True)
             if POLICY.exists():run(['/usr/bin/sudo','-n','/bin/rmdir',str(POLICY)])
             # This fixed app path was verified absent before our installer ran.

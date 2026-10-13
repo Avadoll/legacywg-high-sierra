@@ -70,7 +70,15 @@ func physicalRoute(address netip.Addr) (string, error) {
 	return strings.Join(selected, "\n"), nil
 }
 
-func check(client, requirement string, crashParent bool) error {
+func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string) error {
+	var dnsBefore dnsSnapshot
+	if dnsMode != "" {
+		var err error
+		dnsBefore, err = snapshotDNS(dnsProbe)
+		if err != nil || dnsBefore.Present {
+			return errors.New("DNS baseline is unavailable or already owned")
+		}
+	}
 	serverIP := netip.MustParseAddr("198.18.0.2")
 	clientIP := netip.MustParseAddr("198.18.0.1")
 	routeBefore := map[netip.Addr]string{}
@@ -95,6 +103,15 @@ func check(client, requirement string, crashParent bool) error {
 	}
 	server := device.NewDevice(tunnel, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	defer server.Close()
+	var dnsCount *dnsCounters
+	if dnsMode != "" {
+		stop, counters, failure := serveDNS(stack, serverIP)
+		if failure != nil {
+			return failure
+		}
+		defer stop()
+		dnsCount = counters
+	}
 	profile := fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s/32\n[Peer]\nPublicKey=%s\nAllowedIPs=%s/32\n", serverPrivate, serverIP, clientPublic, clientIP)
 	config, err := configcore.Parse([]byte(profile))
 	if err != nil {
@@ -138,6 +155,9 @@ func check(client, requirement string, crashParent bool) error {
 		echoResult <- err
 	}()
 	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s/32\n[Peer]\nPublicKey=%s\nEndpoint=127.0.0.1:%d\nAllowedIPs=%s/32\nPersistentKeepalive=1\n", clientPrivate, clientIP, serverPublic, port, serverIP)
+	if dnsMode != "" {
+		profile = strings.Replace(profile, "Address=", "DNS="+serverIP.String()+"\nAddress=", 1)
+	}
 	if _, err = call(client, requirement, "start", profile); err != nil {
 		return err
 	}
@@ -174,7 +194,36 @@ func check(client, requirement string, crashParent bool) error {
 		return errors.New("actual handshake and traffic statistics missing")
 	}
 	iface, _ := status["interface"].(string)
-	if crashParent {
+	if dnsMode != "" {
+		if status["dns_configured"] != true {
+			return errors.New("DNS transaction is not active")
+		}
+		// configd publishes resolver changes asynchronously after commit.
+		time.Sleep(time.Second)
+		if err = systemDNS(dnsProbe, dnsCount); err != nil {
+			return err
+		}
+	}
+	if dnsMode == "agent-crash" {
+		// Select the single fixed component installed by this CI test. A
+		// truncated process-name match is insufficient on older Darwin.
+		pids, failure := exec.Command("/usr/bin/sudo", "-n", "/usr/bin/pgrep", "-f", "^/Library/Application Support/LegacyWG/legacywg-network$").Output()
+		fields := strings.Fields(string(pids))
+		pid := 0
+		if len(fields) == 1 {
+			pid, _ = strconv.Atoi(fields[0])
+		}
+		if failure != nil || pid < 2 || exec.Command("/usr/bin/sudo", "-n", "/bin/kill", "-KILL", strconv.Itoa(pid)).Run() != nil {
+			return errors.New("controlled DNS agent crash injection failed")
+		}
+		deadline := time.Now().Add(8 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, err = net.InterfaceByName(iface); err != nil {
+				break
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	} else if crashParent {
 		if exec.Command("/usr/bin/sudo", "-n", "/bin/launchctl", "kill", "SIGKILL", "system/org.legacywg.helper").Run() != nil {
 			return errors.New("CI helper crash injection failed")
 		}
@@ -194,7 +243,7 @@ func check(client, requirement string, crashParent bool) error {
 		return err
 	}
 	status, ok = reply["status"].(map[string]any)
-	if !ok || status["state"] != "Disconnected" {
+	if !ok || (status["state"] != "Disconnected" && !(dnsMode == "agent-crash" && status["state"] == "Error")) {
 		return errors.New("disconnect state failed")
 	}
 	if _, err = net.InterfaceByName(iface); err == nil {
@@ -206,21 +255,37 @@ func check(client, requirement string, crashParent bool) error {
 			return errors.New("benchmark route was not restored after disconnect")
 		}
 	}
+	if dnsMode != "" {
+		if err = restoreDNS(dnsProbe, dnsBefore); err != nil {
+			return err
+		}
+		if _, err = call(client, requirement, "stop", ""); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func main() {
-	if len(os.Args) != 3 {
+	if len(os.Args) != 4 {
 		os.Exit(2)
 	}
 	started := time.Now()
 	for cycle := 0; cycle < 21; cycle++ {
-		if err := check(os.Args[1], os.Args[2], cycle == 20); err != nil {
+		if err := check(os.Args[1], os.Args[2], cycle == 20, "", ""); err != nil {
 			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "cycle": cycle + 1, "reason": err.Error()})
+			os.Exit(1)
+		}
+	}
+	for _, mode := range []string{"disconnect", "helper-crash", "agent-crash"} {
+		if err := check(os.Args[1], os.Args[2], mode == "helper-crash", os.Args[3], mode); err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "dns_mode": mode, "reason": err.Error()})
 			os.Exit(1)
 		}
 	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
 		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
+		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
+		"dns_agent_crash_recovery": "PASS", "foreign_dns_restoration": "PASS",
 		"external_server": "NOT_RUN", "high_sierra": "NOT_RUN"})
 }

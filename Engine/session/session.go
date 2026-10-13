@@ -24,6 +24,8 @@ type Status struct {
 	Tx            uint64 `json:"tx_bytes"`
 	LastHandshake int64  `json:"last_handshake_unix,omitempty"`
 	Protected     bool   `json:"protected"`
+	DNSConfigured bool   `json:"dns_configured"`
+	Reason        string `json:"reason,omitempty"`
 }
 
 type Session struct {
@@ -31,6 +33,7 @@ type Session struct {
 	engine  *device.Device
 	network *nativeNetwork
 	peers   int
+	failure string
 }
 
 // Initial executor intentionally rejects unsupported policies before side
@@ -43,8 +46,20 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 	if plan.FullIPv4 || plan.FullIPv6 {
 		return nil, errors.New("full tunnel is unavailable until IPv6 and DNS protection are implemented")
 	}
-	if len(config.DNS) != 0 {
-		return nil, errors.New("DNS profiles require the native DNS transaction implementation")
+	if len(config.DNS) > 8 {
+		return nil, errors.New("at most eight DNS servers are supported")
+	}
+	for _, address := range config.DNS {
+		if !address.Is4() {
+			return nil, errors.New("IPv6 DNS requires the IPv6 executor")
+		}
+		covered := false
+		for _, route := range plan.Routes {
+			covered = covered || route.Contains(address)
+		}
+		if !covered {
+			return nil, errors.New("profile DNS must be routed through the tunnel")
+		}
 	}
 	if len(plan.Routes) > 64 {
 		return nil, errors.New("initial native executor permits at most 64 routes")
@@ -79,7 +94,7 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 func (session *Session) Start(profile []byte) error {
 	session.mutex.Lock()
 	defer session.mutex.Unlock()
-	if session.engine != nil {
+	if session.engine != nil || session.network != nil {
 		return errors.New("a tunnel is already active")
 	}
 	config, err := configcore.Parse(profile)
@@ -101,7 +116,27 @@ func (session *Session) Start(profile []byte) error {
 		return err
 	}
 	session.engine, session.network, session.peers = engine, network, len(config.Peers)
+	session.failure = ""
+	if done := network.dnsDone(); done != nil {
+		go session.watchDNS(network, done)
+	}
 	return nil
+}
+
+func (session *Session) watchDNS(network *nativeNetwork, done <-chan struct{}) {
+	<-done
+	session.mutex.Lock()
+	defer session.mutex.Unlock()
+	if session.network != network || session.engine == nil {
+		return
+	}
+	session.engine.Close()
+	session.engine = nil
+	session.failure = "native DNS configuration was lost; tunnel closed"
+	if network.close() == nil {
+		session.network = nil
+		session.peers = 0
+	}
 }
 
 func (session *Session) Stop() error {
@@ -123,6 +158,7 @@ func (session *Session) Stop() error {
 	}
 	session.network = nil
 	session.peers = 0
+	session.failure = ""
 	return nil
 }
 
@@ -133,10 +169,14 @@ func (session *Session) Status() (Status, error) {
 	if session.engine == nil {
 		if session.network != nil {
 			result.State = "RecoveryRequired"
+		} else if session.failure != "" {
+			result.State = "Error"
+			result.Reason = session.failure
 		}
 		return result, nil
 	}
 	result.State, result.Interface, result.Peers = "Connecting", session.network.name(), session.peers
+	result.DNSConfigured = session.network.dnsActive()
 	raw, err := session.engine.IpcGet()
 	if err != nil {
 		return result, errors.New("cannot read engine statistics")

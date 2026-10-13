@@ -83,6 +83,11 @@ def main() -> None:
             worker_policy.write_text('identifier "org.legacywg.worker" and cdhash H"'+cdhash(worker)+'"\n')
             run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',str(worker),str(POLICY_DIR/worker.name)])
             run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0644',str(worker_policy),str(POLICY_DIR/worker_policy.name)])
+            network=client_build/'legacywg-network'
+            network_policy=TEST/'Network.req'
+            network_policy.write_text('identifier "org.legacywg.network" and cdhash H"'+cdhash(network)+'"\n')
+            run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',str(network),str(POLICY_DIR/network.name)])
+            run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0644',str(network_policy),str(POLICY_DIR/network_policy.name)])
         run(['/usr/bin/sudo', '-n', '/usr/bin/install', '-o', 'root', '-g', 'wheel', '-m', '0644', str(plist), str(PLIST)])
         run(['/usr/bin/sudo', '-n', '/bin/launchctl', 'bootstrap', 'system', str(PLIST)])
         response = json.loads(run([str(allowed), helper_requirement]))
@@ -96,7 +101,7 @@ def main() -> None:
         assert spoofed.returncode == 1 and json.loads(spoofed.stdout)['ok'] is False
         results['wrong_server_requirement'] = 'PASS'
         if (client_build/'peercheck').exists():
-            peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement],timeout=180)
+            peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement,str(client_build/'dns-probe')],timeout=180)
             report=json.loads(peer_result)
             assert report['status']=='PASS'
             (OUT/'native-peer-ci.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -107,7 +112,8 @@ def main() -> None:
         if installed:
             subprocess.run(['/usr/bin/sudo', '-n', '/bin/launchctl', 'bootout', 'system/' + SERVICE], capture_output=True)
             # Exact files created by this test only; no recursive deletion.
-            for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req', POLICY_DIR/'legacywg-worker', POLICY_DIR/'Worker.req'):
+            for path in (HELPER, PLIST, POLICY_DIR / 'AllowedClient.req', POLICY_DIR/'legacywg-worker', POLICY_DIR/'Worker.req',
+                         POLICY_DIR/'legacywg-network',POLICY_DIR/'Network.req'):
                 subprocess.run(['/usr/bin/sudo', '-n', '/bin/rm', '-f', str(path)], check=True)
             run(['/usr/bin/sudo', '-n', '/bin/rmdir', str(POLICY_DIR)])
         if created_helper_directory:

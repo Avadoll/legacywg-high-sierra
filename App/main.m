@@ -53,7 +53,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
         styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title=@"LegacyWG — тестовая сборка"; self.window.minSize=NSMakeSize(720,440);
-    NSTextField *notice = [NSTextField labelWithString:@"Исследовательская версия: только IPv4 split tunnel без DNS.\nПолный туннель и IPv6 пока отклоняются; защита всего трафика не заявлена."];
+    NSTextField *notice = [NSTextField labelWithString:@"Исследовательская версия: IPv4 split tunnel; DNS профиля должен идти через туннель.\nПолный туннель и IPv6 пока отклоняются; защита всего трафика не заявлена."];
     notice.frame=NSMakeRect(20,365,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:notice];
     NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,105,290,245)];
@@ -151,8 +151,9 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSString *state=status[@"state"];
     self.tunnelActive=[state isEqual:@"Connected"] || [state isEqual:@"Connecting"];
     self.state.stringValue=[state isEqual:@"Connected"] ? @"Handshake получен" :
-        [state isEqual:@"Connecting"] ? @"Ожидание handshake…" : [state isEqual:@"RecoveryRequired"] ? @"Нужно восстановление сети" : @"Не подключено";
-    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"%@\nПолучено: %@ байт\nОтправлено: %@ байт\nIPv4 split tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0] : @"Выберите профиль для подключения.";
+        [state isEqual:@"Connecting"] ? @"Ожидание handshake…" : [state isEqual:@"RecoveryRequired"] ? @"Нужно восстановление сети" : [state isEqual:@"Error"] ? @"Соединение остановлено" : @"Не подключено";
+    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"%@\nПолучено: %@ байт\nОтправлено: %@ байт\nDNS профиля: %@\nIPv4 split tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
+        [state isEqual:@"Error"] ? @"DNS-компонент потерял настройки или завершился. Туннель закрыт; можно подключиться снова." : @"Выберите профиль для подключения.";
     self.connect.enabled=!self.tunnelActive; self.disconnect.enabled=self.tunnelActive;
 }
 - (void)connectProfile:(id)sender {

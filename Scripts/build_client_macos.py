@@ -33,12 +33,16 @@ def main() -> None:
             str(ROOT/'Shared/LWMach.m')]
     helper=BUILD/'org.legacywg.helper'
     run(common+[str(ROOT/'Helper/main.m'),'-o',str(helper)])
-    for binary,identifier in ((worker,'org.legacywg.worker'),(helper,'org.legacywg.helper')):
+    network=BUILD/'legacywg-network'
+    run(common+[str(ROOT/'NetworkAgent/main.m'),'-o',str(network)])
+    run(common+[str(ROOT/'Tests/DNSProbe.m'),'-o',str(BUILD/'dns-probe')])
+    for binary,identifier in ((worker,'org.legacywg.worker'),(helper,'org.legacywg.helper'),(network,'org.legacywg.network')):
         run(['/usr/bin/codesign','--force','--sign','-','--timestamp=none','--options','restrict,hard,kill',
              '--identifier',identifier,str(binary)])
         run(['/usr/bin/codesign','--verify','--strict',str(binary)])
     helper_requirement='identifier "org.legacywg.helper" and cdhash H"'+cdhash(helper)+'"'
     worker_requirement='identifier "org.legacywg.worker" and cdhash H"'+cdhash(worker)+'"'
+    network_requirement='identifier "org.legacywg.network" and cdhash H"'+cdhash(network)+'"'
     app=BUILD/'LegacyWG.app'
     for directory in ('Contents/MacOS','Contents/Helpers','Contents/Resources/Licenses'):
         (app/directory).mkdir(parents=True)
@@ -52,8 +56,8 @@ def main() -> None:
     shutil.copyfile(ROOT/'THIRD_PARTY_NOTICES.md',app/'Contents/Resources/THIRD_PARTY_NOTICES.md')
     source=os.environ['GITHUB_SHA']
     (app/'Contents/Resources/BuildManifest.json').write_text(json.dumps({'source_commit':source,'vpn_ready':False,
-        'signing_mode':'ad-hoc','features':['IPv4 split tunnel','Keychain','authenticated Mach helper'],
-        'unsupported':['full tunnel','DNS','IPv6','hostname endpoint','kill switch'],
+        'signing_mode':'ad-hoc','features':['IPv4 split tunnel','routed profile DNS','Keychain','authenticated Mach helper'],
+        'unsupported':['full tunnel','IPv6','hostname endpoint','kill switch'],
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN'},indent=2)+'\n')
     run(common+['-framework','Cocoa',str(ROOT/'App/main.m'),str(ROOT/'App/LWProfiles.m'),
                 '-o',str(app/'Contents/MacOS/LegacyWG')])
@@ -70,7 +74,9 @@ def main() -> None:
     (payload/'Library/PrivilegedHelperTools/org.legacywg.helper').chmod(0o755)
     target=payload/'Library/Application Support/LegacyWG'
     shutil.copyfile(worker,target/worker.name);(target/worker.name).chmod(0o755)
+    shutil.copyfile(network,target/network.name);(target/network.name).chmod(0o755)
     (target/'Worker.req').write_text(worker_requirement+'\n')
+    (target/'Network.req').write_text(network_requirement+'\n')
     (target/'AllowedClient.req').write_text('identifier "org.legacywg.app" and cdhash H"'+cdhash(app)+'"\n')
     label='org.legacywg.helper'
     (payload/'Library/LaunchDaemons/org.legacywg.helper.plist').write_bytes(plistlib.dumps({

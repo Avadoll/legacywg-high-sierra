@@ -52,9 +52,8 @@ static void StopWorker(void) {
     worker = nil; workerInput = nil; workerOutput = nil; ownerUID = (uid_t)-1;
 }
 
-static BOOL StartWorker(void) {
-    const char *path = "/Library/Application Support/LegacyWG/legacywg-worker";
-    NSString *requirement = ReadPolicy("/Library/Application Support/LegacyWG/Worker.req");
+static BOOL VerifyInstalledBinary(const char *path,const char *policyPath) {
+    NSString *requirement = ReadPolicy(policyPath);
     struct stat file;
     if (!requirement || lstat(path, &file) != 0 || !S_ISREG(file.st_mode) || file.st_uid != 0 ||
         (file.st_mode & 0022)) return NO;
@@ -65,7 +64,15 @@ static BOOL StartWorker(void) {
     if (result == errSecSuccess) result = SecRequirementCreateWithString((__bridge CFStringRef)requirement, kSecCSDefaultFlags, &policy);
     if (result == errSecSuccess) result = SecStaticCodeCheckValidity(code, kSecCSStrictValidate, policy);
     if (code) CFRelease(code); if (policy) CFRelease(policy);
-    if (result != errSecSuccess) return NO;
+    return result == errSecSuccess;
+}
+
+static BOOL StartWorker(void) {
+    if(!VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-worker",
+            "/Library/Application Support/LegacyWG/Worker.req") ||
+       !VerifyInstalledBinary("/Library/Application Support/LegacyWG/legacywg-network",
+            "/Library/Application Support/LegacyWG/Network.req"))return NO;
+    NSString *workerPath=@"/Library/Application Support/LegacyWG/legacywg-worker";
     worker = [[NSTask alloc] init]; worker.launchPath = workerPath; worker.arguments = @[];
     worker.environment = @{@"PATH": @"/usr/bin:/bin:/usr/sbin:/sbin", @"LANG": @"C"};
     workerInput = [NSPipe pipe]; workerOutput = [NSPipe pipe];
