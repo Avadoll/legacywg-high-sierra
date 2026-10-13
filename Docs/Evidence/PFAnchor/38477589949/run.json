@@ -1,0 +1,18 @@
+{
+  "conclusion": "success",
+  "headSha": "3aa41482bb6f6057f7b6e5e1277e01b003dd8b70",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T22:25:24Z",
+      "conclusion": "success",
+      "databaseId": 115572012823,
+      "name": "native-effects",
+      "startedAt": "2026-10-13T22:24:38Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38477589949/job/115572012823"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38477589949"
+}

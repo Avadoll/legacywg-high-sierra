@@ -26,3 +26,6 @@
 Нельзя закрывать цель на основании одного зелёного CI или сокращать её до split client. Обновлять этот список по фактическому состоянию кода и доказательствам. Непроверенный пункт означает, что программа ещё не готова.
 
 PF metadata clarification run38474823221: v2 cancellation without reference, reference-absence/removal intents and pending-rule generations/root atomic commits/8SIGKILL PASS. These are synthetic metadata and preservation checks; live kernel rule/reference ownership/reconciliation/protected data are still unimplemented/unproven. Full objective unchanged.
+
+
+Latest source `dc6272cc5b4376d8801ddf59d19c3457f87a66ec`: PF anchor-effect run38477880009 PASS, real disabled-PF journal-bound own load/cancellation/fourSIGKILL/dead-owner recovery and changed-rule/boot refusal/post-finalizer absence. Coordinator remains private/not client-activated, no references or packet guard. Full client run38477886003 and fresh 142-file worker Go review PASS; verified research artifacts staged. Atomic privileged concurrency/all kernel anchors/physical/full/target/signing remain open; protection_ready=false. See PF_RESEARCH.md for failed/predecessor evidence and exact limits.

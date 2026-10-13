@@ -1,0 +1,28 @@
+{
+  "status": "FAIL",
+  "source_commit": "8198b50854c08dffdba0cddf71f2b86641665641",
+  "host_os": "15.7.9",
+  "kind": "native journal-bound disabled-PF owned-anchor effects",
+  "required_tests": [
+    "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot",
+    "TestRootPFAnchorEffectCrashRecovery",
+    "TestRootPFAnchorEffectCrashRecovery/pf_anchor_emptied",
+    "TestRootPFAnchorEffectCrashRecovery/pf_anchor_loaded",
+    "TestRootPFAnchorEffectCrashRecovery/pf_install_intent_committed",
+    "TestRootPFAnchorEffectCrashRecovery/pf_removal_intent_committed",
+    "TestRootPFAnchorStageAndCancel"
+  ],
+  "actual_sigkill_checkpoints": "INCOMPLETE",
+  "own_anchor_load_verify_cancel": "FAIL",
+  "same_boot_dead_owner_pre_reference_recovery": "FAIL",
+  "controlled_changed_own_rule_and_boot_refusals_preserve_evidence": "FAIL",
+  "foreign_filter_and_nat_baseline_preserved": "FAIL",
+  "pf_remains_disabled": "FAIL",
+  "reference_operations": "NOT_RUN",
+  "packet_protection": "NOT_RUN",
+  "power_loss": "NOT_RUN",
+  "high_sierra": "NOT_RUN",
+  "protection_ready": false,
+  "concurrent_privileged_writer_atomicity": "NOT_PROVEN",
+  "client_request_integration": false
+}

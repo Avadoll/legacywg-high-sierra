@@ -1,0 +1,159 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorStageAndCancel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorStageAndCancel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorStageAndCancel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorStageAndCancel",
+    "Elapsed": 1.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFAnchorEffectCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFAnchorCancellationRefusesChangedRulesAndBoot",
+    "Elapsed": 0.51
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashRecovery"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_install_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_install_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_install_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_install_intent_committed",
+    "Elapsed": 0.74
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_loaded"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_loaded"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_loaded"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_loaded",
+    "Elapsed": 0.78
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_removal_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_removal_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_removal_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_removal_intent_committed",
+    "Elapsed": 0.99
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorEffectCrashRecovery/pf_anchor_emptied",
+    "Elapsed": 1.09
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFAnchorEffectCrashRecovery"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFAnchorEffectCrashRecovery",
+    "Elapsed": 3.61
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 5.188
+  }
+]

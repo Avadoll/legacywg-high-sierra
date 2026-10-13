@@ -1,0 +1,11 @@
+{
+  "status": "NOT_ACCEPTED_AS_FINAL_CLEANUP_PROOF",
+  "source_commit": "3aa41482bb6f6057f7b6e5e1277e01b003dd8b70",
+  "run_id": "38477589949",
+  "basis": "Review of test-only finalizer source; raw report retained unchanged",
+  "reason": "Unconditional restoration could reload the owned compiled rule after successful cancellation retired its journal. The original test lacked an actual kernel check after all finalizers.",
+  "actual_recreation_measured": "NOT_RUN",
+  "fix_source_commit": "c912430d2f26f08cfaf0e0f7ceac549c88589285",
+  "post_finalizer_kernel_absence_proof_source": "dc6272cc5b4376d8801ddf59d19c3457f87a66ec",
+  "post_finalizer_kernel_absence_proof_run": "38477880009"
+}

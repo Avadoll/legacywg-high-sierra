@@ -1,0 +1,67 @@
+{
+  "conclusion": "success",
+  "headSha": "dc6272cc5b4376d8801ddf59d19c3457f87a66ec",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T22:28:09Z",
+      "conclusion": "success",
+      "databaseId": 115572985444,
+      "name": "native-effects",
+      "startedAt": "2026-10-13T22:27:11Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:27:15Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:27:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Check out reviewed coordinator source",
+          "number": 2,
+          "startedAt": "2026-10-13T22:27:15Z",
+          "status": "in_progress"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Verify pinned source and native toolchain",
+          "number": 3,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Exercise actual disabled-PF anchor effects and SIGKILL gaps",
+          "number": 4,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Save sanitized effect evidence",
+          "number": 5,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Post Check out reviewed coordinator source",
+          "number": 10,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38477880009/job/115572985444"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38477880009"
+}
