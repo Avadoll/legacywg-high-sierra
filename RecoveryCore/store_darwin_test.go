@@ -53,6 +53,30 @@ func ownedTestDirectory(t *testing.T) string {
 	return path
 }
 
+func TestRootACLDescriptor(t *testing.T) {
+	path := ownedTestDirectory(t)
+	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal("metadata fixture open failed")
+	}
+	defer unix.Close(fd)
+	if !noExtendedACL(fd) {
+		t.Fatal("ACL-free inode rejected")
+	}
+	if exec.Command(aclProbePath, "--check-no-acl").Run() == nil {
+		t.Fatal("missing inherited descriptor accepted")
+	}
+	if exec.Command("/bin/chmod", "+a", "everyone allow read", path).Run() != nil {
+		t.Fatal("metadata ACL fixture failed")
+	}
+	if noExtendedACL(fd) {
+		t.Fatal("ACL grant accepted")
+	}
+	if exec.Command("/bin/chmod", "-N", path).Run() != nil || !noExtendedACL(fd) {
+		t.Fatal("ACL removal on owned fixture not observed")
+	}
+}
+
 func TestRootJournalDurabilityAndExclusiveLock(t *testing.T) {
 	path := ownedTestDirectory(t)
 	store, err := directoryStore(t, path)

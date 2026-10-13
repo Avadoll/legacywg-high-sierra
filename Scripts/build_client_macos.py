@@ -33,10 +33,12 @@ def main() -> None:
         '/usr/bin/sudo -n /usr/bin/env LEGACYWG_ACL_TEST_HELPER='+str(acl_probe),'./RecoveryCore'],timeout=120)
     (OUT/'recovery-journal-tests.txt').write_text(journal_tests)
     events=[json.loads(line) for line in journal_tests.splitlines() if line.strip()]
-    required={'TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
+    required={'TestRootACLDescriptor','TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
               'TestRootJournalLiveAndReusedInterface','TestRootCrashRecovery'}
+    checkpoints={'TestRootCrashRecovery/'+stage for stage in
+        ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
-    if not required<=passed:raise SystemExit('Privileged journal tests not actually exercised')
+    if not (required|checkpoints)<=passed:raise SystemExit('Privileged journal tests not actually exercised')
     (OUT/'recovery-journal-ci.json').write_text(json.dumps({'status':'PASS','kind':'native-root-owned-utun-journal',
         'required_root_tests':sorted(required),'sigkill_checkpoints':5,'schema':'utun/DNS only; no PF or physical route undo',
         'high_sierra':'NOT_RUN','power_loss':'NOT_RUN'},indent=2)+'\n')

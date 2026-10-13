@@ -108,7 +108,7 @@ func ownedFile(fd int) bool {
 }
 
 // BSD mode bits alone do not describe extended ACL grants. The verified native
-// component calls acl_get_fd_np on our inherited descriptor. Any ACL or API
+// component calls fstatx_np on our inherited descriptor. Any ACL or API
 // failure is refused; /dev/fd metadata listings do not expose inode ACLs.
 func noExtendedACL(fd int) bool {
 	duplicate, err := unix.Dup(fd)
