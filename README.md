@@ -8,6 +8,8 @@ The worker captures initial endpoint paths using kernel RTM_GET and closes a spl
 
 Full tunnel, kill switch, physical route/PF journal, actual GUI recovery modal tests, sleep/network reconnect, GUI uninstall/update, High Sierra runtime and Developer ID distribution remain unfinished. Ad-hoc components and unsigned research pkg are not a trusted end-user installer. Do not disable Gatekeeper, SIP or quarantine.
 
+Developer PF experiments verified existing keep-state UDP/TCP bypass, refusal before mutation on nonempty states, stateless UDP/owned-utun TCP4/TCP6 exception removal and normal own state expiry. A separate process-death experiment verified lost-token recovery and other-reference preservation, with synthetic identity mismatch refusal. These are research evidence: physical TCP/IPv6/DNS, foreign quick rules/concurrency, production durable PF journal and atomic reference compare-and-release are unproven. See PF_RESEARCH.md.
+
 Run the manually dispatched free standard macOS feasibility workflow. Official unmodified WireGuard/toolchains are pinned with SHA256 in deps.lock.json; third-party licenses are retained. Candidate commit is unsigned; the older upstream baseline tag signature was verified against the key linked on the maintainer site. The project is independent of official WireGuard. Own-code license remains undecided.
 
 [Current scope](Docs/READINESS.md), [verified native evidence](Docs/CLIENT_RESEARCH.md), [hostname limits](Docs/ENDPOINT_RESOLUTION.md).

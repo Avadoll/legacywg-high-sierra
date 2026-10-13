@@ -1,0 +1,40 @@
+{
+  "kind": "developer-only-PF-reference-recovery-experiment",
+  "source_commit": "3fa2032922b2ad1d2dae7a1d9d7f7d2b6483327f",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "production_ready": false,
+  "private_pf_api": "UNSUPPORTED",
+  "high_sierra": "NOT_RUN",
+  "reboot_power_loss": "NOT_RUN",
+  "atomic_compare_and_release": "NOT_AVAILABLE",
+  "actual_token_reuse": "NOT_RUN",
+  "foreign_quick_rules": "NOT_RUN",
+  "last_step": "completed",
+  "live_owner_refused_without_mutation": true,
+  "kernel_reference_survives_sigkill": true,
+  "lost_token_not_recorded": true,
+  "synthetic_foreign_token_mismatch_refused": true,
+  "synthetic_boot_mismatch_refused": true,
+  "lost_token_recovered_other_reference_preserved": true,
+  "release_before_journal_update_idempotent": true,
+  "before_effect_sigkill_preserves_other_reference": true,
+  "recorded_token_release_before_commit_idempotent": true,
+  "root_recursive_filter_nat_unchanged": true,
+  "global_timeouts_limits_unchanged": true,
+  "initial_rule_hashes": {
+    "rules": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+    "nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+    "recursive_rules": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+    "recursive_nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3"
+  },
+  "pf_disabled_restored": true,
+  "final_reference_count": 0,
+  "final_state_count": 0,
+  "status": "PASS",
+  "owned_cleanup": {
+    "status": "PASS",
+    "global_disable_used": false,
+    "state_kill_used": false
+  }
+}

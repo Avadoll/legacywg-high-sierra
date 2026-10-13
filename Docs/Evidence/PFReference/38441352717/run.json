@@ -1,0 +1,91 @@
+{
+  "conclusion": "success",
+  "headSha": "3fa2032922b2ad1d2dae7a1d9d7f7d2b6483327f",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T17:47:11Z",
+      "conclusion": "success",
+      "databaseId": 115448461049,
+      "name": "experiment",
+      "startedAt": "2026-10-13T17:46:32Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T17:46:35Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T17:46:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:46:37Z",
+          "conclusion": "success",
+          "name": "Check out reviewed developer experiment",
+          "number": 2,
+          "startedAt": "2026-10-13T17:46:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:00Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-13T17:46:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:05Z",
+          "conclusion": "success",
+          "name": "Build private ABI probe only for disposable CI",
+          "number": 4,
+          "startedAt": "2026-10-13T17:47:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:06Z",
+          "conclusion": "success",
+          "name": "Measure actual process death and own reference recovery",
+          "number": 5,
+          "startedAt": "2026-10-13T17:47:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:06Z",
+          "conclusion": "success",
+          "name": "Retry only verified owned cleanup",
+          "number": 6,
+          "startedAt": "2026-10-13T17:47:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:08Z",
+          "conclusion": "success",
+          "name": "Save only sanitized experiment results",
+          "number": 7,
+          "startedAt": "2026-10-13T17:47:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:08Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed developer experiment",
+          "number": 14,
+          "startedAt": "2026-10-13T17:47:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:47:09Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-10-13T17:47:08Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38441352717/job/115448461049"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38441352717"
+}

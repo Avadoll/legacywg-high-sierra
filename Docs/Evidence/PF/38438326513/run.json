@@ -1,0 +1,91 @@
+{
+  "conclusion": "failure",
+  "headSha": "aaad55181700e789bf53a08750423ed7c9c79372",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T17:26:04Z",
+      "conclusion": "failure",
+      "databaseId": 115438058691,
+      "name": "experiment",
+      "startedAt": "2026-10-13T17:24:04Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T17:24:03Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T17:24:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:24:08Z",
+          "conclusion": "success",
+          "name": "Check out reviewed developer experiment",
+          "number": 2,
+          "startedAt": "2026-10-13T17:24:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:24:52Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-13T17:24:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:43Z",
+          "conclusion": "success",
+          "name": "Build developer-only pinned TCP fixture",
+          "number": 4,
+          "startedAt": "2026-10-13T17:24:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:53Z",
+          "conclusion": "failure",
+          "name": "Measure owned scoped IPv4 UDP guard and existing state",
+          "number": 5,
+          "startedAt": "2026-10-13T17:25:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:54Z",
+          "conclusion": "success",
+          "name": "Retry only verified owned cleanup",
+          "number": 6,
+          "startedAt": "2026-10-13T17:25:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:55Z",
+          "conclusion": "success",
+          "name": "Save only sanitized experiment results",
+          "number": 7,
+          "startedAt": "2026-10-13T17:25:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:56Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed developer experiment",
+          "number": 14,
+          "startedAt": "2026-10-13T17:25:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:25:57Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-10-13T17:25:56Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38438326513/job/115438058691"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38438326513"
+}

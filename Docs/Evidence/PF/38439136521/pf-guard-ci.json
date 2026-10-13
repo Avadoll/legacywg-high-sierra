@@ -1,0 +1,120 @@
+{
+  "kind": "developer-only-scoped-PF-egress-experiment",
+  "source_commit": "96947bd1929ad1ad7fac9f7dd31bdb16490870a0",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "protection_ready": false,
+  "high_sierra": "NOT_RUN",
+  "established_tcp": "PASS on owned-utun fixture; physical Ethernet TCP NOT_RUN",
+  "ipv6": "PASS on owned-utun TCP fixture; physical IPv6 NOT_RUN",
+  "dns_leak_policy": "NOT_RUN",
+  "crash_power_loss_recovery": "NOT_RUN",
+  "foreign_quick_anchor_coexistence": "NOT_RUN",
+  "pf_api_stability": "NOT_GUARANTEED",
+  "last_step": "completed",
+  "preflight": {
+    "pf_enabled": false,
+    "state_count": 0,
+    "rule_sets": {
+      "rules": {
+        "sha256": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "recursive_rules": {
+        "sha256": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+        "only_empty_anchor_calls": true,
+        "line_count": 3,
+        "brace_count": 2
+      },
+      "recursive_nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      }
+    }
+  },
+  "baseline_packets": {
+    "existing_udp": 8,
+    "fresh_udp": 8
+  },
+  "block_rule_packet_count": 8,
+  "blocked_phase_packets": {
+    "existing_udp": 5,
+    "fresh_udp": 0
+  },
+  "new_udp_egress_blocked": true,
+  "existing_udp_state_confirmed": true,
+  "existing_udp_bypasses_replacement_block": true,
+  "capture": "guest egress Ethernet NIC, fixed synthetic IPv4 UDP only",
+  "nonempty_state_admission": {
+    "status": "REFUSED",
+    "states_rules_references_preserved": true,
+    "existing_udp_packets_after_refusal": 8
+  },
+  "fixture_state_expiry": {
+    "status": "PASS",
+    "elapsed_seconds": 30.6,
+    "state_kill_or_timeout_change": false
+  },
+  "stateless_udp_exception": {
+    "status": "PASS",
+    "allowed_packets": 8,
+    "blocked_packets": 0,
+    "state_count_after_traffic": 0
+  },
+  "stateless_exception_removal": {
+    "status": "PASS",
+    "previously_allowed_packets": 0,
+    "fresh_packets": 0,
+    "native_block_counter": 16,
+    "state_count_after_traffic": 0
+  },
+  "tcp_fixture": {
+    "status": "PASS",
+    "scope": "native kernel TCP to owned utun/netstack; physical Ethernet TCP NOT_RUN",
+    "encrypted_traffic": "NOT_RUN",
+    "state_kill_used": false,
+    "stage": "completed",
+    "established_keep_state_bypass_confirmed": true,
+    "nonempty_tcp_state_admission_refused_without_mutation": true,
+    "normal_tcp_state_expiry_seconds": 91.1,
+    "stateless_ipv4_ipv6_established_and_fresh_blocked": true,
+    "peer_tcp_packet_delta_while_blocked": 0,
+    "native_block_counter": 14,
+    "state_count_after_block": 0,
+    "stateless_connections_resume_after_explicit_reallow": true,
+    "fixture_exit_code": 0,
+    "owned_interface_set_restored": true
+  },
+  "second_owned_reference_preserved": true,
+  "ordinary_synthetic_egress_restored": true,
+  "root_and_foreign_rules_unchanged": true,
+  "initial_rule_hashes": {
+    "rules": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+    "nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+    "recursive_rules": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+    "recursive_nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3"
+  },
+  "state_count_after_reference_release": 0,
+  "existing_state_cleanup": "Normal expiry of own fixture confirmed; never kill/flush state table",
+  "ruleset_packet_counter_proof": "PASS",
+  "global_timeouts_and_limits_unchanged": true,
+  "status": "PASS",
+  "owned_cleanup": {
+    "status": "PASS",
+    "own_anchor_empty": true,
+    "own_references_released": true,
+    "state_kill_used": false,
+    "global_disable_used": false,
+    "global_rules_loaded": false
+  }
+}
