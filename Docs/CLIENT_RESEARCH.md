@@ -102,7 +102,7 @@ Worker SHA256 `0a41089d252ac766e4842946e97d6cf5a127e805711d9c7b9f70722b5ee0fda7`
 | `LegacyWG-research-0.2-app.zip` | `885b43d761f965af41ed8add665d6b789554e73265884a972663c0be29ffbcee` |
 
 
-## Текущая проверенная сборка (startup / Recover)
+## Предыдущая проверенная сборка (startup / Recover)
 
 Native [run 38431568914](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38431568914), source `13cd2733631413af05f47f545d9c991c7cc10eeb`: actual authenticated startup/Recover/Stop/Start scenarios PASS на Intel macOS15.7.9. Corrupt journal вызывает RecoveryRequired; все операции сохраняют неоднозначную запись и fixed error. Clean recovery идемпотентен и не создаёт connection intent/utun; подтверждённо stale собственная запись удаляется при startup. Recover при активном VPN отклоняется, после чего настоящий encrypted round trip продолжает работать. Unauthorized Recover отказан. Шесть required root tests и пять actual SIGKILL checkpoints PASS; прежние 20 encrypted cycles/DNS/crash/path-loss/installer regression PASS. High Sierra/reboot/power loss/physical routes/PF — NOT_RUN.
 
@@ -112,3 +112,15 @@ Worker SHA256 `8f6a6a93bb27023d0424aa8c0585c260079ae36761bcde2b1f33b02554a54d3c`
 | --- | --- |
 | `LegacyWG-research-0.2.pkg` | `c32540777e70f4ba59d730306e45f0ef4d13998a156bcdb4267d780a573079a4` |
 | `LegacyWG-research-0.2-app.zip` | `8cb236c8fc9008ea4b1da20453506dd74831bbb10f9c5db924ee4e016289e679` |
+
+
+## Текущая проверенная сборка (duplicate import / profile sheets)
+
+[Run 38443154396](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38443154396), source `8eb32ec556c5b055650fb8624cd4ff07d45ef450`, Intel macOS15.7.9/Xcode16.4/SDK15.5: native build/self-tests/actual profile sheets и прежние encrypted peer/DNS/crash/recovery/20-cycle/fresh installer tests PASS. Keychain name/exact-data conflict detection, exact item replacement preserving ID/label and unrelated item, oversized/missing item/duplicate name refusal, actual invalid worker validation PASS. Developer UI fixture открывает настоящий delete sheet, блокирует Connect/Quit во время него, меняет simulated status на Connecting перед подтверждением и проверяет сохранение Keychain data; duplicate→new-name sheet→Cancel также сохраняет fixture data. Это controller/Keychain modal proof с simulated status, не active encrypted VPN/long-modal heartbeat test и не actual file-picker/typed-copy/replacement button end-to-end acceptance. Aqua layout inspected.
+
+Worker byte-identical to RecoveryState scoped scan; receipt security-byte-identity.json verifies exact binary and source identity, not changed Objective-C security. Components ad-hoc/pkg unsigned, release_approved=false; High Sierra/existing user server/full protection NOT_RUN.
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `13405e7f8e7f28031144095ed321e86765dfdd35d805950a75c10beb9b398675` |
+| `LegacyWG-research-0.2-app.zip` | `0738d1113cae60fa30d42bc2ebfd84273488df1c09db47ca2b840738d9bfb378` |

@@ -1,0 +1,113 @@
+{"Time":"2026-10-13T18:01:48.751583Z","Action":"start","Package":"legacywg/RecoveryCore"}
+{"Time":"2026-10-13T18:01:48.801377Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestTypedJournalTransitions"}
+{"Time":"2026-10-13T18:01:48.801464Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestTypedJournalTransitions","Output":"=== RUN   TestTypedJournalTransitions\n"}
+{"Time":"2026-10-13T18:01:48.801517Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestTypedJournalTransitions","Output":"--- PASS: TestTypedJournalTransitions (0.00s)\n"}
+{"Time":"2026-10-13T18:01:48.801522Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestTypedJournalTransitions","Elapsed":0}
+{"Time":"2026-10-13T18:01:48.801537Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestJournalRejectsCommandsSecretsAmbiguityAndBounds"}
+{"Time":"2026-10-13T18:01:48.801543Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestJournalRejectsCommandsSecretsAmbiguityAndBounds","Output":"=== RUN   TestJournalRejectsCommandsSecretsAmbiguityAndBounds\n"}
+{"Time":"2026-10-13T18:01:48.801661Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestJournalRejectsCommandsSecretsAmbiguityAndBounds","Output":"--- PASS: TestJournalRejectsCommandsSecretsAmbiguityAndBounds (0.00s)\n"}
+{"Time":"2026-10-13T18:01:48.801676Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestJournalRejectsCommandsSecretsAmbiguityAndBounds","Elapsed":0}
+{"Time":"2026-10-13T18:01:48.80169Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootACLDescriptor"}
+{"Time":"2026-10-13T18:01:48.801697Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootACLDescriptor","Output":"=== RUN   TestRootACLDescriptor\n"}
+{"Time":"2026-10-13T18:01:48.851295Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootACLDescriptor","Output":"--- PASS: TestRootACLDescriptor (0.05s)\n"}
+{"Time":"2026-10-13T18:01:48.851344Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootACLDescriptor","Elapsed":0.05}
+{"Time":"2026-10-13T18:01:48.851362Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootReconcileWithoutIntent"}
+{"Time":"2026-10-13T18:01:48.851371Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootReconcileWithoutIntent","Output":"=== RUN   TestRootReconcileWithoutIntent\n"}
+{"Time":"2026-10-13T18:01:48.9453Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootReconcileWithoutIntent","Output":"--- PASS: TestRootReconcileWithoutIntent (0.09s)\n"}
+{"Time":"2026-10-13T18:01:48.945331Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootReconcileWithoutIntent","Elapsed":0.09}
+{"Time":"2026-10-13T18:01:48.945342Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalDurabilityAndExclusiveLock"}
+{"Time":"2026-10-13T18:01:48.945345Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalDurabilityAndExclusiveLock","Output":"=== RUN   TestRootJournalDurabilityAndExclusiveLock\n"}
+{"Time":"2026-10-13T18:01:49.039046Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalDurabilityAndExclusiveLock","Output":"--- PASS: TestRootJournalDurabilityAndExclusiveLock (0.09s)\n"}
+{"Time":"2026-10-13T18:01:49.039111Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalDurabilityAndExclusiveLock","Elapsed":0.09}
+{"Time":"2026-10-13T18:01:49.039135Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles"}
+{"Time":"2026-10-13T18:01:49.039144Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles\n"}
+{"Time":"2026-10-13T18:01:49.039156Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_mode"}
+{"Time":"2026-10-13T18:01:49.039162Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_mode","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/directory_mode\n"}
+{"Time":"2026-10-13T18:01:49.041209Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_mode","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/directory_mode (0.00s)\n"}
+{"Time":"2026-10-13T18:01:49.04129Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_mode","Elapsed":0}
+{"Time":"2026-10-13T18:01:49.041313Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_acl"}
+{"Time":"2026-10-13T18:01:49.041319Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_acl","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/directory_acl\n"}
+{"Time":"2026-10-13T18:01:49.05802Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_acl","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/directory_acl (0.02s)\n"}
+{"Time":"2026-10-13T18:01:49.058099Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/directory_acl","Elapsed":0.02}
+{"Time":"2026-10-13T18:01:49.058113Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_acl"}
+{"Time":"2026-10-13T18:01:49.058118Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_acl","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/lock_acl\n"}
+{"Time":"2026-10-13T18:01:49.082313Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_acl","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/lock_acl (0.02s)\n"}
+{"Time":"2026-10-13T18:01:49.082356Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_acl","Elapsed":0.02}
+{"Time":"2026-10-13T18:01:49.082363Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_symlink"}
+{"Time":"2026-10-13T18:01:49.082367Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_symlink","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/lock_symlink\n"}
+{"Time":"2026-10-13T18:01:49.089581Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_symlink","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/lock_symlink (0.01s)\n"}
+{"Time":"2026-10-13T18:01:49.089609Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_symlink","Elapsed":0.01}
+{"Time":"2026-10-13T18:01:49.089617Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_hardlink"}
+{"Time":"2026-10-13T18:01:49.089622Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_hardlink","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/lock_hardlink\n"}
+{"Time":"2026-10-13T18:01:49.099826Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_hardlink","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/lock_hardlink (0.01s)\n"}
+{"Time":"2026-10-13T18:01:49.099857Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/lock_hardlink","Elapsed":0.01}
+{"Time":"2026-10-13T18:01:49.099886Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_acl"}
+{"Time":"2026-10-13T18:01:49.0999Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_acl","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_acl\n"}
+{"Time":"2026-10-13T18:01:49.132479Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_acl","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_acl (0.03s)\n"}
+{"Time":"2026-10-13T18:01:49.132519Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_acl","Elapsed":0.03}
+{"Time":"2026-10-13T18:01:49.132531Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_symlink"}
+{"Time":"2026-10-13T18:01:49.132536Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_symlink","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_symlink\n"}
+{"Time":"2026-10-13T18:01:49.147455Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_symlink","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_symlink (0.01s)\n"}
+{"Time":"2026-10-13T18:01:49.147483Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_symlink","Elapsed":0.01}
+{"Time":"2026-10-13T18:01:49.147496Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_hardlink"}
+{"Time":"2026-10-13T18:01:49.147501Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_hardlink","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_hardlink\n"}
+{"Time":"2026-10-13T18:01:49.164384Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_hardlink","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_hardlink (0.02s)\n"}
+{"Time":"2026-10-13T18:01:49.164424Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_hardlink","Elapsed":0.02}
+{"Time":"2026-10-13T18:01:49.164439Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_fifo"}
+{"Time":"2026-10-13T18:01:49.164444Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_fifo","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_fifo\n"}
+{"Time":"2026-10-13T18:01:49.178863Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_fifo","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_fifo (0.01s)\n"}
+{"Time":"2026-10-13T18:01:49.178897Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_fifo","Elapsed":0.01}
+{"Time":"2026-10-13T18:01:49.178905Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_mode"}
+{"Time":"2026-10-13T18:01:49.178908Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_mode","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_mode\n"}
+{"Time":"2026-10-13T18:01:49.19245Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_mode","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_mode (0.01s)\n"}
+{"Time":"2026-10-13T18:01:49.192478Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_mode","Elapsed":0.01}
+{"Time":"2026-10-13T18:01:49.192486Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_partial"}
+{"Time":"2026-10-13T18:01:49.192491Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_partial","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/record_partial\n"}
+{"Time":"2026-10-13T18:01:49.212304Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_partial","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/record_partial (0.02s)\n"}
+{"Time":"2026-10-13T18:01:49.212358Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/record_partial","Elapsed":0.02}
+{"Time":"2026-10-13T18:01:49.212371Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/unknown_schema"}
+{"Time":"2026-10-13T18:01:49.212377Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/unknown_schema","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/unknown_schema\n"}
+{"Time":"2026-10-13T18:01:49.232201Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/unknown_schema","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/unknown_schema (0.02s)\n"}
+{"Time":"2026-10-13T18:01:49.232243Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/unknown_schema","Elapsed":0.02}
+{"Time":"2026-10-13T18:01:49.232254Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/mismatched_records"}
+{"Time":"2026-10-13T18:01:49.232259Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/mismatched_records","Output":"=== RUN   TestRootJournalRejectsUntrustedFiles/mismatched_records\n"}
+{"Time":"2026-10-13T18:01:49.2625Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/mismatched_records","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles/mismatched_records (0.03s)\n"}
+{"Time":"2026-10-13T18:01:49.262535Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles/mismatched_records","Elapsed":0.03}
+{"Time":"2026-10-13T18:01:49.262546Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles","Output":"--- PASS: TestRootJournalRejectsUntrustedFiles (0.22s)\n"}
+{"Time":"2026-10-13T18:01:49.262555Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalRejectsUntrustedFiles","Elapsed":0.22}
+{"Time":"2026-10-13T18:01:49.262562Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootJournalLiveAndReusedInterface"}
+{"Time":"2026-10-13T18:01:49.262566Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalLiveAndReusedInterface","Output":"=== RUN   TestRootJournalLiveAndReusedInterface\n"}
+{"Time":"2026-10-13T18:01:49.336134Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootJournalLiveAndReusedInterface","Output":"--- PASS: TestRootJournalLiveAndReusedInterface (0.07s)\n"}
+{"Time":"2026-10-13T18:01:49.336175Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootJournalLiveAndReusedInterface","Elapsed":0.07}
+{"Time":"2026-10-13T18:01:49.336196Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashChild"}
+{"Time":"2026-10-13T18:01:49.336203Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashChild","Output":"=== RUN   TestRootCrashChild\n"}
+{"Time":"2026-10-13T18:01:49.336221Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashChild","Output":"    store_darwin_test.go:322: subprocess crash fixture only\n"}
+{"Time":"2026-10-13T18:01:49.336228Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashChild","Output":"--- SKIP: TestRootCrashChild (0.00s)\n"}
+{"Time":"2026-10-13T18:01:49.336239Z","Action":"skip","Package":"legacywg/RecoveryCore","Test":"TestRootCrashChild","Elapsed":0}
+{"Time":"2026-10-13T18:01:49.336245Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery"}
+{"Time":"2026-10-13T18:01:49.336249Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery","Output":"=== RUN   TestRootCrashRecovery\n"}
+{"Time":"2026-10-13T18:01:49.336254Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_created"}
+{"Time":"2026-10-13T18:01:49.336258Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_created","Output":"=== RUN   TestRootCrashRecovery/temporary_created\n"}
+{"Time":"2026-10-13T18:01:49.391913Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_created","Output":"--- PASS: TestRootCrashRecovery/temporary_created (0.06s)\n"}
+{"Time":"2026-10-13T18:01:49.391948Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_created","Elapsed":0.06}
+{"Time":"2026-10-13T18:01:49.391964Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_synced"}
+{"Time":"2026-10-13T18:01:49.39197Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_synced","Output":"=== RUN   TestRootCrashRecovery/temporary_synced\n"}
+{"Time":"2026-10-13T18:01:49.473683Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_synced","Output":"--- PASS: TestRootCrashRecovery/temporary_synced (0.08s)\n"}
+{"Time":"2026-10-13T18:01:49.473741Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/temporary_synced","Elapsed":0.08}
+{"Time":"2026-10-13T18:01:49.473757Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/renamed"}
+{"Time":"2026-10-13T18:01:49.473765Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/renamed","Output":"=== RUN   TestRootCrashRecovery/renamed\n"}
+{"Time":"2026-10-13T18:01:49.556545Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/renamed","Output":"--- PASS: TestRootCrashRecovery/renamed (0.08s)\n"}
+{"Time":"2026-10-13T18:01:49.556585Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/renamed","Elapsed":0.08}
+{"Time":"2026-10-13T18:01:49.556599Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/directory_synced"}
+{"Time":"2026-10-13T18:01:49.556604Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/directory_synced","Output":"=== RUN   TestRootCrashRecovery/directory_synced\n"}
+{"Time":"2026-10-13T18:01:49.637961Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/directory_synced","Output":"--- PASS: TestRootCrashRecovery/directory_synced (0.08s)\n"}
+{"Time":"2026-10-13T18:01:49.638003Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/directory_synced","Elapsed":0.08}
+{"Time":"2026-10-13T18:01:49.638014Z","Action":"run","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/live_utun"}
+{"Time":"2026-10-13T18:01:49.638019Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/live_utun","Output":"=== RUN   TestRootCrashRecovery/live_utun\n"}
+{"Time":"2026-10-13T18:01:49.759603Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/live_utun","Output":"--- PASS: TestRootCrashRecovery/live_utun (0.12s)\n"}
+{"Time":"2026-10-13T18:01:49.759637Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery/live_utun","Elapsed":0.12}
+{"Time":"2026-10-13T18:01:49.75965Z","Action":"output","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery","Output":"--- PASS: TestRootCrashRecovery (0.42s)\n"}
+{"Time":"2026-10-13T18:01:49.759659Z","Action":"pass","Package":"legacywg/RecoveryCore","Test":"TestRootCrashRecovery","Elapsed":0.42}
+{"Time":"2026-10-13T18:01:49.759662Z","Action":"output","Package":"legacywg/RecoveryCore","Output":"PASS\n"}
+{"Time":"2026-10-13T18:01:49.762532Z","Action":"output","Package":"legacywg/RecoveryCore","Output":"ok  \tlegacywg/RecoveryCore\t1.010s\n"}
+{"Time":"2026-10-13T18:01:49.762578Z","Action":"pass","Package":"legacywg/RecoveryCore","Elapsed":1.01}
