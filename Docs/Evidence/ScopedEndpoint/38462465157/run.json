@@ -1,0 +1,83 @@
+{
+  "conclusion": "success",
+  "headSha": "914399edee88acc01bc85a066e2bc30a2197a67c",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T20:26:16Z",
+      "conclusion": "success",
+      "databaseId": 115520874347,
+      "name": "experiment",
+      "startedAt": "2026-10-13T20:23:53Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T20:23:57Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T20:23:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:24:01Z",
+          "conclusion": "success",
+          "name": "Check out reviewed developer experiment",
+          "number": 2,
+          "startedAt": "2026-10-13T20:23:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:24:28Z",
+          "conclusion": "success",
+          "name": "Verify pinned source and toolchain",
+          "number": 3,
+          "startedAt": "2026-10-13T20:24:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:25:55Z",
+          "conclusion": "success",
+          "name": "Build separate fixture without changing the client",
+          "number": 4,
+          "startedAt": "2026-10-13T20:24:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:26:09Z",
+          "conclusion": "success",
+          "name": "Compare actual scoped sockets under competing owned routes",
+          "number": 5,
+          "startedAt": "2026-10-13T20:25:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:26:12Z",
+          "conclusion": "success",
+          "name": "Save only sanitized report",
+          "number": 6,
+          "startedAt": "2026-10-13T20:26:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:26:13Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed developer experiment",
+          "number": 12,
+          "startedAt": "2026-10-13T20:26:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T20:26:14Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-10-13T20:26:13Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38462465157/job/115520874347"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38462465157"
+}
