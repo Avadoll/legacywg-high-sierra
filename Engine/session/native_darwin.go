@@ -223,6 +223,10 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if journal.MarkConfigured(network.dns != nil) != nil {
 		return fail()
 	}
-	network.path = startPathWatch(paths, nativeEndpointPath)
+	current, err := newCurrentPathCheck(config, uapi, endpoints, paths, network.index, engine.IpcGet, nativeEndpointPath)
+	if err != nil {
+		return fail()
+	}
+	network.path = startPathCheck(current.verify)
 	return engine, network, nil
 }

@@ -99,6 +99,10 @@ type pathWatch struct {
 }
 
 func startPathWatch(original map[netip.Addr]endpointPath, lookup pathLookup) *pathWatch {
+	return startPathCheck(func(ctx context.Context) error { return verifyEndpointPaths(ctx, original, lookup) })
+}
+
+func startPathCheck(verify func(context.Context) error) *pathWatch {
 	ctx, cancel := context.WithCancel(context.Background())
 	watch := &pathWatch{cancel: cancel, lost: make(chan struct{}), exited: make(chan struct{})}
 	go func() {
@@ -112,7 +116,7 @@ func startPathWatch(original map[netip.Addr]endpointPath, lookup pathLookup) *pa
 				return
 			case <-ticker.C:
 				check, stop := context.WithTimeout(ctx, 2*time.Second)
-				err := verifyEndpointPaths(check, original, lookup)
+				err := verify(check)
 				stop()
 				if ctx.Err() != nil {
 					return

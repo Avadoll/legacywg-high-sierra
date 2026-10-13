@@ -6,11 +6,16 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/route"
 	"golang.org/x/sys/unix"
 )
+
+// AF_ROUTE messages can reach other private query sockets in this process.
+// Do not reuse a reply correlation sequence during its lifetime.
+var endpointRouteSequence atomic.Uint64
 
 // RTM_GET only: no routing table mutation, shell, localized command output,
 // whole-system RIB dump or profile metadata in argv. Each private socket has
@@ -19,6 +24,10 @@ import (
 func nativeEndpointPath(ctx context.Context, address netip.Addr) (endpointPath, error) {
 	failure := errors.New("kernel endpoint route query failed")
 	if !address.IsValid() || address.Zone() != "" || address.Is4In6() {
+		return endpointPath{}, failure
+	}
+	sequence := endpointRouteSequence.Add(1)
+	if sequence > 0x7fffffff {
 		return endpointPath{}, failure
 	}
 	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
@@ -38,7 +47,7 @@ func nativeEndpointPath(ctx context.Context, address netip.Addr) (endpointPath, 
 		addrs[unix.RTAX_DST] = &route.Inet6Addr{IP: address.As16()}
 	}
 	addrs[unix.RTAX_IFP] = &route.LinkAddr{}
-	request := &route.RouteMessage{Version: unix.RTM_VERSION, Type: unix.RTM_GET, ID: uintptr(os.Getpid()), Seq: 1, Addrs: addrs}
+	request := &route.RouteMessage{Version: unix.RTM_VERSION, Type: unix.RTM_GET, ID: uintptr(os.Getpid()), Seq: int(sequence), Addrs: addrs}
 	data, err := request.Marshal()
 	if err != nil || ctx.Err() != nil {
 		return endpointPath{}, failure
