@@ -102,8 +102,13 @@ func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnap
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	rules, err := runOwnedPF(ctx, "", "-a", owned, "-s", "rules")
-	if err != nil || (rules != "" && rules != stagedPFRule) {
+	if err != nil {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
+	}
+	if rules != "" {
+		if _, err := parsePFPolicy(rules); err != nil {
+			return pfPolicySnapshot{}, ErrRecoveryRequired
+		}
 	}
 	for _, kind := range []string{"nat", "Anchors", "Tables"} {
 		text, err := runOwnedPF(ctx, "", "-a", owned, "-s", kind)
@@ -204,7 +209,7 @@ func (store *Store) finishPFAnchor(ctx context.Context, requireDisabled bool) er
 		return ErrRecoveryRequired
 	}
 	record, err := store.readPF(pfJournalFile)
-	if err != nil || record == nil || !store.pfRemovalOwner(*record) || record.RulesSHA256 != pfDigest(stagedPFRule) {
+	if err != nil || record == nil || !store.pfRemovalOwner(*record) {
 		return ErrRecoveryRequired
 	}
 	before, references, err := store.readPFRemoval(ctx, *record, requireDisabled)

@@ -105,8 +105,17 @@ func (store *Store) recoverPFLifecycle(ctx context.Context) error {
 		return ErrRecoveryRequired
 	}
 	record, err := store.readPF(pfJournalFile)
-	if err != nil || record == nil || !store.pfJournalOwner(*record) || record.RulesSHA256 != pfDigest(stagedPFRule) {
+	if err != nil || record == nil || !store.pfJournalOwner(*record) {
 		return ErrRecoveryRequired
+	}
+	if record.Phase == PFRuleUpdateIntent {
+		if store.resolvePFPolicyLocked(ctx) != nil {
+			return ErrRecoveryRequired
+		}
+		record, err = store.readPF(pfJournalFile)
+		if err != nil || record == nil {
+			return ErrRecoveryRequired
+		}
 	}
 	if store.preReferenceOwner(*record) {
 		return store.finishPFAnchor(ctx, true)

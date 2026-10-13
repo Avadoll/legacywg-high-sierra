@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// This first effect coordinator stages only this compiled deny rule while PF
-// is disabled. It neither enables protection nor accepts caller-supplied rules.
+// Initial compiled deny rule. Dynamic typed exceptions are added only through
+// the journal-bound update coordinator, never from caller-supplied rule text.
 const stagedPFRule = "block drop out quick all\n"
 
 func pfDigest(data string) string {
@@ -28,6 +28,7 @@ func pfForeignView(text, owned string) (string, bool, error) {
 	}
 	var stack []string
 	var lines []string
+	var ownLines []string
 	seen, inOwn := false, false
 	for _, raw := range strings.Split(text, "\n") {
 		line := strings.TrimSpace(raw)
@@ -37,6 +38,12 @@ func pfForeignView(text, owned string) (string, bool, error) {
 		if line == "}" {
 			if len(stack) == 0 {
 				return "", false, ErrRecoveryRequired
+			}
+			if inOwn && len(ownLines) > 0 {
+				if _, err := parsePFPolicy(strings.Join(ownLines, "\n") + "\n"); err != nil {
+					return "", false, ErrRecoveryRequired
+				}
+				ownLines = nil
 			}
 			if !inOwn {
 				lines = append(lines, "}")
@@ -49,9 +56,10 @@ func pfForeignView(text, owned string) (string, bool, error) {
 		call := strings.TrimSuffix(line, " {")
 		match := pfAnchorLine.FindStringSubmatch(call)
 		if match == nil {
-			if !inOwn || line+"\n" != stagedPFRule || block {
+			if !inOwn || block || len(ownLines) >= maxPFReferences+3 {
 				return "", false, ErrRecoveryRequired
 			}
+			ownLines = append(ownLines, line)
 			continue
 		}
 		name := match[1]
