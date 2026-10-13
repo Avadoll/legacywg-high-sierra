@@ -1,0 +1,28 @@
+name: PF read-only feasibility
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: macos-15-intel
+    timeout-minutes: 3
+    steps:
+      - name: Check out selected source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Inspect PF without changing rules or states
+        run: python3 Scripts/probe_pf_macos.py
+      - name: Save bounded sanitized feasibility evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-pf-readonly-${{ github.sha }}
+          path: Build/CI/pf-feasibility-ci.json
+          if-no-files-found: error
+          retention-days: 3

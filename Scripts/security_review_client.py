@@ -31,6 +31,25 @@ def classify(output: str) -> dict:
         else:unreviewed.append(finding)
     return {'all_finding_count':len(findings),'unreviewed_symbol_findings':unreviewed,'reviewed_exclusions':excluded}
 
+def verify_reviewed_source(commit: str) -> dict:
+    import re
+    if not re.fullmatch(r'[0-9a-f]{40}',commit):raise SystemExit('Expected full reviewed source commit')
+    checkout=ROOT/'.cache/ci-source'
+    paths=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'--',
+        'ConfigCore','NetworkCore','Engine/session','Engine/worker','Vendor/wireguard-candidate','go.mod','go.sum'],cwd=checkout,text=True).splitlines()
+    paths=[path for path in paths if Path(path).suffix in ('.go','.mod','.sum')]
+    local=[path.relative_to(ROOT).as_posix() for directory in ('ConfigCore','NetworkCore','Engine/session','Engine/worker','Vendor/wireguard-candidate')
+        for path in (ROOT/directory).rglob('*') if path.is_file() and path.suffix in ('.go','.mod','.sum')]+['go.mod','go.sum']
+    if set(paths)!=set(local):raise SystemExit('Production Go file set differs from reviewed native source')
+    records=[]
+    for name in sorted(paths):
+        reviewed=subprocess.check_output(['git','show',commit+':'+name],cwd=checkout)
+        actual=(ROOT/name).read_bytes().replace(b'\r\n',b'\n')
+        if actual!=reviewed.replace(b'\r\n',b'\n'):raise SystemExit('Production Go source differs from reviewed native source: '+name)
+        records.append({'path':name,'sha256_lf':hashlib.sha256(actual).hexdigest()})
+    return {'status':'PASS','files':len(records),'manifest_sha256':hashlib.sha256(json.dumps(records,sort_keys=True).encode()).hexdigest(),
+        'scope':'production Go tree including test/build-specific files; dependencies additionally pinned by lock'}
+
 def main() -> None:
     parser=argparse.ArgumentParser()
     parser.add_argument('binary')
@@ -52,6 +71,7 @@ def main() -> None:
         'source_commit':args.source_commit,'analyzer':'v1.8.0','target':'darwin/amd64','binary':binary.name,
         'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
         'limitation':'Limited Go analysis; does not audit Objective-C, installation, target OS or all attack paths','results':[]}
+    summary['source_identity']=verify_reviewed_source(args.source_commit) if args.source_commit else {'status':'NOT_VERIFIED'}
     for label,args in [('binary',['-mode=binary','-format=json',str(binary)]),
                        ('source',['-format=json','./Engine/worker'])]:
         result=subprocess.run([str(SCANNER),*args],env=env,cwd=ROOT,capture_output=True,text=True,timeout=180)
