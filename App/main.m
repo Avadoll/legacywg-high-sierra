@@ -663,7 +663,10 @@ static int UILayoutTest(void) {
     ClientController *controller=[[ClientController alloc] init];
     [controller applicationDidFinishLaunching:[NSNotification notificationWithName:NSApplicationDidFinishLaunchingNotification object:NSApp]];
     [controller.timer invalidate];
-    [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.2]];
+    // The real initial status request is asynchronous. Drain its completion
+    // before this developer fixture installs controlled status snapshots;
+    // a late unavailable reply must not overwrite the sheet preconditions.
+    BOOL startupFinished=WaitFor(^BOOL{return !controller.busy;});
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];
     [controller.table reloadData];[controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     controller.busy=NO;
@@ -730,10 +733,11 @@ static int UILayoutTest(void) {
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
-    BOOL passed=menu && recovery && profileSheets && metadata && about && bounds && saved && labelPixels>30;
+    BOOL passed=startupFinished && menu && recovery && profileSheets && metadata && about && bounds && saved && labelPixels>30;
     NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
         @"recovery_controls_and_unknown_state":@(recovery),
+        @"initial_status_request_completed":@(startupFinished),
         @"actual_profile_sheets_guard_cancel_and_changed_state_refusal":@(profileSheets),
         @"profile_sheet_proof":profileProof,
         @"selected_profile_metadata":@(metadata),@"actual_about_license_sheet":@(about),

@@ -44,6 +44,7 @@ def main() -> None:
         ('pf_temporary_created','pf_temporary_synced','pf_renamed','pf_directory_synced')}
     if not (pf_required|pf_checkpoints)<=passed:raise SystemExit('Privileged PF metadata journal tests not actually exercised')
     (OUT/'pf-journal-ci.json').write_text(json.dumps({'status':'PASS','kind':'native-root-owned-PF-metadata-journal',
+        'source_commit':os.environ.get('GITHUB_SHA'),
         'required_root_tests':sorted(pf_required),'sigkill_checkpoints':4,'kernel_pf_effects':'NOT_RUN',
         'recovery_policy':'refuse and preserve; no automatic PF release or rule removal',
         'high_sierra':'NOT_RUN','power_loss':'NOT_RUN','protection_ready':False},indent=2)+'\n')
