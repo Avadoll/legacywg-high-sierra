@@ -115,6 +115,16 @@ def load(data,rules):
     if hashed not in data['rules_hashes']:data['rules_hashes'].append(hashed)
     write_state(data)
 
+def admit_stateless_candidate(data,rules):
+    # Experimental admission gate, not a production fail-closed claim. Existing
+    # states are preserved and refused BEFORE any candidate rule mutation.
+    # A post-load recheck catches a state created during admission; complete
+    # foreign-rule concurrency guarantees still require a separate proof.
+    if enabled()[1]!=0:return False
+    load(data,rules)
+    if enabled()[1]!=0:raise RuntimeError('new state appeared during stateless admission')
+    return True
+
 def cleanup():
     if not STATE.exists():return {'status':'NO_OWNED_RECORD'}
     data=read_state()
@@ -237,6 +247,45 @@ def experiment(report):
                        'new_udp_egress_blocked':True,'existing_udp_state_confirmed':True,
                        'existing_udp_bypasses_replacement_block':blocked[WARM]>0,
                        'capture':'guest egress Ethernet NIC, fixed synthetic IPv4 UDP only'})
+        report['last_step']='refuse_nonempty_state_candidate'
+        candidate=(f'pass out quick on {iface} inet proto udp from any to {DEST} port {WARM} no state\n'
+                   f'block drop out quick on {iface} inet proto udp from any to {DEST} port {FRESH}\n')
+        prior_states=pf('-s','states');prior_rules=pf('-a',data['anchor'],'-s','rules')
+        prior_tokens=data['tokens'].copy()
+        if admit_stateless_candidate(data,candidate):raise RuntimeError('nonempty-state candidate incorrectly admitted')
+        if pf('-s','states')!=prior_states or pf('-a',data['anchor'],'-s','rules')!=prior_rules or data['tokens']!=prior_tokens:
+            raise RuntimeError('refused admission changed states, rules or references')
+        refused=captured(data,iface,'refused-candidate',warm,None)
+        if refused[WARM]<3:raise RuntimeError('existing flow changed by refused admission')
+        report['nonempty_state_admission']={'status':'REFUSED','states_rules_references_preserved':True,
+            'existing_udp_packets_after_refusal':refused[WARM]}
+        # Developer fixture only: stop sending and let the normal PF timeout
+        # expire the one state we deliberately created. Never kill it or change
+        # a global timeout. Production admission would refuse immediately.
+        report['last_step']='wait_normal_own_fixture_state_expiry'
+        started=time.monotonic();deadline=started+90
+        while enabled()[1]!=0 and time.monotonic()<deadline:time.sleep(2)
+        if enabled()[1]!=0:raise RuntimeError('fixture state did not expire; no forced cleanup permitted')
+        report['fixture_state_expiry']={'status':'PASS','elapsed_seconds':round(time.monotonic()-started,1),
+            'state_kill_or_timeout_change':False}
+        report['last_step']='stateless_candidate_admission'
+        if not admit_stateless_candidate(data,candidate):raise RuntimeError('empty-state candidate refused')
+        stateless=captured(data,iface,'stateless-candidate',warm,fresh)
+        if stateless[WARM]<3 or stateless[FRESH]!=0 or enabled()[1]!=0:
+            raise RuntimeError('stateless exception or fresh block failed')
+        report['stateless_udp_exception']={'status':'PASS','allowed_packets':stateless[WARM],
+            'blocked_packets':stateless[FRESH],'state_count_after_traffic':0}
+        # Remove that exception. Previously permitted traffic must now hit the
+        # block instead of inheriting a keep-state permission.
+        report['last_step']='close_stateless_udp_exception'
+        load(data,f'block drop out quick on {iface} inet proto udp from any to {DEST} port {{ {WARM}, {FRESH} }}\n')
+        closed=captured(data,iface,'closed-exception',warm,fresh)
+        closed_counters=pf('-a',data['anchor'],'-v','-s','rules')
+        closed_packets=sum(int(item) for item in re.findall(r'\bPackets:\s*(\d+)\b',closed_counters))
+        if any(closed.values()) or closed_packets<6 or enabled()[1]!=0:
+            raise RuntimeError('removed stateless exception left an egress bypass')
+        report['stateless_exception_removal']={'status':'PASS','previously_allowed_packets':closed[WARM],
+            'fresh_packets':closed[FRESH],'native_block_counter':closed_packets,'state_count_after_traffic':0}
         report['last_step']='second_owned_reference'
         acquire(data);release(data)
         if not enabled()[0]:raise RuntimeError('other owned reference was lost')
@@ -258,7 +307,7 @@ def experiment(report):
         report.update({'ordinary_synthetic_egress_restored':True,'root_and_foreign_rules_unchanged':True,
                        'initial_rule_hashes':{key:digest(value) for key,value in before.items()},
                        'state_count_after_reference_release':enabled()[1],
-                       'existing_state_cleanup':'NOT_TESTED; never kill/flush state table',
+                       'existing_state_cleanup':'Normal expiry of own fixture confirmed; never kill/flush state table',
                        'ruleset_packet_counter_proof':'PASS',
                        'global_timeouts_and_limits_unchanged':True})
         report['last_step']='completed'
