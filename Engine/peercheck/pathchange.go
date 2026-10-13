@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
@@ -87,6 +88,36 @@ func createOuterFixture() (func() error, error) {
 		closeOuter()
 		return nil, failure
 	}
+	// The point-to-point host route sends packets to the utun descriptor.
+	// Reflect only UDP packets whose source and destination are this isolated
+	// test address back through its ingress. This is a kernel UDP path, not a
+	// replacement WireGuard engine or a simulated handshake.
+	go func() {
+		buffers := [][]byte{make([]byte, 65539)}
+		sizes := make([]int, 1)
+		for {
+			n, err := outer.Read(buffers, sizes, 4)
+			if err != nil {
+				return
+			}
+			if n != 1 || sizes[0] < 28 {
+				continue
+			}
+			packet := buffers[0][4 : 4+sizes[0]]
+			if packet[0] != 0x45 || packet[9] != 17 || int(binary.BigEndian.Uint16(packet[2:4])) != len(packet) || binary.BigEndian.Uint16(packet[6:8])&0x3fff != 0 {
+				continue
+			}
+			if netip.AddrFrom4([4]byte(packet[12:16])) != address || netip.AddrFrom4([4]byte(packet[16:20])) != address {
+				continue
+			}
+			if int(binary.BigEndian.Uint16(packet[24:26])) != len(packet)-20 {
+				continue
+			}
+			if _, err = outer.Write([][]byte{buffers[0][:4+sizes[0]]}, 4); err != nil {
+				return
+			}
+		}
+	}()
 	return closeOuter, nil
 }
 
@@ -167,10 +198,47 @@ func outerEndpointFixture() (func() error, error) {
 	select {
 	case ok := <-ready:
 		if ok {
+			if verifyOuterUDP() != nil {
+				closeOuter()
+				return nil, errors.New("controlled outer kernel UDP probe failed")
+			}
 			return closeOuter, nil
 		}
 	case <-time.After(5 * time.Second):
 	}
 	closeOuter()
 	return nil, failure
+}
+
+func verifyOuterUDP() error {
+	failure := errors.New("outer kernel UDP probe failed")
+	listener, err := net.ListenUDP("udp4", &net.UDPAddr{})
+	if err != nil {
+		return failure
+	}
+	defer listener.Close()
+	listener.SetDeadline(time.Now().Add(2 * time.Second))
+	go func() {
+		buffer := make([]byte, 128)
+		n, remote, err := listener.ReadFromUDP(buffer)
+		if err == nil {
+			listener.WriteToUDP(buffer[:n], remote)
+		}
+	}()
+	client, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.IPv4(198, 18, 99, 3), Port: listener.LocalAddr().(*net.UDPAddr).Port})
+	if err != nil {
+		return failure
+	}
+	defer client.Close()
+	client.SetDeadline(time.Now().Add(2 * time.Second))
+	payload := "LegacyWG owned outer UDP probe"
+	if _, err = client.Write([]byte(payload)); err != nil {
+		return failure
+	}
+	buffer := make([]byte, 128)
+	n, err := client.Read(buffer)
+	if err != nil || string(buffer[:n]) != payload {
+		return failure
+	}
+	return nil
 }
