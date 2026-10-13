@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -58,6 +59,9 @@ func path(address netip.Addr) (string, error) {
 }
 
 func socket(local netip.Addr, index int) (*net.UDPConn, error) {
+	return socketPort(local, index, 0)
+}
+func socketPort(local netip.Addr, index int, port uint16) (*net.UDPConn, error) {
 	family, level, option := "udp4", unix.IPPROTO_IP, unix.IP_BOUND_IF
 	if local.Is6() {
 		family, level, option = "udp6", unix.IPPROTO_IPV6, unix.IPV6_BOUND_IF
@@ -87,7 +91,7 @@ func socket(local netip.Addr, index int) (*net.UDPConn, error) {
 	if local.Is6() {
 		listen = netip.IPv6Unspecified()
 	}
-	value, err := config.ListenPacket(context.Background(), family, net.JoinHostPort(listen.String(), "0"))
+	value, err := config.ListenPacket(context.Background(), family, net.JoinHostPort(listen.String(), strconv.Itoa(int(port))))
 	if err != nil {
 		return nil, errors.New("fixture native socket failed")
 	}
@@ -243,6 +247,14 @@ func check(ipv6 bool) (map[string]any, error) {
 	if !echo(plain, remote) || !echo(bound, remote) {
 		return nil, errors.New("kernel baseline echo failed")
 	}
+	encrypted, err := startEncrypted(stack, local, remote, iface.Index)
+	if err != nil {
+		return nil, err
+	}
+	defer encrypted.close()
+	if !encrypted.roundTrip() || !officialStats(encrypted.client) || !officialStats(encrypted.server) {
+		return nil, errors.New("official baseline handshake and encrypted echo failed")
+	}
 	decoy, err := tun.CreateTUN("utun", 1420)
 	if err != nil {
 		return nil, failure
@@ -315,6 +327,19 @@ func check(ipv6 bool) (map[string]any, error) {
 	if dropped.Load() != before {
 		return nil, errors.New("bound traffic reached decoy")
 	}
+	before = dropped.Load()
+	for attempt := 0; attempt < 4; attempt++ {
+		if !encrypted.roundTrip() {
+			return nil, errors.New("encrypted scoped echo failed under conflicting route")
+		}
+	}
+	if encrypted.client.Down() != nil || encrypted.client.Up() != nil || encrypted.transport.opens.Load() < 2 || !encrypted.roundTrip() || !officialStats(encrypted.client) || !officialStats(encrypted.server) {
+		return nil, errors.New("encrypted scoped transport reopen failed")
+	}
+	time.Sleep(100 * time.Millisecond)
+	if dropped.Load() != before {
+		return nil, errors.New("encrypted scoped transport reached decoy")
+	}
 	// Interface loss must not silently fall back to the conflicting route.
 	if outer.Close() != nil {
 		return nil, failure
@@ -325,7 +350,7 @@ func check(ipv6 bool) (map[string]any, error) {
 		return nil, failure
 	}
 	before = dropped.Load()
-	lost := !echo(bound, remote)
+	lost := !echo(bound, remote) && !encrypted.roundTrip()
 	time.Sleep(100 * time.Millisecond)
 	if !lost || dropped.Load() != before {
 		return nil, errors.New("bound socket escaped after interface loss")
@@ -345,6 +370,8 @@ func check(ipv6 bool) (map[string]any, error) {
 	return map[string]any{"status": "PASS", "baseline_plain_and_bound_echo": "PASS", "unbound_conflict_negative_control": "PASS",
 		"bound_echo_with_conflicting_host_route": "PASS", "bound_round_trips": 4, "bound_packets_on_decoy": 0,
 		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS",
+		"official_handshake_and_counters": "PASS", "encrypted_bound_round_trips": 6, "encrypted_decoy_packets": 0,
+		"old_receive_callback_stays_closed_after_reopen": "PASS", "official_device_down_up_scoped_reopen": "PASS",
 		"wildcard_listeners": true, "scoped_prefix_added": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
 }
 
@@ -399,6 +426,7 @@ func main() {
 		}
 	}
 	report["interface_set_restored"] = "PASS"
+	report["encrypted_wireguard"] = "PASS"
 	report["status"] = "PASS"
 	json.NewEncoder(os.Stdout).Encode(report)
 }
