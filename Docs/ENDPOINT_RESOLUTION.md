@@ -1,6 +1,6 @@
 # Hostname Endpoint: границы реализации
 
-Добавлено 13 октября 2026. Native CI проверка ожидается.
+Добавлено 13 октября 2026. Native CI run 38404280495 / source c00c4d3e7e447f1fb78497a5189880e6deeb8e9e прошёл: encrypted localhost endpoint, DNS cleanup и исходные regression checks. Внешний DNS/High Sierra не проверены.
 
 ConfigCore принимает только валидированный ASCII hostname. Validate/импорт не выполняют DNS. При Start сначала проверяется весь split plan, затем системный resolver разрешает имена с общим пятисекундным deadline, и лишь после этого создаются UAPI/utun/routes/DNS. Повторные имена внутри профиля разрешаются один раз, порты peers остаются отдельными. Ошибки не включают hostname, IP или внутренний resolver error.
 

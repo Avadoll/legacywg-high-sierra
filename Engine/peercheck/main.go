@@ -339,12 +339,17 @@ func main() {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "hostname_endpoint": true, "reason": err.Error()})
 		os.Exit(1)
 	}
+	if err := multiplePeers(os.Args[1], os.Args[2]); err != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "multi_peer": true, "reason": err.Error()})
+		os.Exit(1)
+	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
 		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
 		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
 		"dns_agent_crash_recovery": "PASS", "foreign_dns_restoration": "PASS",
 		"ipv6_encrypted_split": "PASS", "ipv6_endpoint": "PASS", "ipv6_dns_transport_udp_tcp": "PASS",
-		"dual_stack_encrypted_split":         "PASS",
-		"localhost_endpoint_encrypted_split": "PASS",
-		"external_server":                    "NOT_RUN", "high_sierra": "NOT_RUN"})
+		"dual_stack_encrypted_split":              "PASS",
+		"localhost_endpoint_encrypted_split":      "PASS",
+		"multi_peer_encrypted_routing_and_status": "PASS",
+		"external_server":                         "NOT_RUN", "high_sierra": "NOT_RUN"})
 }

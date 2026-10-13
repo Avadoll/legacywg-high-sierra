@@ -2,13 +2,10 @@
 package session
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"net/netip"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,23 +15,26 @@ import (
 )
 
 type Status struct {
-	State         string `json:"state"`
-	Interface     string `json:"interface,omitempty"`
-	Peers         int    `json:"peers"`
-	Rx            uint64 `json:"rx_bytes"`
-	Tx            uint64 `json:"tx_bytes"`
-	LastHandshake int64  `json:"last_handshake_unix,omitempty"`
-	Protected     bool   `json:"protected"`
-	DNSConfigured bool   `json:"dns_configured"`
-	Reason        string `json:"reason,omitempty"`
+	State         string       `json:"state"`
+	Interface     string       `json:"interface,omitempty"`
+	Peers         int          `json:"peers"`
+	Rx            uint64       `json:"rx_bytes"`
+	Tx            uint64       `json:"tx_bytes"`
+	LastHandshake int64        `json:"last_handshake_unix,omitempty"`
+	Protected     bool         `json:"protected"`
+	DNSConfigured bool         `json:"dns_configured"`
+	Reason        string       `json:"reason,omitempty"`
+	TunnelStarted bool         `json:"tunnel_started"`
+	PeerDetails   []PeerStatus `json:"peer_details,omitempty"`
 }
 
 type Session struct {
-	mutex   sync.Mutex
-	engine  *device.Device
-	network *nativeNetwork
-	peers   int
-	failure string
+	mutex       sync.Mutex
+	engine      *device.Device
+	network     *nativeNetwork
+	peers       int
+	failure     string
+	peerIndices map[string]int
 }
 
 func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
@@ -128,6 +128,7 @@ func (session *Session) Start(profile []byte) error {
 		return err
 	}
 	session.engine, session.network, session.peers = engine, network, len(config.Peers)
+	session.peerIndices = peerIndices(configuration.String())
 	session.failure = ""
 	if done := network.dnsDone(); done != nil {
 		go session.watchDNS(network, done)
@@ -148,6 +149,7 @@ func (session *Session) watchDNS(network *nativeNetwork, done <-chan struct{}) {
 	if network.close() == nil {
 		session.network = nil
 		session.peers = 0
+		session.peerIndices = nil
 	}
 }
 
@@ -170,6 +172,7 @@ func (session *Session) Stop() error {
 	}
 	session.network = nil
 	session.peers = 0
+	session.peerIndices = nil
 	session.failure = ""
 	return nil
 }
@@ -189,32 +192,13 @@ func (session *Session) Status() (Status, error) {
 	}
 	result.State, result.Interface, result.Peers = "Connecting", session.network.name(), session.peers
 	result.DNSConfigured = session.network.dnsActive()
+	result.TunnelStarted = true
 	raw, err := session.engine.IpcGet()
 	if err != nil {
 		return result, errors.New("cannot read engine statistics")
 	}
-	// The private-key-bearing UAPI is never returned or logged. Only these
-	// numeric fields cross the privilege boundary.
-	scanner := bufio.NewScanner(strings.NewReader(raw))
-	for scanner.Scan() {
-		field, value, found := strings.Cut(scanner.Text(), "=")
-		if !found {
-			continue
-		}
-		number, err := strconv.ParseUint(value, 10, 64)
-		if err != nil {
-			continue
-		}
-		switch field {
-		case "rx_bytes":
-			result.Rx += number
-		case "tx_bytes":
-			result.Tx += number
-		case "last_handshake_time_sec":
-			if number <= uint64(time.Now().Unix()) && int64(number) > result.LastHandshake {
-				result.LastHandshake = int64(number)
-			}
-		}
+	if err := readPeerStatistics(raw, session.peerIndices, time.Now().Unix(), &result); err != nil {
+		return result, err
 	}
 	if result.LastHandshake > 0 {
 		result.State = "Connected"

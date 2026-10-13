@@ -12,6 +12,13 @@ static NSString *ServerRequirement(void) {
     return requirement.length <= 2048 ? requirement : nil;
 }
 
+static NSString *HandshakeDate(id value) {
+    if(![value isKindOfClass:NSNumber.class] || [value doubleValue]<=0)return @"ещё не получен";
+    NSDateFormatter *formatter=[[NSDateFormatter alloc] init];
+    formatter.dateStyle=NSDateFormatterShortStyle; formatter.timeStyle=NSDateFormatterMediumStyle;
+    return [formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:[value doubleValue]]];
+}
+
 static NSDictionary *ValidateProfile(NSData *data) {
     if (!data.length || data.length > 256*1024) return @{@"ok":@NO,@"error":@"Допустимый размер профиля — до 256 КиБ"};
     NSURL *path = [NSBundle.mainBundle.bundleURL URLByAppendingPathComponent:@"Contents/Helpers/legacywg-worker"];
@@ -152,7 +159,11 @@ static NSDictionary *ValidateProfile(NSData *data) {
     self.tunnelActive=[state isEqual:@"Connected"] || [state isEqual:@"Connecting"];
     self.state.stringValue=[state isEqual:@"Connected"] ? @"Handshake получен" :
         [state isEqual:@"Connecting"] ? @"Ожидание handshake…" : [state isEqual:@"RecoveryRequired"] ? @"Нужно восстановление сети" : [state isEqual:@"Error"] ? @"Соединение остановлено" : @"Не подключено";
-    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"%@\nПолучено: %@ байт\nОтправлено: %@ байт\nDNS профиля: %@\nSplit tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
+    NSUInteger handshakes=0;
+    if([status[@"peer_details"] isKindOfClass:NSArray.class])
+        for(NSDictionary *peer in status[@"peer_details"])
+            if([peer[@"last_handshake_unix"] doubleValue]>0)handshakes++;
+    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"Туннель запущен: %@\nПоследний handshake: %@\nPeers с handshake: %lu из %@\nПолучено: %@ байт; отправлено: %@ байт\nDNS профиля: %@\nSplit tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",HandshakeDate(status[@"last_handshake_unix"]),(unsigned long)handshakes,status[@"peers"] ?: @0,status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
         [state isEqual:@"Error"] ? @"DNS-компонент потерял настройки или завершился. Туннель закрыт; можно подключиться снова." : @"Выберите профиль для подключения.";
     self.connect.enabled=!self.tunnelActive; self.disconnect.enabled=self.tunnelActive;
 }
