@@ -240,6 +240,15 @@ def main() -> None:
             assert modal_report['status']=='PASS'
             (OUT/'client-live-modal-ci.json').write_text(json.dumps(modal_report,indent=2)+'\n')
             results['live_gui_encrypted_long_sheet_and_hidden_window']='PASS'
+            for mode in ('--quit-cancel','--quit-accept','--crash'):
+                command=[str(client_build/'peercheck'),'--gui-modal',str(allowed),helper_requirement,
+                    str(modal_app/'Contents/MacOS/LegacyWG'),mode]
+                if mode=='--crash':command.append(str(client_build/'dns-probe'))
+                proof=json.loads(run(command,timeout=65))
+                assert proof['status']=='PASS'
+                name='client-live-'+mode.removeprefix('--')+'-ci.json'
+                (OUT/name).write_text(json.dumps(proof,indent=2)+'\n')
+                results['live_gui_'+mode.removeprefix('--').replace('-','_')]='PASS'
         results['audit_identity'] = 'kernel Mach trailer + SecCode audit guest'
         results['status'] = 'PASS'
     finally:

@@ -84,6 +84,7 @@ type checkOptions struct {
 	routeLoss     bool
 	recoveryTest  bool
 	guiExecutable string
+	guiMode       string
 	guiReport     *map[string]any
 }
 
@@ -267,13 +268,6 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		return errors.New("actual handshake and traffic statistics missing")
 	}
 	iface, _ := status["interface"].(string)
-	if settings.guiExecutable != "" {
-		report, failure := guiModal(stack, serverIP, settings.guiExecutable)
-		if failure != nil {
-			return failure
-		}
-		*settings.guiReport = report
-	}
 	if dual {
 		if err = extraIPv4Echo(stack); err != nil {
 			return err
@@ -287,6 +281,13 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		time.Sleep(time.Second)
 		if err = systemDNS(dnsProbe, dnsCount); err != nil {
 			return err
+		}
+	}
+	if settings.guiExecutable != "" {
+		report, failure := guiModal(stack, serverIP, settings.guiExecutable, settings.guiMode, iface)
+		*settings.guiReport = report
+		if failure != nil {
+			return failure
 		}
 	}
 	if settings.routeLoss {
@@ -330,6 +331,9 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
+	} else if settings.guiMode == "--quit-accept" || settings.guiMode == "--crash" {
+		// Inspect before any coordinator Stop: GUI Quit or watchdog must have
+		// performed the actual cleanup, otherwise the test fails below.
 	} else if _, err = call(client, requirement, "stop", ""); err != nil {
 		return err
 	}
@@ -371,15 +375,32 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 }
 
 func main() {
-	if len(os.Args) == 5 && os.Args[1] == "--gui-modal" {
+	if len(os.Args) >= 5 && len(os.Args) <= 7 && os.Args[1] == "--gui-modal" {
 		var proof map[string]any
-		err := check(os.Args[2], os.Args[3], false, "", "", false, false,
-			checkOptions{guiExecutable: os.Args[4], guiReport: &proof})
+		mode, dnsProbe, dnsMode := "", "", ""
+		if len(os.Args) > 5 {
+			mode = os.Args[5]
+		}
+		if (mode != "" && mode != "--quit-cancel" && mode != "--quit-accept" && mode != "--crash") ||
+			(mode == "--crash" && len(os.Args) != 7) || (mode != "--crash" && len(os.Args) > 6) {
+			os.Exit(2)
+		}
+		if mode == "--crash" {
+			dnsProbe, dnsMode = os.Args[6], "gui-crash"
+		}
+		err := check(os.Args[2], os.Args[3], false, dnsProbe, dnsMode, false, false,
+			checkOptions{guiExecutable: os.Args[4], guiMode: mode, guiReport: &proof})
 		if err != nil {
-			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "reason": err.Error()})
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "reason": err.Error(), "gui_proof": proof})
 			os.Exit(1)
 		}
 		proof["route_interface_restoration"] = "PASS"
+		if mode == "--crash" {
+			proof["profile_dns_and_foreign_resolver_restoration"] = "PASS"
+		}
+		if mode == "--quit-accept" || mode == "--crash" {
+			proof["disconnected_before_coordinator_stop"] = "PASS"
+		}
 		json.NewEncoder(os.Stdout).Encode(proof)
 		return
 	}

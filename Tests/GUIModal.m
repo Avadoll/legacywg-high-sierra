@@ -8,6 +8,13 @@
 @property(nonatomic) NSUInteger confirmedReplies;
 @property(nonatomic) BOOL modalStarted;
 @property(nonatomic,copy) NSString *originalInterface;
+@property(nonatomic,copy) NSString *testMode;
+@property(nonatomic) BOOL quitPromptOpened;
+@property(nonatomic) NSUInteger quitRepliesBefore;
+@property(nonatomic) NSTimeInterval quitBegan;
+@end
+
+@interface ModalApplication : NSApplication
 @end
 
 static void Emit(NSDictionary *value) {
@@ -23,6 +30,43 @@ static void Finish(ModalController *controller, NSDictionary *proof) {
     [NSApp postEvent:wake atStart:YES];
 }
 
+@implementation ModalApplication
+- (void)sendEvent:(NSEvent *)event {
+    if(event.type==NSEventTypeApplicationDefined && event.subtype==71) {
+        ModalController *controller=(ModalController *)self.delegate;
+        controller.quitRepliesBefore=controller.confirmedReplies;
+        controller.quitBegan=NSProcessInfo.processInfo.systemUptime;
+        BOOL accepting=[controller.testMode isEqual:@"--quit-accept"];
+        // Enter runModal from a real AppKit event, outside a main dispatch
+        // callback. Blocking a GCD callback would make a false timer fixture.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.25*NSEC_PER_SEC)),dispatch_get_main_queue(),^{
+            controller.quitPromptOpened=self.modalWindow!=nil && controller.interactionPending;
+            Emit(@{@"phase":@"quit_prompt",@"status":controller.quitPromptOpened ? @"READY" : @"FAIL"});
+        });
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(accepting ? 3 : 18)*NSEC_PER_SEC),dispatch_get_main_queue(),^{
+            if(!self.modalWindow){Finish(controller,@{@"status":@"FAIL",@"phase":@"quit_modal_missing"});return;}
+            [self stopModalWithCode:accepting ? NSAlertFirstButtonReturn : NSAlertSecondButtonReturn];
+        });
+        [self terminate:nil];
+        if(!accepting) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(0.2*NSEC_PER_SEC)),dispatch_get_main_queue(),^{
+                NSUInteger replies=controller.confirmedReplies-controller.quitRepliesBefore;
+                NSTimeInterval held=NSProcessInfo.processInfo.systemUptime-controller.quitBegan;
+                BOOL canceled=controller.quitPromptOpened && self.running && !self.modalWindow &&
+                    !controller.quitting && !controller.interactionPending && controller.timer.valid &&
+                    controller.statusKnown && controller.tunnelActive && replies>=7 && held>=18;
+                Finish(controller,@{@"status":canceled ? @"PASS" : @"FAIL",@"kind":@"native-live-quit-cancel",
+                    @"real_appkit_terminate_event":@YES,@"quit_confirmation_held_seconds":@(held),
+                    @"connected_replies_during_quit_confirmation":@(replies),@"cancel_preserves_active_tunnel":@(canceled),
+                    @"high_sierra":@"NOT_RUN",@"mouse_accessibility":@"NOT_RUN"});
+            });
+        }
+        return;
+    }
+    [super sendEvent:event];
+}
+@end
+
 @implementation ModalController
 - (void)showReply:(NSDictionary *)reply {
     [super showReply:reply];
@@ -35,6 +79,11 @@ static void Finish(ModalController *controller, NSDictionary *proof) {
     self.confirmedReplies++;
     if(self.modalStarted)return;
     self.modalStarted=YES;
+    if([self.testMode hasPrefix:@"--quit-"]) {
+        NSEvent *event=[NSEvent otherEventWithType:NSEventTypeApplicationDefined location:NSZeroPoint
+            modifierFlags:0 timestamp:0 windowNumber:0 context:nil subtype:71 data1:0 data2:0];
+        [NSApp postEvent:event atStart:YES];return;
+    }
     [self about:nil];
     NSWindow *sheet=self.window.attachedSheet;
     BOOL opened=sheet!=nil && self.interactionPending && LicenseView(sheet.contentView,0)!=nil;
@@ -49,6 +98,7 @@ static void Finish(ModalController *controller, NSDictionary *proof) {
     NSUInteger before=self.confirmedReplies;
     NSTimeInterval began=NSProcessInfo.processInfo.systemUptime;
     Emit(@{@"phase":@"sheet_open",@"status":@"READY"});
+    if([self.testMode isEqual:@"--crash"])return; // Coordinator sends actual SIGKILL.
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,18*NSEC_PER_SEC),dispatch_get_main_queue(),^{
         NSTimeInterval elapsed=NSProcessInfo.processInfo.systemUptime-began;
         NSUInteger during=self.confirmedReplies-before;
@@ -74,14 +124,25 @@ static void Finish(ModalController *controller, NSDictionary *proof) {
         });
     });
 }
+- (void)applicationWillTerminate:(NSNotification *)notification {
+    (void)notification;
+    if(![self.testMode isEqual:@"--quit-accept"])return;
+    BOOL stopped=self.quitPromptOpened && self.quitting && !self.interactionPending && !self.timer.valid;
+    Emit(@{@"status":stopped ? @"PASS" : @"FAIL",@"kind":@"native-live-quit-accept",
+        @"real_appkit_termination_notification":@YES,@"authenticated_stop_acknowledged_before_exit":@(stopped),
+        @"high_sierra":@"NOT_RUN",@"mouse_accessibility":@"NOT_RUN"});
+}
 @end
 
-int main(void) {
+int main(int argc,const char *argv[]) {
     @autoreleasepool {
         const char *ci=getenv("GITHUB_ACTIONS");if(!ci || strcmp(ci,"true")!=0)return 3;
         struct rlimit coreLimit={0,0};if(setrlimit(RLIMIT_CORE,&coreLimit)!=0)return 5;
-        [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        NSString *mode=argc==2 ? [NSString stringWithUTF8String:argv[1]] : @"";
+        if(argc>2 || ![@[@"",@"--quit-cancel",@"--quit-accept",@"--crash"] containsObject:mode])return 2;
+        [ModalApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
         ModalController * __attribute__((objc_precise_lifetime)) controller=[[ModalController alloc] init];
+        controller.testMode=mode;
         NSApp.delegate=controller;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,40*NSEC_PER_SEC),dispatch_get_main_queue(),^{
             Finish(controller,@{@"status":@"FAIL",@"phase":@"deadline"});
