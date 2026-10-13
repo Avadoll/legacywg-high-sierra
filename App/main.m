@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <stdlib.h>
 
 static NSString *ServerRequirement(void) {
     NSURL *url = [NSBundle.mainBundle URLForResource:@"Helper" withExtension:@"req"];
@@ -40,7 +41,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     return [object isKindOfClass:[NSDictionary class]] ? object : @{@"ok":@NO,@"error":@"Ошибка проверки профиля"};
 }
 
-@interface ClientController : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate>
+@interface ClientController : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @property(nonatomic,strong) NSWindow *window;
 @property(nonatomic,strong) NSTableView *table;
 @property(nonatomic,strong) NSTextField *state;
@@ -51,6 +52,13 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @property(nonatomic,strong) NSTimer *timer;
 @property(nonatomic) BOOL busy;
 @property(nonatomic) BOOL tunnelActive;
+@property(nonatomic,strong) NSStatusItem *statusItem;
+@property(nonatomic,strong) NSMenuItem *menuState;
+@property(nonatomic,strong) NSMenuItem *menuProfile;
+@property(nonatomic,strong) NSMenuItem *menuConnect;
+@property(nonatomic,strong) NSMenuItem *menuDisconnect;
+@property(nonatomic,copy) NSString *activeProfileName;
+@property(nonatomic) BOOL quitting;
 @end
 
 @implementation ClientController
@@ -60,6 +68,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
         styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title=@"LegacyWG — тестовая сборка"; self.window.minSize=NSMakeSize(720,440);
+    self.window.releasedWhenClosed=NO;
     NSTextField *notice = [NSTextField labelWithString:@"Исследовательская версия: IPv4/IPv6 split tunnel; DNS профиля идёт через туннель.\nПолный туннель пока отклоняется; защита всего трафика не заявлена."];
     notice.frame=NSMakeRect(20,365,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:notice];
@@ -81,17 +90,46 @@ static NSDictionary *ValidateProfile(NSData *data) {
     for (NSUInteger i=0;i<titles.count;i++) {
         NSButton *button=[[NSButton alloc] initWithFrame:NSMakeRect(20+175*i,40,160,35)];
         button.title=titles[i]; button.bezelStyle=NSBezelStyleRounded; button.target=self; button.action=actions[i];
+        [button setAccessibilityLabel:button.title];
         [self.window.contentView addSubview:button];
         if(i==2)self.connect=button; if(i==3)self.disconnect=button;
     }
     self.profiles=LWListProfiles(); [self.table reloadData];
-    self.timer=[NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(refreshStatus:) userInfo:nil repeats:YES];
+    self.timer=[NSTimer timerWithTimeInterval:2 target:self selector:@selector(refreshStatus:) userInfo:nil repeats:YES];
+    [NSRunLoop.mainRunLoop addTimer:self.timer forMode:NSRunLoopCommonModes];
     NSMenu *menu=[[NSMenu alloc] initWithTitle:@"Main"], *submenu=[[NSMenu alloc] initWithTitle:@"LegacyWG"];
     NSMenuItem *item=[[NSMenuItem alloc] initWithTitle:@"LegacyWG" action:NULL keyEquivalent:@""];
     [submenu addItemWithTitle:@"Выйти" action:@selector(terminate:) keyEquivalent:@"q"];
     item.submenu=submenu; [menu addItem:item]; NSApp.mainMenu=menu;
+    self.statusItem=[NSStatusBar.systemStatusBar statusItemWithLength:NSVariableStatusItemLength];
+    self.statusItem.button.title=@"WG";
+    self.statusItem.button.toolTip=@"LegacyWG — не подключено";
+    [self.statusItem.button setAccessibilityLabel:@"LegacyWG: управление туннелем"];
+    NSMenu *statusMenu=[[NSMenu alloc] initWithTitle:@"LegacyWG"];statusMenu.delegate=self;statusMenu.autoenablesItems=NO;
+    self.menuState=[statusMenu addItemWithTitle:@"Не подключено" action:NULL keyEquivalent:@""];
+    self.menuProfile=[statusMenu addItemWithTitle:@"Профиль не выбран" action:NULL keyEquivalent:@""];
+    self.menuState.enabled=NO;self.menuProfile.enabled=NO;
+    [statusMenu addItem:NSMenuItem.separatorItem];
+    NSMenuItem *open=[statusMenu addItemWithTitle:@"Открыть окно" action:@selector(openWindow:) keyEquivalent:@""];open.target=self;
+    self.menuConnect=[statusMenu addItemWithTitle:@"Подключить" action:@selector(connectProfile:) keyEquivalent:@""];self.menuConnect.target=self;
+    self.menuDisconnect=[statusMenu addItemWithTitle:@"Отключить" action:@selector(disconnectProfile:) keyEquivalent:@""];self.menuDisconnect.target=self;
+    [statusMenu addItem:NSMenuItem.separatorItem];
+    NSMenuItem *quit=[statusMenu addItemWithTitle:@"Выйти" action:@selector(terminate:) keyEquivalent:@"q"];quit.target=NSApp;
+    self.statusItem.menu=statusMenu;
     [self.window center]; [self.window makeKeyAndOrderFront:nil]; [NSApp activateIgnoringOtherApps:YES];
     [self refreshStatus:nil];
+}
+- (void)openWindow:(id)sender {
+    (void)sender;[self.window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];
+}
+- (void)menuNeedsUpdate:(NSMenu *)menu {
+    (void)menu;
+    self.menuState.title=self.busy ? @"Операция выполняется…" : self.state.stringValue;
+    NSDictionary *selected=[self selectedProfile];
+    NSString *name=self.tunnelActive ? self.activeProfileName : selected[@"name"];
+    self.menuProfile.title=name.length ? name : @"Профиль не выбран";
+    self.menuConnect.enabled=!self.busy && !self.tunnelActive && selected!=nil;
+    self.menuDisconnect.enabled=!self.busy && self.tunnelActive;
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView { (void)tableView; return (NSInteger)self.profiles.count; }
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)column row:(NSInteger)row {
@@ -145,7 +183,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     }];
 }
 - (void)performRequest:(NSDictionary *)request {
-    if(self.busy)return; self.busy=YES;
+    if(self.busy || self.quitting)return; self.busy=YES;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
         NSDictionary *reply=LWRequest(request,ServerRequirement());
         dispatch_async(dispatch_get_main_queue(),^{self.busy=NO;[self showReply:reply];});
@@ -166,6 +204,8 @@ static NSDictionary *ValidateProfile(NSData *data) {
     self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"Туннель запущен: %@\nПоследний handshake: %@\nPeers с handshake: %lu из %@\nПолучено: %@ байт; отправлено: %@ байт\nDNS профиля: %@\nSplit tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",HandshakeDate(status[@"last_handshake_unix"]),(unsigned long)handshakes,status[@"peers"] ?: @0,status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
         [state isEqual:@"Error"] ? @"DNS-компонент потерял настройки или завершился. Туннель закрыт; можно подключиться снова." : @"Выберите профиль для подключения.";
     self.connect.enabled=!self.tunnelActive; self.disconnect.enabled=self.tunnelActive;
+    self.statusItem.button.title=self.tunnelActive ? @"WG •" : @"WG";
+    self.statusItem.button.toolTip=[@"LegacyWG — " stringByAppendingString:self.state.stringValue];
 }
 - (void)connectProfile:(id)sender {
     (void)sender; NSDictionary *profile=[self selectedProfile];if(!profile || self.busy)return;
@@ -173,22 +213,72 @@ static NSDictionary *ValidateProfile(NSData *data) {
     if(!data){[self alert:error.localizedDescription];return;}
     NSString *text=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     if(!text){[self alert:@"Профиль должен быть UTF-8"];return;}
+    self.activeProfileName=profile[@"name"];
     [self performRequest:@{@"version":@1,@"op":@"start",@"profile":text}];
 }
 - (void)disconnectProfile:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"stop"}]; }
 - (void)refreshStatus:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"status"}]; }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
-    (void)application;[self.timer invalidate];
-    LWRequest(@{@"version":@1,@"op":@"stop"},ServerRequirement());
-    return NSTerminateNow;
+    (void)application;
+    if(self.quitting)return NSTerminateLater;
+    if(self.busy){[self openWindow:nil];[self alert:@"Дождитесь завершения текущей операции перед выходом."];return NSTerminateCancel;}
+    if(!self.tunnelActive){[self.timer invalidate];return NSTerminateNow;}
+    NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Отключить туннель и выйти?";
+    alert.informativeText=@"После отключения трафик снова использует обычную сеть.";
+    [alert addButtonWithTitle:@"Отключить и выйти"];[alert addButtonWithTitle:@"Отмена"];
+    if([alert runModal]!=NSAlertFirstButtonReturn)return NSTerminateCancel;
+    self.quitting=YES;self.busy=YES;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+        NSDictionary *reply=LWRequest(@{@"version":@1,@"op":@"stop"},ServerRequirement());
+        dispatch_async(dispatch_get_main_queue(),^{
+            BOOL stopped=[reply[@"ok"] isEqual:@YES];
+            if(stopped)[self.timer invalidate];
+            else {self.quitting=NO;self.busy=NO;[self openWindow:nil];[self alert:@"Компонент не подтвердил отключение. Проверьте состояние туннеля перед выходом."];}
+            [NSApp replyToApplicationShouldTerminate:stopped];
+        });
+    });
+    return NSTerminateLater;
 }
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)application { (void)application;return YES; }
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)application { (void)application;return NO; }
 @end
+
+static int UILayoutTest(void) {
+    // Only an authorized disposable GitHub runner may produce this developer
+    // fixture screenshot. The normal GUI never creates a simulated status.
+    const char *ci=getenv("GITHUB_ACTIONS");
+    if(!ci || strcmp(ci,"true")!=0)return 3;
+    [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    ClientController *controller=[[ClientController alloc] init];
+    [controller applicationDidFinishLaunching:nil];[controller.timer invalidate];
+    controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];
+    [controller.table reloadData];[controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    controller.busy=NO;
+    [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
+    [controller menuNeedsUpdate:controller.statusItem.menu];
+    BOOL menu=controller.statusItem.menu.numberOfItems==8 && controller.menuConnect.enabled &&
+        !controller.menuDisconnect.enabled && ![controller applicationShouldTerminateAfterLastWindowClosed:NSApp];
+    BOOL bounds=YES;
+    for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect])
+        bounds=bounds && NSContainsRect(controller.window.contentView.bounds,view.frame);
+    [controller.window.contentView displayIfNeeded];
+    NSBitmapImageRep *bitmap=[controller.window.contentView bitmapImageRepForCachingDisplayInRect:controller.window.contentView.bounds];
+    [controller.window.contentView cacheDisplayInRect:controller.window.contentView.bounds toBitmapImageRep:bitmap];
+    NSData *png=[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
+    BOOL saved=[png writeToFile:path atomically:YES];
+    [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
+    BOOL passed=menu && bounds && saved;
+    NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
+        @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
+        @"screenshot_saved":@(saved),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
+    [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
+}
 
 int main(int argc,const char *argv[]) {
     struct rlimit coreLimit = {0,0};
     if (setrlimit(RLIMIT_CORE,&coreLimit)!=0) return 5;
     @autoreleasepool {
+        if(argc==2 && strcmp(argv[1],"--ui-self-test")==0)return UILayoutTest();
         BOOL installedTest=argc==2 && strcmp(argv[1],"--self-test-installed")==0;
         if(argc==2 && (strcmp(argv[1],"--self-test")==0 || installedTest)) {
             NSString *requirement=ServerRequirement();

@@ -69,6 +69,7 @@ jobs:
             Build/CI/*.pkg
             Build/CI/*.json
             Build/CI/*.txt
+            Build/CI/client-ui-layout.png
             Docs/Evidence/Mac/
           if-no-files-found: error
           retention-days: 3
