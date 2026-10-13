@@ -159,6 +159,12 @@ func check(ipv6 bool) (map[string]any, error) {
 	if _, err = command("/sbin/route", "-n", "add", family, "-net", prefix, "-interface", name); err != nil {
 		return nil, err
 	}
+	// A bound socket needs a usable route in that interface's scope. Prove
+	// this separately from the unscoped route; this is still an owned utun
+	// route, not permission to install a persistent physical route in product.
+	if _, err = command("/sbin/route", "-n", "add", family, "-net", prefix, "-interface", name, "-ifscope", name); err != nil {
+		return nil, err
+	}
 	original, err := path(remote)
 	if err != nil || !strings.Contains(original, "interface:"+name) {
 		return nil, errors.New("outer fixture prefix not selected")
@@ -302,7 +308,7 @@ func check(ipv6 bool) (map[string]any, error) {
 	before := dropped.Load()
 	for attempt := 0; attempt < 4; attempt++ {
 		if !echo(bound, remote) {
-			return nil, errors.New("interface-bound echo was captured by conflicting route")
+			return map[string]any{"bound_packets_on_decoy": dropped.Load() - before, "scoped_prefix_added": true}, errors.New("interface-bound round trip failed under competing route")
 		}
 	}
 	time.Sleep(100 * time.Millisecond)
@@ -339,7 +345,7 @@ func check(ipv6 bool) (map[string]any, error) {
 	return map[string]any{"status": "PASS", "baseline_plain_and_bound_echo": "PASS", "unbound_conflict_negative_control": "PASS",
 		"bound_echo_with_conflicting_host_route": "PASS", "bound_round_trips": 4, "bound_packets_on_decoy": 0,
 		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS",
-		"wildcard_listeners": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
+		"wildcard_listeners": true, "scoped_prefix_added": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
 }
 
 func main() {
