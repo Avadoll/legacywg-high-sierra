@@ -375,6 +375,9 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--current-path-fixture" {
+		os.Exit(runCurrentPathFixture())
+	}
 	if len(os.Args) >= 5 && len(os.Args) <= 7 && os.Args[1] == "--gui-modal" {
 		var proof map[string]any
 		mode, dnsProbe, dnsMode := "", "", ""
@@ -445,6 +448,11 @@ func main() {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "endpoint_route_loss": true, "reason": err.Error()})
 		os.Exit(1)
 	}
+	currentProof, err := checkCurrentEndpointRoaming(os.Args[1], os.Args[2])
+	if err != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "current_endpoint_roaming": true, "reason": err.Error()})
+		os.Exit(1)
+	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
 		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
 		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
@@ -455,6 +463,7 @@ func main() {
 		"multi_peer_encrypted_routing_and_status":     "PASS",
 		"endpoint_route_loss_closes_tunnel":           "PASS",
 		"owned_outer_interface_cleanup":               "PASS",
+		"current_endpoint_roaming_new_route_loss":     currentProof,
 		"recovery_refusal_preserves_encrypted_tunnel": "PASS",
 		"external_server":                             "NOT_RUN", "high_sierra": "NOT_RUN"})
 }
