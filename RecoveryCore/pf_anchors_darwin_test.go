@@ -47,7 +47,7 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
 		if err != nil || after != before {
-			t.Error("enumerated foreign baseline not restored after fixture cleanup")
+			t.Errorf("enumeration cleanup mismatch: readable=%t root_same=%t filter_tree_same=%t nat_tree_same=%t", err == nil, after.root == before.root, after.recursive == before.recursive, after.nat == before.nat)
 		}
 	}()
 	if _, err := runOwnedPF(ctx, parentRule, "-o", "none", "-a", parent, "-f", "-"); err != nil {
