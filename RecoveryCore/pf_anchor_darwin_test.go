@@ -111,24 +111,41 @@ func TestRootPFAnchorCancellationRefusesChangedRulesAndBoot(t *testing.T) {
 	if err != nil || record == nil {
 		t.Fatal("refusal fixture journal missing")
 	}
+	originalBoot := store.boot
+	defer func() {
+		store.boot = originalBoot
+		cleanup, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		defer stop()
+		info, err := runOwnedPF(cleanup, "", "-s", "info")
+		status := pfStatusLine.FindStringSubmatch(info)
+		if err == nil && len(status) == 2 && status[1] == "Disabled" {
+			// Test-only restoration of a known, deliberately replaced fixture.
+			// This authority is absent from production cancellation.
+			_, _ = runOwnedPF(cleanup, stagedPFRule, "-a", record.Anchor, "-f", "-")
+			_ = store.cancelDisabledPFAnchor(cleanup)
+		}
+	}()
 	// Controlled replacement of ONLY this fixture's owned child. It models
 	// unexpected administrator changes, not arbitrary foreign policy adoption.
 	const replacement = "pass out all\n"
 	if _, err := runOwnedPF(ctx, replacement, "-a", record.Anchor, "-f", "-"); err != nil {
 		t.Fatal("owned changed-rule condition failed")
 	}
+	rendered, err := runOwnedPF(ctx, "", "-a", record.Anchor, "-s", "rules")
+	if err != nil || rendered == "" || rendered == stagedPFRule {
+		t.Fatal("different actual kernel rule condition not observed")
+	}
 	if store.cancelDisabledPFAnchor(ctx) == nil {
 		t.Fatal("unrecorded kernel rule hash authorized cancellation")
 	}
 	after, err := store.readPF(pfJournalFile)
 	rules, readErr := runOwnedPF(ctx, "", "-a", record.Anchor, "-s", "rules")
-	if err != nil || after == nil || *after != *record || readErr != nil || rules != replacement {
+	if err != nil || after == nil || *after != *record || readErr != nil || rules != rendered {
 		t.Fatal("changed-rule refusal modified policy or journal")
 	}
 	if _, err := runOwnedPF(ctx, stagedPFRule, "-a", record.Anchor, "-f", "-"); err != nil {
 		t.Fatal("controlled own-rule restoration failed")
 	}
-	originalBoot := store.boot
 	store.boot = "00000000-0000-0000-0000-000000000000"
 	if store.cancelDisabledPFAnchor(ctx) == nil {
 		t.Fatal("unconfirmed boot authorized cancellation")
