@@ -1,0 +1,42 @@
+name: PF reference crash recovery experiment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    runs-on: macos-15-intel
+    timeout-minutes: 5
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - name: Check out reviewed developer experiment
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify pinned sources and native toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Build private ABI probe only for disposable CI
+        run: |
+          mkdir -p Build/Research
+          xcrun --sdk macosx clang -std=c11 -Wall -Wextra -Werror -arch x86_64 -mmacosx-version-min=10.13 Tests/PFReferenceProbe.c -o Build/Research/legacywg-ref
+      - name: Measure actual process death and own reference recovery
+        run: |
+          sudo -n /usr/bin/env GITHUB_ACTIONS=true RUNNER_OS=macOS GITHUB_SHA="$GITHUB_SHA" /usr/bin/python3 Scripts/test_pf_reference_macos.py
+      - name: Retry only verified owned cleanup
+        if: always()
+        run: |
+          sudo -n /usr/bin/env GITHUB_ACTIONS=true RUNNER_OS=macOS /usr/bin/python3 Scripts/test_pf_reference_macos.py --cleanup
+      - name: Save only sanitized experiment results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-pf-reference-${{ github.sha }}
+          path: Build/CI/pf-reference-ci.json
+          if-no-files-found: error
+          retention-days: 3
