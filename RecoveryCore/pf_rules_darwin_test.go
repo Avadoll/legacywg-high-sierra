@@ -149,6 +149,99 @@ func TestRootPFRuleOwnedTunnelPolicy(t *testing.T) {
 	}
 }
 
+func TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent(t *testing.T) {
+	requirePFRuleCI(t)
+	store := realBootStore(t, ownedReferenceTestDirectory(t))
+	defer store.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
+		t.Fatal("pending-rule refusal fixture activation failed")
+	}
+	initial, err := store.readPF(pfJournalFile)
+	if err != nil || initial == nil {
+		t.Fatal("pending-rule initial identity missing")
+	}
+	entries := fixturePFReferences(t, ctx)
+	desired := fixturePFUDPPolicy(t)
+	canceled, stop := context.WithCancel(ctx)
+	store.checkpoint = func(point string) {
+		if point == "pf_rule_update_intent_committed" {
+			stop()
+		}
+	}
+	if store.updatePFPolicy(canceled, desired) == nil {
+		t.Fatal("canceled pre-load update accepted")
+	}
+	store.checkpoint = nil
+	pending, err := store.readPF(pfJournalFile)
+	actual, nativeErr := readPFPolicy(ctx, initial.Anchor, true)
+	if err != nil || pending == nil || pending.Phase != PFRuleUpdateIntent || nativeErr != nil || actual.rules != initial.RulesSHA256 || !samePFReferences(entries, fixturePFReferences(t, ctx)) {
+		t.Fatal("pre-load cancellation changed rules/reference or lost intent")
+	}
+	if store.resolvePFPolicy(ctx) != nil {
+		t.Fatal("actual original hash rollback after cancellation failed")
+	}
+	rolledBack, err := store.readPF(pfJournalFile)
+	if err != nil || rolledBack == nil || *rolledBack != *initial {
+		t.Fatal("canceled update changed original active generation")
+	}
+	_, thirdRules, err := store.preparePFPolicy(ctx, *initial, pfPolicy{loopback: true})
+	if err != nil || pfDigest(thirdRules) == initial.RulesSHA256 {
+		t.Fatal("controlled third canonical policy unavailable")
+	}
+	defer func() {
+		verify, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		defer stop()
+		actual, err := readDisabledPF(verify, initial.Anchor)
+		if err != nil || !actual.matches(*initial) || actual.rules != pfDigest("") || store.pfResidue() {
+			t.Error("third-hash fixture post-finalizer baseline not restored")
+		}
+	}()
+	defer func() {
+		store.checkpoint = nil
+		current, err := store.readPF(pfJournalFile)
+		if err != nil || current == nil || current.ID != initial.ID || current.PID != initial.PID || current.Reference != initial.Reference || !store.pfJournalOwner(*current) {
+			return
+		}
+		cleanup, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		defer stop()
+		// Test-only restoration of this deliberately replaced owned fixture.
+		// Production resolution never writes unknown or reconstructed policies.
+		if _, err := runOwnedPF(cleanup, stagedPFRule, "-o", "none", "-a", initial.Anchor, "-f", "-"); err == nil {
+			_ = store.recoverPFLifecycle(cleanup)
+		}
+	}()
+	replaced := false
+	store.checkpoint = func(point string) {
+		if point == "pf_rule_update_intent_committed" {
+			_, err := runOwnedPF(ctx, thirdRules, "-o", "none", "-a", initial.Anchor, "-f", "-")
+			replaced = err == nil
+		}
+	}
+	if store.updatePFPolicy(ctx, desired) == nil || !replaced {
+		t.Fatal("controlled third hash did not cause update refusal")
+	}
+	store.checkpoint = nil
+	pending, err = store.readPF(pfJournalFile)
+	if err != nil || pending == nil || pending.Phase != PFRuleUpdateIntent || pending.RulesSHA256 != initial.RulesSHA256 || pending.NextRulesSHA256 == pfDigest(thirdRules) {
+		t.Fatal("third policy was silently adopted into durable intent")
+	}
+	if store.resolvePFPolicy(ctx) == nil || store.recoverPFLifecycle(ctx) == nil {
+		t.Fatal("unknown third hash authorized confirmation or kernel cleanup")
+	}
+	after, err := store.readPF(pfJournalFile)
+	actual, nativeErr = readPFPolicy(ctx, initial.Anchor, true)
+	if err != nil || after == nil || *after != *pending || nativeErr != nil || actual.rules != pfDigest(thirdRules) || !samePFReferences(entries, fixturePFReferences(t, ctx)) {
+		t.Fatal("third-hash refusal changed journal/kernel/reference")
+	}
+	// Restore and finish explicitly. The finalizer observes retired metadata and
+	// must not recreate the just-removed anchor afterward.
+	if _, err := runOwnedPF(ctx, stagedPFRule, "-o", "none", "-a", initial.Anchor, "-f", "-"); err != nil || store.recoverPFLifecycle(ctx) != nil || store.pfResidue() {
+		t.Fatal("controlled third-hash fixture could not restore baseline")
+	}
+}
+
 func TestRootPFRuleEffectCrashChild(t *testing.T) {
 	path, stage := os.Getenv("LEGACYWG_PF_RULE_EFFECT_DIR"), os.Getenv("LEGACYWG_PF_RULE_EFFECT_STAGE")
 	if path == "" || stage == "" {

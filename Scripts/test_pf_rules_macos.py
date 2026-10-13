@@ -29,6 +29,7 @@ def main():
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
     stages=('pf_rule_update_intent_committed','pf_rule_update_loaded_kernel','pf_rule_update_confirmation_committed')
     required={'TestRootPFRuleCanonicalGenerationsAndRefusals','TestRootPFRuleOwnedTunnelPolicy',
+        'TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
@@ -39,6 +40,7 @@ def main():
         'wrong_index_unassigned_source_unowned_tunnel_refusals':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
         'identical_policy_does_not_increment_generation':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
         'native_journal_owned_tunnel_policy':checked('TestRootPFRuleOwnedTunnelPolicy'),
+        'pre_load_cancellation_and_unknown_third_hash_preserve_intent':checked('TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent'),
         'actual_old_hash_rollback_new_hash_confirmation_after_crash':checked('TestRootPFRuleEffectCrashResolution'),
         'kernel_rules_reference_and_displayed_baselines_restored':'PASS' if status=='PASS' else 'NOT_CONFIRMED',
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
