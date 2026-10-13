@@ -114,7 +114,7 @@ Worker SHA256 `8f6a6a93bb27023d0424aa8c0585c260079ae36761bcde2b1f33b02554a54d3c`
 | `LegacyWG-research-0.2-app.zip` | `8cb236c8fc9008ea4b1da20453506dd74831bbb10f9c5db924ee4e016289e679` |
 
 
-## Текущая проверенная сборка (duplicate import / profile sheets)
+## Предыдущая проверенная сборка (duplicate import / profile sheets)
 
 [Run 38443154396](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38443154396), source `8eb32ec556c5b055650fb8624cd4ff07d45ef450`, Intel macOS15.7.9/Xcode16.4/SDK15.5: native build/self-tests/actual profile sheets и прежние encrypted peer/DNS/crash/recovery/20-cycle/fresh installer tests PASS. Keychain name/exact-data conflict detection, exact item replacement preserving ID/label and unrelated item, oversized/missing item/duplicate name refusal, actual invalid worker validation PASS. Developer UI fixture открывает настоящий delete sheet, блокирует Connect/Quit во время него, меняет simulated status на Connecting перед подтверждением и проверяет сохранение Keychain data; duplicate→new-name sheet→Cancel также сохраняет fixture data. Это controller/Keychain modal proof с simulated status, не active encrypted VPN/long-modal heartbeat test и не actual file-picker/typed-copy/replacement button end-to-end acceptance. Aqua layout inspected.
 
@@ -124,3 +124,14 @@ Worker byte-identical to RecoveryState scoped scan; receipt security-byte-identi
 | --- | --- |
 | `LegacyWG-research-0.2.pkg` | `13405e7f8e7f28031144095ed321e86765dfdd35d805950a75c10beb9b398675` |
 | `LegacyWG-research-0.2-app.zip` | `0738d1113cae60fa30d42bc2ebfd84273488df1c09db47ca2b840738d9bfb378` |
+
+## Текущая проверенная сборка (private profile preview / licenses)
+
+[Run38446849175](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38446849175), source `ec3fc4775e3e8cfd23b2cc8eb545238cced7af7e`, Intel macOS15.7.9/Xcode16.4/SDK15.5: private selected-profile preview and actual About/license sheet PASS. Native CLI validation/metadata formatting, complete bundled license files, actual Keychain selected-profile read/preview, profile delete/changed-state refusal/copy Cancel sheets PASS with eight separate proof booleans. New readable Aqua layout inspected. All previous authenticated encrypted IPv4/IPv6/dual-stack peers, native UDP/TCP DNS, route loss, recovery/crash, 20 cycles, GUI lifecycle and fresh research installer PASS.
+
+Worker SHA256 `250527c8874a451bc86fa92b4d4940ee3cc01bc5b3228198cfef640bcc58f19f`; fresh scoped Go review PASS, source identity `b2071b2b7d111da2e195eba999d48903da5b9f08a0ce424e6b26293bb3e632ff`. Research/ad-hoc components and unsigned pkg, release_approved=false. High Sierra/existing user server/full protection NOT_RUN.
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `3d7902625bb724589d397a1d0a83e7ef3dbe2ca37e72a5f76fddcebc86364d1b` |
+| `LegacyWG-research-0.2-app.zip` | `e8c1df6ed058378ff6d24e637eb70071e52c1ab4e3c2a7ac527c6c24e0ae944d` |

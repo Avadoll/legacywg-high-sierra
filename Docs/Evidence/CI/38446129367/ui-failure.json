@@ -1,0 +1,19 @@
+{
+  "source_commit": "0449a66936a948f427a4fd5549bae44a344622f9",
+  "run_id": "38446129367",
+  "binding": "GitHub run/log; report has no embedded source",
+  "report": {
+    "actual_profile_sheets_guard_cancel_and_changed_state_refusal": false,
+    "screenshot_saved": true,
+    "notice_label_pixels": 2279,
+    "high_sierra": "NOT_RUN",
+    "menu_actions": true,
+    "recovery_controls_and_unknown_state": true,
+    "control_bounds": true,
+    "selected_profile_metadata": true,
+    "kind": "developer-only-gui-layout-fixture",
+    "actual_about_license_sheet": true,
+    "status": "FAIL",
+    "vpn_test": "NOT_RUN"
+  }
+}
