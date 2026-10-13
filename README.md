@@ -17,3 +17,5 @@ Run the manually dispatched free standard macOS feasibility workflow. Official u
 Only reviewed source files are published. Private specification, original Git history, local tools/caches and user configuration/keys are excluded.
 
 Live nested Quit Cancel/accepted authenticated Stop and actual GUI SIGKILL watchdog DNS/route cleanup passed [run 38451987993](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38451987993). Ordinary network returns after grace; protected fail-closed is not implemented. Test observer/policy excluded from installer; full target/trust/protection requirements remain open.
+
+A separate [scoped UDP endpoint experiment](Docs/SCOPED_ENDPOINT.md) passed [run 38455001863](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38455001863) on owned virtual interfaces, requiring an explicit scoped prefix. No product transport change, physical/encrypted/High Sierra or protection claim. Two failed predecessors retained.

@@ -1,0 +1,1 @@
+{"encrypted_wireguard":"NOT_RUN","high_sierra":"NOT_RUN","ipv4":null,"kind":"developer-only-scoped-UDP-routing","physical_nic":"NOT_RUN","product_transport":"UNCHANGED","protection_ready":false,"reason":"interface-bound echo was captured by conflicting route","source_commit":"bf7b9e02921f495b6de6e32577f9aee5bff5d65a","status":"FAIL"}
