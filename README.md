@@ -21,3 +21,5 @@ Live nested Quit Cancel/accepted authenticated Stop and actual GUI SIGKILL watch
 A separate [scoped UDP endpoint experiment](Docs/SCOPED_ENDPOINT.md) passed [run 38455001863](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38455001863) on owned virtual interfaces, requiring an explicit scoped prefix. No product transport change, physical/encrypted/High Sierra or protection claim. Two failed predecessors retained.
 
 [Encrypted scoped prototype run 38456456242](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38456456242) passed official handshake/counters, six echoes per family, Down/Up reopen and old receive callback closure/no fallback on owned virtual interfaces. Developer-only adapter; current product transport/app/pkg unchanged. [Limits](Docs/SCOPED_ENDPOINT.md).
+
+[Scoped kernel admission run 38458097751](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38458097751) passed native encrypted IPv4/IPv6 queries, pre/post-open identity checks and official reopen refusal after interface loss. Developer-only bounded observations; continuous physical/target/guard proof remains open. [Limits](Docs/SCOPED_ENDPOINT.md).
