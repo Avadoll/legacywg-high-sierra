@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "kind": "native-root-owned-PF-metadata-journal",
+  "source_commit": "021d99033370110dea1ce8da0c2e998d65578b22",
+  "required_root_tests": [
+    "TestRootPFJournalCrashPreservesUnknownEffects",
+    "TestRootPFJournalDurabilityAndPreservation",
+    "TestRootPFJournalRejectsUnsafeFiles"
+  ],
+  "sigkill_checkpoints": 4,
+  "kernel_pf_effects": "NOT_RUN",
+  "recovery_policy": "refuse and preserve; no automatic PF release or rule removal",
+  "high_sierra": "NOT_RUN",
+  "power_loss": "NOT_RUN",
+  "protection_ready": false
+}

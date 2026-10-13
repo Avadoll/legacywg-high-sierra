@@ -1,0 +1,11 @@
+{
+  "run_id": "38472008862",
+  "source_commit": "823aaf8a3bece9a28a73062999a3d8630d47cb2c",
+  "artifact_id": 11851699744,
+  "archive_sha256": "903c6fe5a0dd3da970195bfa6263349658464af88fa3c6fb0e38140aa3987910",
+  "bytes_downloaded": 11424243,
+  "pf_metadata_tests": "PASS",
+  "full_client_build": "FAIL",
+  "client_staged": false,
+  "binding": "exact run/head and artifact name; failed report predates embedded source field"
+}
