@@ -17,6 +17,10 @@ const journalFile = "utun.json"
 const temporaryFile = "utun.new"
 const lockFile = "lock"
 
+// Fixed verified component in production. Only native Go tests override this
+// private variable with their compiled probe; no runtime setting exposes it.
+var aclProbePath = "/Library/Application Support/LegacyWG/legacywg-network"
+
 type Store struct {
 	directory int
 	lock      int
@@ -103,9 +107,9 @@ func ownedFile(fd int) bool {
 	return unix.Fstat(fd, &status) == nil && status.Uid == 0 && status.Nlink == 1 && status.Mode&unix.S_IFMT == unix.S_IFREG && status.Mode&0777 == 0600 && noExtendedACL(fd)
 }
 
-// BSD mode bits alone do not describe extended ACL grants. Inspect only our
-// already open inode through an inherited FD; never reopen a mutable pathname.
-// Any ACL or unknown/failed metadata format is refused conservatively.
+// BSD mode bits alone do not describe extended ACL grants. The verified native
+// component calls acl_get_fd_np on our inherited descriptor. Any ACL or API
+// failure is refused; /dev/fd metadata listings do not expose inode ACLs.
 func noExtendedACL(fd int) bool {
 	duplicate, err := unix.Dup(fd)
 	if err != nil {
@@ -116,22 +120,10 @@ func noExtendedACL(fd int) bool {
 	defer file.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, "/bin/ls", "-ldeL", "/dev/fd/3")
+	command := exec.CommandContext(ctx, aclProbePath, "--check-no-acl")
 	command.ExtraFiles = []*os.File{file}
 	command.Env = []string{"PATH=/usr/bin:/bin", "LANG=C", "LC_ALL=C"}
-	data, err := command.Output()
-	if err != nil || len(data) > 4096 {
-		return false
-	}
-	lines := strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
-	if len(lines) != 1 {
-		return false
-	}
-	fields := strings.Fields(lines[0])
-	if len(fields) < 1 || len(fields[0]) < 10 || len(fields[0]) > 11 || strings.Contains(fields[0], "+") {
-		return false
-	}
-	return fields[0][0] == 'd' || fields[0][0] == '-'
+	return command.Run() == nil
 }
 
 func (store *Store) read(name string) (*Record, error) {

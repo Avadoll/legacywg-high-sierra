@@ -16,6 +16,13 @@ import (
 	"golang.zx2c4.com/wireguard/tun"
 )
 
+func TestMain(m *testing.M) {
+	if probe := os.Getenv("LEGACYWG_ACL_TEST_HELPER"); probe != "" {
+		aclProbePath = probe
+	}
+	os.Exit(m.Run())
+}
+
 func requireRoot(t *testing.T) {
 	t.Helper()
 	if os.Geteuid() != 0 {
@@ -143,7 +150,10 @@ func TestRootJournalRejectsUntrustedFiles(t *testing.T) {
 				recordPath := filepath.Join(path, journalFile)
 				switch kind {
 				case "record_acl":
-					err = os.WriteFile(recordPath, marker, 0600)
+					record, _ := NewRecord(testBoot)
+					record.PID = 2147483647
+					data, _ := Encode(record)
+					err = os.WriteFile(recordPath, data, 0600)
 					if err == nil {
 						err = exec.Command("/bin/chmod", "+a", "everyone allow read", recordPath).Run()
 					}

@@ -6,6 +6,8 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <signal.h>
+#include "ACLCheck.h"
+#include <string.h>
 
 // A private, root-only subprocess. It accepts numeric DNS settings, never a
 // profile, executable path, shell command, preference key or recovery command.
@@ -24,9 +26,11 @@ static BOOL NumericAddress(NSString *text) {
     return inet_pton(AF_INET,text.UTF8String,&v4)==1 || inet_pton(AF_INET6,text.UTF8String,&v6)==1;
 }
 
-int main(void) {
+int main(int argc,char **argv) {
     struct rlimit core={0,0};
     if(geteuid()!=0 || setrlimit(RLIMIT_CORE,&core)!=0)return 1;
+    if(argc==2 && strcmp(argv[1],"--check-no-acl")==0)return LWCheckNoACL(3);
+    if(argc!=1)return 1;
     signal(SIGPIPE,SIG_IGN);
     @autoreleasepool {
         NSMutableData *line=[NSMutableData data];

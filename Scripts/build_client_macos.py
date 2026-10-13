@@ -26,7 +26,11 @@ def main() -> None:
     run([str(go),'vet','./ConfigCore','./NetworkCore','./RecoveryCore','./Engine/session','./Engine/worker'])
     # Privileged journal tests use only their own TempDir and kernel utun. They
     # never open the production State directory or inspect its private contents.
-    journal_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n','./RecoveryCore'],timeout=120)
+    acl_probe=BUILD/'acl-probe'
+    run(['/usr/bin/xcrun','clang','-arch','x86_64','-mmacosx-version-min=10.13',
+         '-Wall','-Wextra','-Werror',str(ROOT/'Tests/ACLProbe.c'),'-o',str(acl_probe)])
+    journal_tests=run([str(go),'test','-json','-count=1','-exec',
+        '/usr/bin/sudo -n /usr/bin/env LEGACYWG_ACL_TEST_HELPER='+str(acl_probe),'./RecoveryCore'],timeout=120)
     (OUT/'recovery-journal-tests.txt').write_text(journal_tests)
     events=[json.loads(line) for line in journal_tests.splitlines() if line.strip()]
     required={'TestRootJournalDurabilityAndExclusiveLock','TestRootJournalRejectsUntrustedFiles',
