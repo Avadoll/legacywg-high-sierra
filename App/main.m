@@ -68,11 +68,80 @@ static NSDictionary *ValidateProfile(NSData *data) {
     return [object isKindOfClass:[NSDictionary class]] ? object : @{@"ok":@NO,@"error":@"Ошибка проверки профиля"};
 }
 
+static NSString *PreviewText(NSDictionary *validation, BOOL abbreviated) {
+    NSDictionary *view=[validation[@"preview"] isKindOfClass:NSDictionary.class] ? validation[@"preview"] : nil;
+    NSDictionary *modes=@{@"split":@"выборочные маршруты",@"full_ipv4":@"полный IPv4",@"full_ipv6":@"полный IPv6",
+        @"full_dual_stack":@"полный IPv4 и IPv6",@"unavailable":@"не определена для клиента"};
+    NSString *routing=[view[@"routing"] isKindOfClass:NSString.class] ? modes[view[@"routing"]] : nil;
+    NSArray *addresses=[view[@"addresses"] isKindOfClass:NSArray.class] ? view[@"addresses"] : nil;
+    NSArray *endpoints=[view[@"endpoints"] isKindOfClass:NSArray.class] ? view[@"endpoints"] : nil;
+    id count=view[@"address_count"];
+    if(![validation[@"ok"] isEqual:@YES] || !routing || !addresses.count || addresses.count>8 || !endpoints.count || endpoints.count>16 ||
+       ![count isKindOfClass:NSNumber.class] || [count unsignedIntegerValue]<addresses.count || [count unsignedIntegerValue]>2048)return @"Не удалось получить сведения о профиле.";
+    for(id value in addresses)if(![value isKindOfClass:NSString.class] || [value length]>64 || ![value length] ||
+        [value rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location!=NSNotFound)return @"Не удалось получить сведения о профиле.";
+    for(id value in endpoints)if(![value isKindOfClass:NSString.class] || [value length]>300 ||
+        [value rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location!=NSNotFound)return @"Не удалось получить сведения о профиле.";
+    NSUInteger limit=abbreviated ? 1 : addresses.count;
+    NSString *local=[[addresses subarrayWithRange:NSMakeRange(0,limit)] componentsJoinedByString:abbreviated ? @", " : @"\n"];
+    if([count unsignedIntegerValue]>limit)local=[local stringByAppendingFormat:@" (+%lu)",(unsigned long)([count unsignedIntegerValue]-limit)];
+    NSMutableArray *servers=[NSMutableArray array];
+    for(NSString *endpoint in endpoints) {
+        NSString *text=endpoint.length ? endpoint : @"не указан";
+        if(abbreviated && text.length>52)text=[NSString stringWithFormat:@"%@…%@",[text substringToIndex:32],[text substringFromIndex:text.length-16]];
+        [servers addObject:text];if(abbreviated)break;
+    }
+    NSString *remote=[servers componentsJoinedByString:@"\n"];
+    if(abbreviated && endpoints.count>1)remote=[remote stringByAppendingFormat:@" (+%lu)",(unsigned long)(endpoints.count-1)];
+    return [NSString stringWithFormat:@"Маршрутизация: %@\nАдреса: %@\nСерверы: %@",routing,local,remote];
+}
+
+static NSString *UnsupportedProfileReason(id value) {
+    NSDictionary *reasons=@{@"full tunnel requires endpoint escape routing and verified traffic protection":@"Полный туннель пока недоступен: защита всего трафика не подтверждена.",
+        @"at most eight DNS servers are supported":@"Поддерживается до восьми DNS-серверов.",
+        @"profile DNS must be routed through the tunnel":@"DNS-сервер профиля должен входить в маршруты туннеля.",
+        @"initial native executor permits at most 64 routes":@"В этой сборке поддерживается до 64 маршрутов.",
+        @"initial native executor permits at most four local addresses":@"В этой сборке поддерживается до четырёх локальных адресов.",
+        @"outgoing client requires at least one Endpoint":@"Укажите Endpoint хотя бы для одного сервера.",
+        @"endpoint overlaps a tunnel route; physical endpoint routing required":@"Маршрут туннеля перекрывает адрес сервера. Этот профиль пока не поддерживается.",
+        @"tunnel route requires a local address of the same family":@"Для маршрутов IPv4/IPv6 нужен локальный адрес того же типа.",
+        @"full IPv6 tunnel requires an IPv6 interface address":@"Для полного IPv6-туннеля нужен локальный IPv6-адрес."};
+    return [value isKindOfClass:NSString.class] ? reasons[value] ?: @"Профиль пока не поддерживается сетевым компонентом." : @"Профиль пока не поддерживается сетевым компонентом.";
+}
+
+static NSString *LicenseText(void) {
+    NSArray *names=@[@"THIRD_PARTY_NOTICES.md",@"WireGuard-LICENSE",@"Go-LICENSE",@"Go-PATENTS",
+        @"golang.org_x_crypto-v0.37.0-LICENSE",@"golang.org_x_net-v0.39.0-LICENSE",@"golang.org_x_sys-v0.32.0-LICENSE",
+        @"github.com_google_btree-v1.1.2-LICENSE",@"golang.org_x_time-v0.7.0-LICENSE",
+        @"golang.zx2c4.com_wintun-v0.0.0-20230126152724-0fa3db229ce2-LICENSE",
+        @"gvisor.dev_gvisor-v0.0.0-20250503011706-39ed1f5ac29c-LICENSE"];
+    NSMutableString *text=[NSMutableString stringWithString:@"LegacyWG — независимый проект, не официальное приложение WireGuard.\nЛицензия собственного кода ещё не определена; релизной поставки пока нет.\n\n"];
+    for(NSString *name in names) {
+        NSURL *directory=[NSBundle.mainBundle.resourceURL URLByAppendingPathComponent:[name isEqual:@"THIRD_PARTY_NOTICES.md"] ? @"" : @"Licenses"];
+        NSURL *url=[directory URLByAppendingPathComponent:name];NSData *data=nil;
+        @try {
+            NSFileHandle *file=[NSFileHandle fileHandleForReadingFromURL:url error:NULL];
+            @try {if(file)data=[file readDataOfLength:128*1024+1];}
+            @finally {[file closeFile];}
+        } @catch(NSException *exception) {(void)exception;return nil;}
+        if(!data.length || data.length>128*1024)return nil;
+        NSString *license=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];if(!license)return nil;
+        [text appendFormat:@"—— %@ ——\n%@\n\n",name,license];
+        if(text.length>1024*1024)return nil;
+    }
+    return text;
+}
+
 @interface ClientController : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @property(nonatomic,strong) NSWindow *window;
 @property(nonatomic,strong) NSTableView *table;
 @property(nonatomic,strong) NSTextField *state;
 @property(nonatomic,strong) NSTextField *details;
+@property(nonatomic,strong) NSTextField *profileDetails;
+@property(nonatomic,strong) NSNumber *selectedProfileSupported;
+@property(nonatomic,copy) NSString *selectedProfileLimitation;
+@property(nonatomic) NSUInteger previewGeneration;
+@property(nonatomic,strong) dispatch_queue_t previewQueue;
 @property(nonatomic,strong) NSButton *connect;
 @property(nonatomic,strong) NSButton *disconnect;
 @property(nonatomic,strong) NSButton *recover;
@@ -97,27 +166,37 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @implementation ClientController
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     (void)notification;
-    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,720,440)
+    self.previewQueue=dispatch_queue_create("org.legacywg.profile-preview",DISPATCH_QUEUE_SERIAL);
+    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,720,520)
         styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
         backing:NSBackingStoreBuffered defer:NO];
-    self.window.title=@"LegacyWG — тестовая сборка"; self.window.minSize=NSMakeSize(720,440);
+    self.window.title=@"LegacyWG — тестовая сборка";
+    self.window.minSize=[self.window frameRectForContentRect:NSMakeRect(0,0,720,520)].size;
     self.window.releasedWhenClosed=NO;
     NSTextField *notice = [NSTextField wrappingLabelWithString:@"Исследовательская версия: IPv4/IPv6 split tunnel; DNS профиля идёт через туннель.\nПолный туннель пока отклоняется; защита всего трафика не заявлена."];
-    notice.frame=NSMakeRect(20,365,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
+    notice.frame=NSMakeRect(20,445,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:notice];
-    NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,105,290,245)];
+    NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,105,290,325)];
     scroll.hasVerticalScroller=YES; scroll.borderType=NSBezelBorder;
     scroll.autoresizingMask=NSViewHeightSizable|NSViewMaxXMargin;
     self.table=[[NSTableView alloc] initWithFrame:scroll.contentView.bounds];
     NSTableColumn *column=[[NSTableColumn alloc] initWithIdentifier:@"profile"]; column.width=280; column.title=@"Профили";
     [self.table addTableColumn:column]; self.table.dataSource=self; self.table.delegate=self;
     scroll.documentView=self.table; [self.window.contentView addSubview:scroll];
-    self.state=[NSTextField labelWithString:@"Не подключено"]; self.state.frame=NSMakeRect(330,305,370,40);
+    self.state=[NSTextField labelWithString:@"Не подключено"]; self.state.frame=NSMakeRect(330,385,370,40);
     self.state.font=[NSFont boldSystemFontOfSize:18]; self.state.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:self.state];
     self.details=[NSTextField wrappingLabelWithString:@"Импортируйте обычный WireGuard .conf. Ключи сохраняются в Keychain.\nСетевой компонент должен быть установлен через согласованный подписанный пакет."];
-    self.details.frame=NSMakeRect(330,160,370,130); self.details.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
+    self.details.frame=NSMakeRect(330,250,370,130); self.details.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:self.details];
+    NSTextField *profileTitle=[NSTextField labelWithString:@"Выбранный профиль"];
+    profileTitle.frame=NSMakeRect(330,225,370,20);profileTitle.font=[NSFont boldSystemFontOfSize:12];
+    profileTitle.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;[self.window.contentView addSubview:profileTitle];
+    self.profileDetails=[NSTextField wrappingLabelWithString:@"Выберите профиль. Адреса и серверы будут показаны без ключей."];
+    self.profileDetails.frame=NSMakeRect(330,140,370,80);self.profileDetails.font=[NSFont systemFontOfSize:12];
+    self.profileDetails.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
+    [self.profileDetails setAccessibilityLabel:@"Адреса, серверы и маршрутизация выбранного профиля"];
+    [self.window.contentView addSubview:self.profileDetails];
     NSArray *titles=@[@"Импорт…",@"Удалить",@"Подключить",@"Отключить"];
     SEL actions[]={@selector(importProfile:),@selector(deleteProfile:),@selector(connectProfile:),@selector(disconnectProfile:)};
     for (NSUInteger i=0;i<titles.count;i++) {
@@ -143,6 +222,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSMenuItem *item=[[NSMenuItem alloc] initWithTitle:@"LegacyWG" action:NULL keyEquivalent:@""];
     [submenu addItemWithTitle:@"Выйти" action:@selector(terminate:) keyEquivalent:@"q"];
     NSMenuItem *diagnostics=[submenu insertItemWithTitle:@"Диагностика…" action:@selector(diagnostics:) keyEquivalent:@"" atIndex:0];diagnostics.target=self;
+    NSMenuItem *about=[submenu insertItemWithTitle:@"О программе и лицензии…" action:@selector(about:) keyEquivalent:@"" atIndex:0];about.target=self;
     item.submenu=submenu; [menu addItem:item]; NSApp.mainMenu=menu;
     self.statusItem=[NSStatusBar.systemStatusBar statusItemWithLength:NSVariableStatusItemLength];
     self.statusItem.button.title=@"WG";
@@ -192,6 +272,63 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSInteger row=self.table.selectedRow;
     return row>=0 && (NSUInteger)row<self.profiles.count ? self.profiles[(NSUInteger)row] : nil;
 }
+- (void)updateConnectControl {
+    self.connect.enabled=self.statusKnown && !self.tunnelActive && !self.recoveryRequired && !self.quitting &&
+        [self.selectedProfileSupported isEqual:@YES] && [self selectedProfile]!=nil;
+    self.connect.toolTip=self.selectedProfileLimitation;
+    if(self.statusKnown && !self.tunnelActive && !self.recoveryRequired && [self.state.stringValue isEqual:@"Не подключено"] && self.selectedProfileLimitation.length)
+        self.details.stringValue=self.selectedProfileLimitation;
+}
+- (void)tableViewSelectionDidChange:(NSNotification *)notification {
+    (void)notification;[self refreshSelectedProfile];
+}
+- (void)refreshSelectedProfile {
+    NSUInteger generation=++self.previewGeneration;NSDictionary *profile=[self selectedProfile];
+    self.selectedProfileSupported=nil;self.selectedProfileLimitation=nil;self.profileDetails.toolTip=nil;[self updateConnectControl];
+    if(self.statusKnown && [self.state.stringValue isEqual:@"Не подключено"])self.details.stringValue=@"Выберите профиль для подключения.";
+    if(!profile){self.profileDetails.stringValue=@"Выберите профиль. Адреса и серверы будут показаны без ключей.";return;}
+    self.profileDetails.stringValue=@"Проверка профиля…";
+    dispatch_async(self.previewQueue,^{
+        __block BOOL current=NO;
+        dispatch_sync(dispatch_get_main_queue(),^{current=generation==self.previewGeneration && !self.quitting;});
+        if(!current)return; // Superseded queued selections do not read secrets or spawn a worker.
+        NSError *error=nil;NSData *data=LWReadProfile(profile[@"id"],&error);
+        NSDictionary *validation=data ? ValidateProfile(data) : nil;
+        NSString *shortText=validation ? PreviewText(validation,YES) : @"Не удалось прочитать профиль из Keychain.";
+        NSString *fullText=validation ? PreviewText(validation,NO) : shortText;
+        dispatch_async(dispatch_get_main_queue(),^{
+            if(generation!=self.previewGeneration || ![[self selectedProfile][@"id"] isEqual:profile[@"id"]])return;
+            self.profileDetails.stringValue=shortText;self.profileDetails.toolTip=fullText;
+            BOOL known=[validation[@"ok"] isEqual:@YES] && ![shortText isEqual:@"Не удалось получить сведения о профиле."];
+            self.selectedProfileSupported=@(known && [validation[@"native_supported"] isEqual:@YES]);
+            self.selectedProfileLimitation=self.selectedProfileSupported.boolValue ? nil : known ? UnsupportedProfileReason(validation[@"limitation"]) : @"Профиль не подтверждён. Проверьте конфигурацию и доступ к Keychain.";
+            if(self.selectedProfileLimitation)self.profileDetails.toolTip=[fullText stringByAppendingFormat:@"\n%@",self.selectedProfileLimitation];
+            [self updateConnectControl];
+        });
+    });
+}
+- (void)reloadProfilesSelecting:(NSString *)identifier {
+    self.profiles=LWListProfiles();[self.table reloadData];[self.table deselectAll:nil];
+    for(NSUInteger row=0;row<self.profiles.count;row++)if([self.profiles[row][@"id"] isEqual:identifier])
+        [self.table selectRowIndexes:[NSIndexSet indexSetWithIndex:row] byExtendingSelection:NO];
+    [self refreshSelectedProfile];
+}
+- (void)about:(id)sender {
+    (void)sender;if(self.busy || self.interactionPending || self.quitting)return;
+    NSString *licenses=LicenseText();if(!licenses){[self alert:@"Не удалось загрузить лицензии. Проверьте установку приложения."];return;}
+    self.interactionPending=YES;
+    NSAlert *alert=[[NSAlert alloc] init];
+    NSString *version=[NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    alert.messageText=[@"LegacyWG " stringByAppendingString:version ?: @""];
+    alert.informativeText=@"Клиент стандартного WireGuard для Intel Mac. Независимый проект.\nИсследовательская сборка: совместимость с High Sierra и полноценная защита трафика ещё не подтверждены.";
+    [alert addButtonWithTitle:@"Закрыть"];
+    NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(0,0,520,300)];scroll.hasVerticalScroller=YES;
+    NSTextView *text=[[NSTextView alloc] initWithFrame:NSMakeRect(0,0,500,300)];
+    text.editable=NO;text.selectable=YES;text.font=[NSFont userFixedPitchFontOfSize:11];text.string=licenses;
+    [text setAccessibilityLabel:@"Лицензии и уведомления о сторонних компонентах"];
+    scroll.documentView=text;alert.accessoryView=scroll;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {(void)response;self.interactionPending=NO;}];
+}
 - (BOOL)canChangeStoredProfile {
     return self.statusKnown && !self.tunnelActive && !self.recoveryRequired && !self.quitting;
 }
@@ -209,9 +346,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
         dispatch_async(dispatch_get_main_queue(),^{
             self.interactionPending=NO;
             if(!ok){[self alert:error.localizedDescription];return;}
-            self.profiles=LWListProfiles();[self.table reloadData];
-            for(NSUInteger row=0;row<self.profiles.count;row++)if([self.profiles[row][@"id"] isEqual:stored])
-                [self.table selectRowIndexes:[NSIndexSet indexSetWithIndex:row] byExtendingSelection:NO];
+            [self reloadProfilesSelecting:stored];
             if(![validation[@"native_supported"] isEqual:@YES]) {
                 NSString *limitation=[validation[@"limitation"] isKindOfClass:NSString.class] ? validation[@"limitation"] : @"ограничение backend";
                 [self alert:[@"Профиль сохранён, но пока не поддерживается этой сборкой: " stringByAppendingString:limitation]];
@@ -290,7 +425,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
             NSError *error=nil;BOOL ok=LWDeleteProfile(profile[@"id"],&error);
             dispatch_async(dispatch_get_main_queue(),^{
                 self.interactionPending=NO;if(!ok){[self alert:error.localizedDescription];return;}
-                self.profiles=LWListProfiles();[self.table reloadData];
+                [self reloadProfilesSelecting:nil];
             });
         });
     }];
@@ -311,7 +446,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
             dispatch_async(dispatch_get_main_queue(),^{
                 self.interactionPending=NO;if(!ok){[self alert:error.localizedDescription];return;}
                 if([profile[@"id"] isEqual:self.activeProfileIdentifier])self.activeProfileName=name;
-                self.profiles=LWListProfiles();[self.table reloadData];
+                [self reloadProfilesSelecting:profile[@"id"]];
             });
         });
     }];
@@ -373,13 +508,13 @@ static NSDictionary *ValidateProfile(NSData *data) {
     if([status[@"peer_details"] isKindOfClass:NSArray.class])
         for(NSDictionary *peer in status[@"peer_details"])
             if([peer[@"last_handshake_unix"] doubleValue]>0)handshakes++;
-    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"Туннель запущен: %@\nПоследний handshake: %@\nPeers с handshake: %lu из %@\nПолучено: %@ байт; отправлено: %@ байт\nDNS профиля: %@\nSplit tunnel; защита всего трафика не включена.",status[@"interface"] ?: @"",HandshakeDate(status[@"last_handshake_unix"]),(unsigned long)handshakes,status[@"peers"] ?: @0,status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
+    self.details.stringValue=self.tunnelActive ? [NSString stringWithFormat:@"Активный профиль: %@\nПоследний handshake: %@\nPeers с handshake: %lu из %@\nПолучено: %@ байт; отправлено: %@ байт\nDNS профиля: %@\nЗащита всего трафика не включена.",self.activeProfileName ?: @"имя не подтверждено",HandshakeDate(status[@"last_handshake_unix"]),(unsigned long)handshakes,status[@"peers"] ?: @0,status[@"rx_bytes"] ?: @0,status[@"tx_bytes"] ?: @0,[status[@"dns_configured"] isEqual:@YES] ? @"настроен через туннель" : @"используются системные настройки"] :
         self.recoveryRequired ? @"Компонент не подтвердил восстановление прежних настроек. Подключение недоступно. Повторите безопасную проверку кнопкой «Восстановить сеть…»." :
         [state isEqual:@"Error"] ? ([status[@"reason"] isEqual:@"endpoint route changed or became unavailable; tunnel closed"] ?
             @"Изменился маршрут до сервера. Туннель закрыт; можно подключиться снова." : @"Сетевой компонент завершил туннель. Можно подключиться снова.") : @"Выберите профиль для подключения.";
     if(![reply[@"ok"] isEqual:@YES] && !self.recoveryRequired && [reply[@"error"] isKindOfClass:NSString.class])
         self.details.stringValue=reply[@"error"];
-    self.connect.enabled=!self.tunnelActive && !self.recoveryRequired;
+    [self updateConnectControl];
     self.disconnect.enabled=self.tunnelActive;self.recover.enabled=self.recoveryRequired;
     self.statusItem.button.title=self.tunnelActive ? @"WG •" : self.recoveryRequired ? @"WG !" : @"WG";
     self.statusItem.button.toolTip=[@"LegacyWG — " stringByAppendingString:self.state.stringValue];
@@ -449,14 +584,32 @@ static BOOL WaitFor(BOOL (^condition)(void)) {
     return condition();
 }
 
+static NSData *UIProfileFixture(void) {
+    // Deterministic parser-only credentials, never used for network traffic.
+    NSMutableData *private=[NSMutableData dataWithLength:32], *public=[NSMutableData dataWithLength:32];
+    memset(private.mutableBytes,1,32);memset(public.mutableBytes,2,32);
+    NSString *text=[NSString stringWithFormat:@"[Interface]\nPrivateKey = %@\nAddress = 10.7.0.2/32\n[Peer]\nPublicKey = %@\nEndpoint = 127.0.0.1:51820\nAllowedIPs = 10.20.0.0/24\n",
+        [private base64EncodedStringWithOptions:0],[public base64EncodedStringWithOptions:0]];
+    return [text dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+static NSTextView *LicenseView(NSView *view, NSUInteger depth) {
+    if(depth>8)return nil;
+    if([view isKindOfClass:NSTextView.class])return (NSTextView *)view;
+    for(NSView *child in view.subviews){NSTextView *found=LicenseView(child,depth+1);if(found)return found;}
+    return nil;
+}
+
 static BOOL ProfileSheetTest(ClientController *controller) {
     NSString *identifier=nil;NSError *error=nil;
-    NSData *original=[@"LegacyWG private sheet-test marker" dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *original=UIProfileFixture();
     NSString *name=[@"Sheet test " stringByAppendingString:NSUUID.UUID.UUIDString];
     if(!LWStoreProfile(original,name,&identifier,&error))return NO;
     controller.profiles=@[@{@"id":identifier,@"name":name}];[controller.table reloadData];
     [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected"}}];controller.busy=NO;
+    BOOL preview=WaitFor(^BOOL{return [controller.selectedProfileSupported isEqual:@YES];}) &&
+        [controller.profileDetails.stringValue containsString:@"10.7.0.2/32"] && [controller.profileDetails.stringValue containsString:@"127.0.0.1:51820"];
     [controller deleteProfile:nil];
     BOOL opened=WaitFor(^BOOL{return controller.window.attachedSheet!=nil;});
     [controller menuNeedsUpdate:controller.statusItem.menu];
@@ -490,7 +643,7 @@ static BOOL ProfileSheetTest(ClientController *controller) {
     BOOL removed=LWDeleteProfile(identifier,&error);
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];[controller.table reloadData];
     [controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
-    return guarded && refused && closed && duplicate && canceled && removed;
+    return preview && guarded && refused && closed && duplicate && canceled && removed;
 }
 
 static int UILayoutTest(void) {
@@ -507,6 +660,7 @@ static int UILayoutTest(void) {
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];
     [controller.table reloadData];[controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     controller.busy=NO;
+    controller.previewGeneration++;controller.selectedProfileSupported=@YES;
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
     [controller menuNeedsUpdate:controller.statusItem.menu];
     BOOL menu=controller.statusItem.menu.numberOfItems==9 && controller.menuConnect.enabled &&
@@ -522,8 +676,19 @@ static int UILayoutTest(void) {
     [controller showReply:@{@"ok":@YES,@"status":@{@"state":@"Disconnected",@"protected":@NO}}];
     recovery=recovery && unknown && !controller.recoveryRequired && !controller.recover.enabled;
     BOOL profileSheets=ProfileSheetTest(controller);
+    controller.previewGeneration++;controller.selectedProfileSupported=@YES;
+    NSDictionary *preview=ValidateProfile(UIProfileFixture());
+    controller.profileDetails.stringValue=PreviewText(preview,YES);controller.profileDetails.toolTip=PreviewText(preview,NO);
+    [controller updateConnectControl];
+    BOOL metadata=[controller.profileDetails.stringValue containsString:@"10.7.0.2/32"] &&
+        [controller.profileDetails.stringValue containsString:@"127.0.0.1:51820"] && ![controller.profileDetails.stringValue containsString:@"Key"];
+    [controller about:nil];BOOL about=WaitFor(^BOOL{return controller.window.attachedSheet!=nil;});
+    NSTextView *licenses=LicenseView(controller.window.attachedSheet.contentView,0);
+    about=about && [licenses.string containsString:@"WireGuard-LICENSE"] && [licenses.string containsString:@"Go-PATENTS"];
+    if(controller.window.attachedSheet)[NSApp endSheet:controller.window.attachedSheet returnCode:NSAlertFirstButtonReturn];
+    about=about && WaitFor(^BOOL{return !controller.interactionPending && !controller.window.attachedSheet;});
     BOOL bounds=YES;
-    for(NSView *view in @[controller.state,controller.details,controller.connect,controller.disconnect,controller.recover])
+    for(NSView *view in @[controller.state,controller.details,controller.profileDetails,controller.connect,controller.disconnect,controller.recover])
         bounds=bounds && NSContainsRect(controller.window.contentView.bounds,view.frame);
     controller.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameAqua];
     [controller.window.contentView layoutSubtreeIfNeeded];
@@ -557,11 +722,12 @@ static int UILayoutTest(void) {
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
-    BOOL passed=menu && recovery && profileSheets && bounds && saved && labelPixels>30;
+    BOOL passed=menu && recovery && profileSheets && metadata && about && bounds && saved && labelPixels>30;
     NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",
         @"kind":@"developer-only-gui-layout-fixture",@"menu_actions":@(menu),@"control_bounds":@(bounds),
         @"recovery_controls_and_unknown_state":@(recovery),
         @"actual_profile_sheets_guard_cancel_and_changed_state_refusal":@(profileSheets),
+        @"selected_profile_metadata":@(metadata),@"actual_about_license_sheet":@(about),
         @"screenshot_saved":@(saved),@"notice_label_pixels":@(labelPixels),@"vpn_test":@"NOT_RUN",@"high_sierra":@"NOT_RUN"} options:0 error:NULL];
     [NSFileHandle.fileHandleWithStandardOutput writeData:json];return passed ? 0 : 1;
 }
@@ -606,18 +772,27 @@ int main(int argc,const char *argv[]) {
                 !LWProfileNameAvailable(@"invalid\nlabel",&refusal) && [LWReadProfile(identifier,&error) isEqualToData:updated];
             BOOL copy=LWProfileNameAvailable([@"Free CI name " stringByAppendingString:NSUUID.UUID.UUIDString],&error);
             BOOL invalidValidation=![ValidateProfile(sample)[@"ok"] isEqual:@YES];
+            NSDictionary *previewValidation=ValidateProfile(UIProfileFixture());
+            NSString *previewText=PreviewText(previewValidation,NO);
+            BOOL metadata=[previewValidation[@"native_supported"] isEqual:@YES] &&
+                [previewText containsString:@"10.7.0.2/32"] && [previewText containsString:@"127.0.0.1:51820"] &&
+                ![previewText containsString:@"Key"] && [PreviewText(@{@"ok":@YES,@"preview":@{}},YES) isEqual:@"Не удалось получить сведения о профиле."];
+            NSString *licenseText=LicenseText();
+            BOOL licenses=[licenseText containsString:@"WireGuard-LICENSE"] && [licenseText containsString:@"Go-PATENTS"] &&
+                [licenseText containsString:@"golang.org_x_crypto-v0.37.0-LICENSE"];
             if(otherIdentifier)other=LWDeleteProfile(otherIdentifier,&error) && other;
             keychain=keychain && conflicts && replacement && labelAfterReplace && refused && copy && invalidValidation && other;
             NSDictionary *fixture=@{@"ok":@YES,@"status":@{@"state":@"Connected",@"rx_bytes":@12,@"tx_bytes":@34,
                 @"private_key":@"private-marker",@"endpoint":@"endpoint-marker",@"interface":@"interface-marker",
-                @"peers":@2,@"profile_name":@"profile-marker",@"dns_servers":@[@"dns-marker"]}};
+                @"peers":@2,@"profile_name":@"profile-marker",@"dns_servers":@[@"dns-marker"],
+                @"preview":@{@"addresses":@[@"address-marker"],@"endpoints":@[@"preview-marker"]}}};
             NSData *diagnostics=[NSJSONSerialization dataWithJSONObject:DiagnosticReport(fixture) options:0 error:NULL];
             NSString *report=[[NSString alloc] initWithData:diagnostics encoding:NSUTF8StringEncoding];
             BOOL privacy=diagnostics.length>0 && [report rangeOfString:@"-marker"].location==NSNotFound;
             if(identifier)keychain=LWDeleteProfile(identifier,&error) && keychain;
             NSDictionary *health=installedTest ? LWRequest(@{@"version":@1,@"op":@"health"},requirement) : nil;
             BOOL helper=installedTest && [health[@"ok"] isEqual:@YES] && [health[@"state"] isEqual:@"Available"];
-            BOOL passed=requirement.length && keychain && privacy && (!installedTest || helper);
+            BOOL passed=requirement.length && keychain && metadata && licenses && privacy && (!installedTest || helper);
             NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",@"kind":@"client-bundle-self-test",
                 @"keychain_write_read_delete":keychain ? @"PASS" : @"FAIL",@"keychain_error_code":@(error.code),
                 @"rename_preserves_id_and_data":rename && renamedLabel ? @"PASS" : @"FAIL",
@@ -626,6 +801,8 @@ int main(int argc,const char *argv[]) {
                 @"exact_item_replacement_preserves_id_label_and_other_item":replacement && labelAfterReplace ? @"PASS" : @"FAIL",
                 @"oversized_missing_item_and_duplicate_name_refused":refused ? @"PASS" : @"FAIL",
                 @"invalid_profile_validation_refused":invalidValidation ? @"PASS" : @"FAIL",
+                @"private_profile_preview_without_keys":metadata ? @"PASS" : @"FAIL",
+                @"bundled_licenses_complete":licenses ? @"PASS" : @"FAIL",
                 @"diagnostic_metadata_privacy":privacy ? @"PASS" : @"FAIL",
                 @"installed_helper_authentication":installedTest ? (helper ? @"PASS" : @"FAIL") : @"NOT_RUN",
                 @"core_dumps_disabled":@YES,@"vpn_ready":@NO} options:0 error:NULL];

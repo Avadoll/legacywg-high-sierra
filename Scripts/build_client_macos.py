@@ -74,7 +74,7 @@ def main() -> None:
     shutil.copyfile(ROOT/'THIRD_PARTY_NOTICES.md',app/'Contents/Resources/THIRD_PARTY_NOTICES.md')
     source=os.environ['GITHUB_SHA']
     (app/'Contents/Resources/BuildManifest.json').write_text(json.dumps({'source_commit':source,'vpn_ready':False,
-        'signing_mode':'ad-hoc','features':['IPv4 and IPv6 split tunnel','routed profile DNS','numeric IPv4/IPv6 endpoints','bounded native hostname bootstrap','Keychain','authenticated Mach helper'],
+        'signing_mode':'ad-hoc','features':['IPv4 and IPv6 split tunnel','routed profile DNS','numeric IPv4/IPv6 endpoints','bounded native hostname bootstrap','Keychain','duplicate import choice','private profile metadata preview','bundled license viewer','authenticated Mach helper'],
         'unsupported':['full tunnel','protected hostname reconnect','kill switch'],
         'hostname_bootstrap':'current system resolver before network changes; IPv4 preferred; no automatic fallback',
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN'},indent=2)+'\n')

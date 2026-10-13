@@ -7,16 +7,61 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
+	"strconv"
 
 	configcore "legacywg/ConfigCore"
 	"legacywg/Engine/session"
+	networkcore "legacywg/NetworkCore"
 )
 
 type request struct {
 	Version int    `json:"version"`
 	Op      string `json:"op"`
 	Profile string `json:"profile,omitempty"`
+}
+
+// Selected-profile metadata stays on the private validation pipe. It is never
+// attached to public runtime status or diagnostics. Bound the preview below
+// 8KiB so the GUI's wait-before-read cannot fill the native output pipe.
+type profilePreview struct {
+	Routing      string   `json:"routing"`
+	Addresses    []string `json:"addresses"`
+	AddressCount int      `json:"address_count"`
+	Endpoints    []string `json:"endpoints"`
+	RouteCount   int      `json:"route_count"`
+}
+
+func preview(config *configcore.Config) profilePreview {
+	result := profilePreview{Routing: "unavailable", Addresses: []string{}, Endpoints: []string{}, AddressCount: len(config.Addresses)}
+	for index, address := range config.Addresses {
+		if index >= 8 {
+			break
+		}
+		result.Addresses = append(result.Addresses, address.String())
+	}
+	for _, peer := range config.Peers {
+		endpoint := ""
+		if peer.Endpoint != nil {
+			endpoint = net.JoinHostPort(peer.Endpoint.Host, strconv.Itoa(int(peer.Endpoint.Port)))
+		}
+		result.Endpoints = append(result.Endpoints, endpoint)
+	}
+	if plan, err := networkcore.Build(config, false); err == nil {
+		result.RouteCount = len(plan.Routes)
+		switch {
+		case plan.FullIPv4 && plan.FullIPv6:
+			result.Routing = "full_dual_stack"
+		case plan.FullIPv4:
+			result.Routing = "full_ipv4"
+		case plan.FullIPv6:
+			result.Routing = "full_ipv6"
+		default:
+			result.Routing = "split"
+		}
+	}
+	return result
 }
 
 func respond(output io.Writer, value any) { _ = json.NewEncoder(output).Encode(value) }
@@ -51,7 +96,7 @@ func handle(engine *session.Session, input []byte) any {
 			reason = capability.Error()
 		}
 		return map[string]any{"ok": true, "peers": len(config.Peers), "dns_count": len(config.DNS),
-			"native_supported": capability == nil, "limitation": reason}
+			"native_supported": capability == nil, "limitation": reason, "preview": preview(config)}
 	case "start":
 		profile := []byte(message.Profile)
 		defer clear(profile)
