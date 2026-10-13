@@ -32,6 +32,7 @@ type packetBind struct {
 	lease   *packetLease
 	factory func(uint16) (net.PacketConn, error)
 	opens   atomic.Int64
+	refused atomic.Bool
 }
 
 var _ conn.Bind = (*packetBind)(nil)
@@ -53,12 +54,19 @@ func (bind *packetBind) ParseEndpoint(text string) (conn.Endpoint, error) {
 func (bind *packetBind) Open(port uint16) ([]conn.ReceiveFunc, uint16, error) {
 	bind.mutex.Lock()
 	defer bind.mutex.Unlock()
+	if bind.refused.Load() {
+		return nil, 0, errors.New("experimental transport lifetime ended")
+	}
 	if bind.lease != nil {
 		return nil, 0, conn.ErrBindAlreadyOpen
 	}
 	socket, err := bind.factory(port)
 	if err != nil {
 		return nil, 0, err
+	}
+	if bind.refused.Load() {
+		socket.Close()
+		return nil, 0, errors.New("experimental transport lifetime ended")
 	}
 	local, ok := socket.LocalAddr().(*net.UDPAddr)
 	if !ok || local.Port < 1 || local.Port > 65535 {
@@ -107,6 +115,9 @@ func (bind *packetBind) Close() error {
 	return lease.socket.Close()
 }
 func (bind *packetBind) Send(buffers [][]byte, endpoint conn.Endpoint) error {
+	if bind.refused.Load() {
+		return net.ErrClosed
+	}
 	remote, ok := endpoint.(*conn.StdNetEndpoint)
 	if !ok {
 		return conn.ErrWrongEndpointType
@@ -194,9 +205,13 @@ type encryptedFixture struct {
 	socket         net.Conn
 	remote         netip.Addr
 	serial         int
+	observer       *scopedObserver
 }
 
 func (fixture *encryptedFixture) close() {
+	if fixture.observer != nil {
+		fixture.observer.stop()
+	}
 	fixture.socket.Close()
 	fixture.client.Close()
 	fixture.server.Close()
@@ -269,7 +284,8 @@ func startEncrypted(outerStack *netstack.Net, local, remote netip.Addr, before k
 	if err != nil {
 		return fail()
 	}
-	return &encryptedFixture{client: client, server: server, transport: clientBind, socket: packet, remote: serverIP}, nil
+	observer := observeScopedPath(local, remote, before, clientBind, client)
+	return &encryptedFixture{client: client, server: server, transport: clientBind, socket: packet, remote: serverIP, observer: observer}, nil
 }
 func (fixture *encryptedFixture) roundTrip() bool {
 	fixture.serial++

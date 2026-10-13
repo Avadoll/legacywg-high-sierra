@@ -363,6 +363,65 @@ func check(ipv6 bool) (map[string]any, error) {
 	if dropped.Load() != before {
 		return nil, errors.New("encrypted scoped transport reached decoy")
 	}
+	// Withdraw only the exact synthetic scoped prefix on our owned utun.
+	// Interface/source stay present: loss detection must depend on the path.
+	withdrawnAt := time.Now()
+	withdrawalDecoyBefore := dropped.Load()
+	if _, err = command("/sbin/route", "-n", "delete", family, "-net", prefix, "-interface", name, "-ifscope", name); err != nil {
+		return nil, err
+	}
+	stillUp, err := net.InterfaceByName(name)
+	if err != nil || stillUp.Index != iface.Index || stillUp.Flags&net.FlagUp == 0 {
+		return nil, errors.New("route withdrawal unexpectedly removed interface")
+	}
+	windowProbe := make(chan bool, 1)
+	go func() { windowProbe <- encrypted.roundTrip() }()
+	select {
+	case <-encrypted.observer.lost:
+	case <-time.After(4 * time.Second):
+		return nil, errors.New("scoped route withdrawal not detected")
+	}
+	withdrawalMillis := encrypted.observer.lostAt.Sub(withdrawnAt).Milliseconds()
+	var windowEcho bool
+	select {
+	case windowEcho = <-windowProbe:
+	case <-time.After(2 * time.Second):
+		return nil, errors.New("withdrawal window payload probe did not finish")
+	}
+	if dropped.Load() != withdrawalDecoyBefore {
+		return nil, errors.New("withdrawal window traffic reached decoy")
+	}
+	if encrypted.observer.downFailed.Load() || !encrypted.transport.refused.Load() || !encrypted.observer.stop() {
+		return nil, errors.New("route loss did not stop official transport")
+	}
+	before = dropped.Load()
+	if encrypted.roundTrip() || dropped.Load() != before {
+		return nil, errors.New("withdrawn route transport still delivered or escaped")
+	}
+	openCount := encrypted.transport.opens.Load()
+	if encrypted.client.Up() == nil || encrypted.transport.opens.Load() != openCount {
+		return nil, errors.New("withdrawn route transport reopened")
+	}
+	if _, err = command("/sbin/route", "-n", "add", family, "-net", prefix, "-interface", name, "-ifscope", name); err != nil {
+		return nil, err
+	}
+	// Restoration does not revive an already-lost connection context.
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	err = admitPath(ctx, remote, local, beforePath)
+	cancel()
+	if err != nil || encrypted.client.Up() == nil || encrypted.transport.opens.Load() != openCount {
+		return nil, errors.New("restored route revived latched transport")
+	}
+	encrypted.close()
+	encrypted, err = startEncrypted(stack, local, remote, beforePath)
+	if err != nil {
+		return nil, err
+	}
+	defer encrypted.close()
+	before = dropped.Load()
+	if !encrypted.roundTrip() || !officialStats(encrypted.client) || !officialStats(encrypted.server) || dropped.Load() != before {
+		return nil, errors.New("fresh admission after route restoration failed")
+	}
 	// Interface loss must not silently fall back to the conflicting route.
 	if outer.Close() != nil {
 		return nil, failure
@@ -381,7 +440,7 @@ func check(ipv6 bool) (map[string]any, error) {
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 	_, queryErr = queryKernelPath(ctx, remote, iface.Index)
 	cancel()
-	openCount := encrypted.transport.opens.Load()
+	openCount = encrypted.transport.opens.Load()
 	if queryErr == nil || encrypted.client.Down() != nil || encrypted.client.Up() == nil || encrypted.transport.opens.Load() != openCount {
 		return nil, errors.New("missing scoped path did not refuse official reopen")
 	}
@@ -397,13 +456,21 @@ func check(ipv6 bool) (map[string]any, error) {
 	if err != nil || restored != baseline {
 		return nil, errors.New("baseline route not restored")
 	}
+	encryptedTrips := 7
+	if windowEcho {
+		encryptedTrips++
+	}
 	return map[string]any{"status": "PASS", "baseline_plain_and_bound_echo": "PASS", "unbound_conflict_negative_control": "PASS",
 		"bound_echo_with_conflicting_host_route": "PASS", "bound_round_trips": 4, "bound_packets_on_decoy": 0,
 		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS",
-		"official_handshake_and_counters": "PASS", "encrypted_bound_round_trips": 6, "encrypted_decoy_packets": 0,
+		"official_handshake_and_counters": "PASS", "encrypted_bound_round_trips": encryptedTrips, "encrypted_decoy_packets": 0,
 		"old_receive_callback_stays_closed_after_reopen": "PASS", "official_device_down_up_scoped_reopen": "PASS",
 		"scoped_kernel_query_vs_unscoped_conflict": "PASS", "pre_post_open_path_admission": "PASS",
 		"canceled_query_and_wrong_interface_name_refused": "PASS", "lost_path_official_reopen_refused": "PASS",
+		"route_withdrawal_interface_stays_up": "PASS", "route_withdrawal_detection_ms": withdrawalMillis,
+		"withdrawal_window_encrypted_echo": windowEcho, "withdrawal_window_decoy_packets": 0,
+		"route_loss_observer_stops_official_device": "PASS", "restored_route_old_context_stays_refused": "PASS",
+		"restored_route_fresh_context_encrypted_echo": "PASS", "observer_join_after_loss": "PASS",
 		"wildcard_listeners": true, "scoped_prefix_added": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
 }
 

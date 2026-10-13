@@ -7,10 +7,12 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/route"
 	"golang.org/x/sys/unix"
+	"golang.zx2c4.com/wireguard/device"
 )
 
 type kernelPath struct {
@@ -186,5 +188,61 @@ func admittedFactory(local, remote netip.Addr, before kernelPath) func(uint16) (
 			return nil, err
 		}
 		return socket, nil
+	}
+}
+
+type scopedObserver struct {
+	cancel     context.CancelFunc
+	done       chan struct{}
+	lost       chan struct{}
+	lostAt     time.Time // Published by closing lost; read only after that event.
+	downFailed atomic.Bool
+}
+
+// A developer-only bounded poll, not a packet-level fail-closed guard.
+// Loss latches before stopping the official device; the old Bind may never
+// reopen even if the route reappears. A new connection needs a new admission
+// context. Socket interface scoping remains active throughout the poll gap.
+func observeScopedPath(local, remote netip.Addr, before kernelPath, bind *packetBind, engine *device.Device) *scopedObserver {
+	ctx, cancel := context.WithCancel(context.Background())
+	observer := &scopedObserver{cancel: cancel, done: make(chan struct{}), lost: make(chan struct{})}
+	go func() {
+		defer close(observer.done)
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				check, stop := context.WithTimeout(ctx, 2*time.Second)
+				err := admitPath(check, remote, local, before)
+				stop()
+				if ctx.Err() != nil {
+					return
+				}
+				if err == nil {
+					continue
+				}
+				bind.refused.Store(true)
+				if engine.Down() != nil {
+					observer.downFailed.Store(true)
+				}
+				observer.lostAt = time.Now()
+				close(observer.lost)
+				return
+			}
+		}
+	}()
+	return observer
+}
+
+func (observer *scopedObserver) stop() bool {
+	observer.cancel()
+	select {
+	case <-observer.done:
+		return !observer.downFailed.Load()
+	case <-time.After(3 * time.Second):
+		return false
 	}
 }
