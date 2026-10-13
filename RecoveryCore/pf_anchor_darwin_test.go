@@ -98,6 +98,57 @@ func TestRootPFAnchorEffectCrashChild(t *testing.T) {
 	t.Fatal("requested effect checkpoint was not reached")
 }
 
+func TestRootPFAnchorCancellationRefusesChangedRulesAndBoot(t *testing.T) {
+	requirePFAnchorCI(t)
+	store := realBootStore(t, ownedTestDirectory(t))
+	defer store.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if store.stageDisabledPFAnchor(ctx) != nil {
+		t.Fatal("refusal fixture staging failed")
+	}
+	record, err := store.readPF(pfJournalFile)
+	if err != nil || record == nil {
+		t.Fatal("refusal fixture journal missing")
+	}
+	// Controlled replacement of ONLY this fixture's owned child. It models
+	// unexpected administrator changes, not arbitrary foreign policy adoption.
+	const replacement = "pass out all\n"
+	if _, err := runOwnedPF(ctx, replacement, "-a", record.Anchor, "-f", "-"); err != nil {
+		t.Fatal("owned changed-rule condition failed")
+	}
+	if store.cancelDisabledPFAnchor(ctx) == nil {
+		t.Fatal("unrecorded kernel rule hash authorized cancellation")
+	}
+	after, err := store.readPF(pfJournalFile)
+	rules, readErr := runOwnedPF(ctx, "", "-a", record.Anchor, "-s", "rules")
+	if err != nil || after == nil || *after != *record || readErr != nil || rules != replacement {
+		t.Fatal("changed-rule refusal modified policy or journal")
+	}
+	if _, err := runOwnedPF(ctx, stagedPFRule, "-a", record.Anchor, "-f", "-"); err != nil {
+		t.Fatal("controlled own-rule restoration failed")
+	}
+	originalBoot := store.boot
+	store.boot = "00000000-0000-0000-0000-000000000000"
+	if store.cancelDisabledPFAnchor(ctx) == nil {
+		t.Fatal("unconfirmed boot authorized cancellation")
+	}
+	store.boot = originalBoot
+	after, err = store.readPF(pfJournalFile)
+	actual, readErr := readDisabledPF(ctx, record.Anchor)
+	if err != nil || after == nil || *after != *record || readErr != nil || actual.rules != record.RulesSHA256 {
+		t.Fatal("boot refusal modified kernel rules or journal")
+	}
+	live := *record
+	live.PID = os.Getppid()
+	if live.PID != os.Getpid() && store.preReferenceOwner(live) {
+		t.Fatal("different live owner accepted")
+	}
+	if store.cancelDisabledPFAnchor(ctx) != nil || store.pfResidue() {
+		t.Fatal("controlled refusal fixture did not clean up")
+	}
+}
+
 func TestRootPFAnchorEffectCrashRecovery(t *testing.T) {
 	requirePFAnchorCI(t)
 	for _, fixture := range []struct {

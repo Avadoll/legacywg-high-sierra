@@ -32,13 +32,15 @@ def main():
     (output/'pf-anchor-tests.json').write_text(json.dumps(sanitized, indent=2)+'\n')
     passed = {event.get('Test') for event in events if event.get('Action') == 'pass'}
     stages = ('pf_install_intent_committed', 'pf_anchor_loaded', 'pf_removal_intent_committed', 'pf_anchor_emptied')
-    required = {'TestRootPFAnchorStageAndCancel', 'TestRootPFAnchorEffectCrashRecovery'} | {
+    required = {'TestRootPFAnchorStageAndCancel', 'TestRootPFAnchorEffectCrashRecovery',
+        'TestRootPFAnchorCancellationRefusesChangedRulesAndBoot'} | {
         'TestRootPFAnchorEffectCrashRecovery/'+stage for stage in stages}
     status = 'PASS' if result.returncode == 0 and required <= passed else 'FAIL'
     report = {'status':status, 'source_commit':os.environ['GITHUB_SHA'], 'host_os':platform.mac_ver()[0],
         'kind':'native journal-bound disabled-PF owned-anchor effects', 'required_tests':sorted(required),
         'actual_sigkill_checkpoints':4 if status == 'PASS' else 'INCOMPLETE',
         'own_anchor_load_verify_cancel':status, 'same_boot_dead_owner_pre_reference_recovery':status,
+        'controlled_changed_own_rule_and_boot_refusals_preserve_evidence':status,
         'foreign_filter_and_nat_baseline_preserved':status, 'pf_remains_disabled':status,
         'reference_operations':'NOT_RUN', 'packet_protection':'NOT_RUN', 'power_loss':'NOT_RUN',
         'high_sierra':'NOT_RUN', 'protection_ready':False,
