@@ -217,6 +217,9 @@ func interfaceGone(record Record) bool {
 }
 
 func (store *Store) recover() error {
+	if store.pfResidue() {
+		return ErrRecoveryRequired
+	}
 	records := make(map[string]*Record)
 	for _, name := range []string{journalFile, temporaryFile} {
 		record, err := store.read(name)
@@ -337,6 +340,9 @@ func (store *Store) MarkConfigured(dns bool) error {
 func (store *Store) Finish() error {
 	if store.closed {
 		return nil
+	}
+	if store.pfResidue() {
+		return ErrRecoveryRequired
 	}
 	if !interfaceGone(store.record) {
 		return ErrRecoveryRequired
