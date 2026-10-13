@@ -20,6 +20,33 @@ static NSString *HandshakeDate(id value) {
     return [formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:[value doubleValue]]];
 }
 
+static NSNumber *DiagnosticCounter(id value) {
+    return [value isKindOfClass:NSNumber.class] && [value compare:@0]!=NSOrderedAscending ?
+        @([value unsignedLongLongValue]) : @0;
+}
+
+static NSDictionary *DiagnosticReport(NSDictionary *reply) {
+    NSDictionary *status=[reply[@"status"] isKindOfClass:NSDictionary.class] ? reply[@"status"] : @{};
+    id rawState=status[@"state"];
+    NSString *state=[rawState isKindOfClass:NSString.class] && [@[@"Disconnected",@"Connecting",@"Connected",@"Error",@"RecoveryRequired"] containsObject:rawState] ? rawState : @"Unavailable";
+    NSOperatingSystemVersion os=NSProcessInfo.processInfo.operatingSystemVersion;
+    NSURL *url=[NSBundle.mainBundle URLForResource:@"BuildManifest" withExtension:@"json"];
+    NSData *data=url ? [NSData dataWithContentsOfURL:url] : nil;
+    id parsed=data.length<=65536 ? [NSJSONSerialization JSONObjectWithData:data ?: NSData.data options:0 error:NULL] : nil;
+    NSString *source=[parsed isKindOfClass:NSDictionary.class] ? parsed[@"source_commit"] : nil;
+    if(![source isKindOfClass:NSString.class] || source.length!=40 ||
+       [source rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdef"].invertedSet].location!=NSNotFound)source=@"unknown";
+    return @{@"schema":@1,@"product":@"LegacyWG",@"source_commit":source,@"product_ready":@NO,
+        @"macos_version":[NSString stringWithFormat:@"%ld.%ld.%ld",(long)os.majorVersion,(long)os.minorVersion,(long)os.patchVersion],
+        @"helper_authenticated":@([reply[@"ok"] isEqual:@YES]),@"state":state,
+        @"tunnel_started":@([status[@"tunnel_started"] isEqual:@YES]),
+        @"protection_confirmed":@([status[@"protected"] isEqual:@YES]),
+        @"peer_count":DiagnosticCounter(status[@"peers"]),@"rx_bytes":DiagnosticCounter(status[@"rx_bytes"]),
+        @"tx_bytes":DiagnosticCounter(status[@"tx_bytes"]),@"handshake_seen":@([DiagnosticCounter(status[@"last_handshake_unix"]) unsignedLongLongValue]>0),
+        @"profile_dns_configured":@([status[@"dns_configured"] isEqual:@YES]),
+        @"metadata_policy":@"Profile names, keys, endpoints, interface names, IP addresses, DNS servers and paths omitted"};
+}
+
 static NSDictionary *ValidateProfile(NSData *data) {
     if (!data.length || data.length > 256*1024) return @{@"ok":@NO,@"error":@"Допустимый размер профиля — до 256 КиБ"};
     NSURL *path = [NSBundle.mainBundle.bundleURL URLByAppendingPathComponent:@"Contents/Helpers/legacywg-worker"];
@@ -58,6 +85,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
 @property(nonatomic,strong) NSMenuItem *menuConnect;
 @property(nonatomic,strong) NSMenuItem *menuDisconnect;
 @property(nonatomic,copy) NSString *activeProfileName;
+@property(nonatomic,copy) NSString *activeProfileIdentifier;
 @property(nonatomic) BOOL quitting;
 @end
 
@@ -95,11 +123,16 @@ static NSDictionary *ValidateProfile(NSData *data) {
         if(i==2)self.connect=button; if(i==3)self.disconnect=button;
     }
     self.profiles=LWListProfiles(); [self.table reloadData];
+    NSButton *rename=[[NSButton alloc] initWithFrame:NSMakeRect(330,110,170,28)];
+    rename.title=@"Переименовать…";rename.bezelStyle=NSBezelStyleRounded;
+    rename.target=self;rename.action=@selector(renameProfile:);[rename setAccessibilityLabel:rename.title];
+    [self.window.contentView addSubview:rename];
     self.timer=[NSTimer timerWithTimeInterval:2 target:self selector:@selector(refreshStatus:) userInfo:nil repeats:YES];
     [NSRunLoop.mainRunLoop addTimer:self.timer forMode:NSRunLoopCommonModes];
     NSMenu *menu=[[NSMenu alloc] initWithTitle:@"Main"], *submenu=[[NSMenu alloc] initWithTitle:@"LegacyWG"];
     NSMenuItem *item=[[NSMenuItem alloc] initWithTitle:@"LegacyWG" action:NULL keyEquivalent:@""];
     [submenu addItemWithTitle:@"Выйти" action:@selector(terminate:) keyEquivalent:@"q"];
+    NSMenuItem *diagnostics=[submenu insertItemWithTitle:@"Диагностика…" action:@selector(diagnostics:) keyEquivalent:@"" atIndex:0];diagnostics.target=self;
     item.submenu=submenu; [menu addItem:item]; NSApp.mainMenu=menu;
     self.statusItem=[NSStatusBar.systemStatusBar statusItemWithLength:NSVariableStatusItemLength];
     self.statusItem.button.title=@"WG";
@@ -182,6 +215,50 @@ static NSDictionary *ValidateProfile(NSData *data) {
         self.profiles=LWListProfiles();[self.table reloadData];
     }];
 }
+- (void)renameProfile:(id)sender {
+    (void)sender;NSDictionary *profile=[self selectedProfile];if(!profile || self.busy || self.quitting)return;
+    NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Новое имя профиля";
+    [alert addButtonWithTitle:@"Сохранить"];[alert addButtonWithTitle:@"Отмена"];
+    NSTextField *input=[[NSTextField alloc] initWithFrame:NSMakeRect(0,0,360,24)];
+    input.stringValue=profile[@"name"];[input setAccessibilityLabel:@"Имя профиля"];
+    alert.accessoryView=input;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        if(response!=NSAlertFirstButtonReturn)return;
+        NSString *name=[input.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        NSError *error=nil;
+        if(!LWRenameProfile(profile[@"id"],name,&error)){[self alert:error.localizedDescription];return;}
+        if([profile[@"id"] isEqual:self.activeProfileIdentifier])self.activeProfileName=name;
+        self.profiles=LWListProfiles();[self.table reloadData];
+    }];
+}
+- (void)diagnostics:(id)sender {
+    (void)sender;if(self.busy || self.quitting)return;
+    self.busy=YES;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+        NSDictionary *reply=LWRequest(@{@"version":@1,@"op":@"status"},ServerRequirement());
+        NSData *data=[NSJSONSerialization dataWithJSONObject:DiagnosticReport(reply) options:NSJSONWritingPrettyPrinted error:NULL];
+        dispatch_async(dispatch_get_main_queue(),^{
+            self.busy=NO;
+            if(!data){[self alert:@"Не удалось подготовить диагностику"];return;}
+            [self openWindow:nil];
+            NSAlert *alert=[[NSAlert alloc] init];alert.messageText=@"Просмотр диагностики перед сохранением";
+            alert.informativeText=@"Отчёт сохраняется только локально по вашему выбору.";
+            [alert addButtonWithTitle:@"Сохранить…"];[alert addButtonWithTitle:@"Отмена"];
+            NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(0,0,520,260)];scroll.hasVerticalScroller=YES;
+            NSTextView *text=[[NSTextView alloc] initWithFrame:NSMakeRect(0,0,500,260)];
+            text.editable=NO;text.font=[NSFont userFixedPitchFontOfSize:11];
+            text.string=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];scroll.documentView=text;alert.accessoryView=scroll;
+            [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+                if(response!=NSAlertFirstButtonReturn)return;
+                NSSavePanel *panel=[NSSavePanel savePanel];panel.allowedFileTypes=@[@"json"];panel.nameFieldStringValue=@"LegacyWG-diagnostics.json";
+                [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result) {
+                    if(result==NSModalResponseOK && ![data writeToURL:panel.URL options:NSDataWritingAtomic error:NULL])
+                        [self alert:@"Не удалось сохранить диагностику"];
+                }];
+            }];
+        });
+    });
+}
 - (void)performRequest:(NSDictionary *)request {
     if(self.busy || self.quitting)return; self.busy=YES;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
@@ -214,6 +291,7 @@ static NSDictionary *ValidateProfile(NSData *data) {
     NSString *text=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     if(!text){[self alert:@"Профиль должен быть UTF-8"];return;}
     self.activeProfileName=profile[@"name"];
+    self.activeProfileIdentifier=profile[@"id"];
     [self performRequest:@{@"version":@1,@"op":@"start",@"profile":text}];
 }
 - (void)disconnectProfile:(id)sender { (void)sender;[self performRequest:@{@"version":@1,@"op":@"stop"}]; }
@@ -264,7 +342,17 @@ static int UILayoutTest(void) {
     [controller.window.contentView displayIfNeeded];
     NSBitmapImageRep *bitmap=[controller.window.contentView bitmapImageRepForCachingDisplayInRect:controller.window.contentView.bounds];
     [controller.window.contentView cacheDisplayInRect:controller.window.contentView.bounds toBitmapImageRep:bitmap];
-    NSData *png=[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    // cacheDisplay omits the window backing color. Composite on that actual
+    // color so black label text remains visible in an opaque QA artifact.
+    NSBitmapImageRep *opaque=[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+        pixelsWide:bitmap.pixelsWide pixelsHigh:bitmap.pixelsHigh bitsPerSample:8 samplesPerPixel:4
+        hasAlpha:YES isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:0 bitsPerPixel:0];
+    [NSGraphicsContext saveGraphicsState];
+    [NSGraphicsContext setCurrentContext:[NSGraphicsContext graphicsContextWithBitmapImageRep:opaque]];
+    [controller.window.backgroundColor setFill];
+    NSRect canvas=NSMakeRect(0,0,bitmap.pixelsWide,bitmap.pixelsHigh);NSRectFill(canvas);
+    [bitmap drawInRect:canvas];[NSGraphicsContext restoreGraphicsState];
+    NSData *png=[opaque representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
     NSString *path=[NSFileManager.defaultManager.currentDirectoryPath stringByAppendingPathComponent:@"Build/CI/client-ui-layout.png"];
     BOOL saved=[png writeToFile:path atomically:YES];
     [NSStatusBar.systemStatusBar removeStatusItem:controller.statusItem];[controller.window close];
@@ -287,12 +375,29 @@ int main(int argc,const char *argv[]) {
             NSData *sample=[@"LegacyWG ephemeral Keychain self-test" dataUsingEncoding:NSUTF8StringEncoding];
             BOOL keychain=LWStoreProfile(sample,@"LegacyWG CI self-test",&identifier,&error);
             if(keychain)keychain=[LWReadProfile(identifier,&error) isEqualToData:sample];
+            BOOL rename=keychain && LWRenameProfile(identifier,@"LegacyWG renamed CI profile",&error) &&
+                [LWReadProfile(identifier,&error) isEqualToData:sample];
+            NSError *nameError=nil;
+            BOOL nameValidation=rename && !LWRenameProfile(identifier,@"invalid\nlabel",&nameError);
+            BOOL renamedLabel=NO;
+            for(NSDictionary *profile in LWListProfiles())
+                if([profile[@"id"] isEqual:identifier] && [profile[@"name"] isEqual:@"LegacyWG renamed CI profile"])renamedLabel=YES;
+            keychain=keychain && rename && nameValidation && renamedLabel;
+            NSDictionary *fixture=@{@"ok":@YES,@"status":@{@"state":@"Connected",@"rx_bytes":@12,@"tx_bytes":@34,
+                @"private_key":@"private-marker",@"endpoint":@"endpoint-marker",@"interface":@"interface-marker",
+                @"peers":@2,@"profile_name":@"profile-marker",@"dns_servers":@[@"dns-marker"]}};
+            NSData *diagnostics=[NSJSONSerialization dataWithJSONObject:DiagnosticReport(fixture) options:0 error:NULL];
+            NSString *report=[[NSString alloc] initWithData:diagnostics encoding:NSUTF8StringEncoding];
+            BOOL privacy=diagnostics.length>0 && [report rangeOfString:@"-marker"].location==NSNotFound;
             if(identifier)keychain=LWDeleteProfile(identifier,&error) && keychain;
             NSDictionary *health=installedTest ? LWRequest(@{@"version":@1,@"op":@"health"},requirement) : nil;
             BOOL helper=installedTest && [health[@"ok"] isEqual:@YES] && [health[@"state"] isEqual:@"Available"];
-            BOOL passed=requirement.length && keychain && (!installedTest || helper);
+            BOOL passed=requirement.length && keychain && privacy && (!installedTest || helper);
             NSData *json=[NSJSONSerialization dataWithJSONObject:@{@"status":passed ? @"PASS" : @"FAIL",@"kind":@"client-bundle-self-test",
                 @"keychain_write_read_delete":keychain ? @"PASS" : @"FAIL",@"keychain_error_code":@(error.code),
+                @"rename_preserves_id_and_data":rename && renamedLabel ? @"PASS" : @"FAIL",
+                @"unsafe_profile_label_refused":nameValidation ? @"PASS" : @"FAIL",
+                @"diagnostic_metadata_privacy":privacy ? @"PASS" : @"FAIL",
                 @"installed_helper_authentication":installedTest ? (helper ? @"PASS" : @"FAIL") : @"NOT_RUN",
                 @"core_dumps_disabled":@YES,@"vpn_ready":@NO} options:0 error:NULL];
             [NSFileHandle.fileHandleWithStandardOutput writeData:json]; return passed ? 0 : 1;
