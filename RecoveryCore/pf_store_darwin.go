@@ -72,11 +72,7 @@ func (store *Store) writePF(record PFRecord) error {
 			return ErrRecoveryRequired
 		}
 	} else {
-		if before.ID != record.ID || before.Boot != record.Boot || before.PID != record.PID || before.RulesSHA256 != record.RulesSHA256 || before.RootSHA256 != record.RootSHA256 || before.RecursiveSHA256 != record.RecursiveSHA256 || before.NATSHA256 != record.NATSHA256 {
-			return ErrRecoveryRequired
-		}
-		next, err := before.Advance(record.Phase, record.ReferenceAfter, record.ReferenceBefore, record.Reference)
-		if err != nil || next != record {
+		if validatePFTransition(*before, record) != nil {
 			return ErrRecoveryRequired
 		}
 	}

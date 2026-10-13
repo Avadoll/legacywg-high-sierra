@@ -10,14 +10,17 @@ import (
 type PFPhase string
 
 const (
-	PFInstallIntent     PFPhase = "install_intent"
-	PFAnchorInstalled   PFPhase = "anchor_installed"
-	PFReferenceIntent   PFPhase = "reference_intent"
-	PFReferenceAcquired PFPhase = "reference_acquired"
-	PFActive            PFPhase = "active"
-	PFCleanupIntent     PFPhase = "cleanup_intent"
-	PFReferenceReleased PFPhase = "reference_released"
-	PFAnchorRemoved     PFPhase = "anchor_removed"
+	PFInstallIntent       PFPhase = "install_intent"
+	PFAnchorInstalled     PFPhase = "anchor_installed"
+	PFReferenceIntent     PFPhase = "reference_intent"
+	PFReferenceAcquired   PFPhase = "reference_acquired"
+	PFActive              PFPhase = "active"
+	PFRuleUpdateIntent    PFPhase = "rule_update_intent"
+	PFReferenceAbsent     PFPhase = "reference_absent"
+	PFCleanupIntent       PFPhase = "cleanup_intent"
+	PFReferenceReleased   PFPhase = "reference_released"
+	PFAnchorRemovalIntent PFPhase = "anchor_removal_intent"
+	PFAnchorRemoved       PFPhase = "anchor_removed"
 )
 
 // A record can describe only our generated child of the existing wildcard.
@@ -32,6 +35,8 @@ type PFRecord struct {
 	Phase           PFPhase `json:"phase"`
 	Anchor          string  `json:"anchor"`
 	RulesSHA256     string  `json:"rules_sha256"`
+	Generation      uint64  `json:"generation"`
+	NextRulesSHA256 string  `json:"next_rules_sha256"`
 	RootSHA256      string  `json:"root_sha256"`
 	RecursiveSHA256 string  `json:"recursive_sha256"`
 	NATSHA256       string  `json:"nat_sha256"`
@@ -53,7 +58,7 @@ func NewPFRecord(boot, rules, root, recursive, nat string) (PFRecord, error) {
 	if err != nil {
 		return PFRecord{}, ErrRecoveryRequired
 	}
-	record := PFRecord{Version: 1, ID: owner.ID, Boot: owner.Boot, PID: owner.PID, Phase: PFInstallIntent, Anchor: "com.apple/legacywg-" + owner.ID, RulesSHA256: rules, RootSHA256: root, RecursiveSHA256: recursive, NATSHA256: nat}
+	record := PFRecord{Version: 2, ID: owner.ID, Boot: owner.Boot, PID: owner.PID, Phase: PFInstallIntent, Anchor: "com.apple/legacywg-" + owner.ID, RulesSHA256: rules, Generation: 1, RootSHA256: root, RecursiveSHA256: recursive, NATSHA256: nat}
 	if record.Validate() != nil {
 		return PFRecord{}, ErrRecoveryRequired
 	}
@@ -61,7 +66,7 @@ func NewPFRecord(boot, rules, root, recursive, nat string) (PFRecord, error) {
 }
 
 func (record PFRecord) Validate() error {
-	if record.Version != 1 || !hexID.MatchString(record.ID) || !bootID.MatchString(record.Boot) || record.PID < 1 || record.PID > 2147483647 || record.Anchor != "com.apple/legacywg-"+record.ID {
+	if record.Version != 2 || record.Generation == 0 || !hexID.MatchString(record.ID) || !bootID.MatchString(record.Boot) || record.PID < 1 || record.PID > 2147483647 || record.Anchor != "com.apple/legacywg-"+record.ID {
 		return ErrRecoveryRequired
 	}
 	for _, hash := range []string{record.RulesSHA256, record.RootSHA256, record.RecursiveSHA256, record.NATSHA256} {
@@ -70,17 +75,29 @@ func (record PFRecord) Validate() error {
 		}
 	}
 	window := record.ReferenceAfter > 0 && record.ReferenceBefore >= record.ReferenceAfter && record.ReferenceBefore-record.ReferenceAfter <= 5
+	noReference := record.Reference == 0 && record.ReferenceAfter == 0 && record.ReferenceBefore == 0
+	if record.Phase == PFRuleUpdateIntent {
+		if !hashCanonical(record.NextRulesSHA256) || record.NextRulesSHA256 == record.RulesSHA256 || record.Generation == ^uint64(0) {
+			return ErrRecoveryRequired
+		}
+	} else if record.NextRulesSHA256 != "" {
+		return ErrRecoveryRequired
+	}
 	switch record.Phase {
 	case PFInstallIntent, PFAnchorInstalled:
 		if record.ReferenceAfter != 0 || record.ReferenceBefore != 0 || record.Reference != 0 {
 			return ErrRecoveryRequired
 		}
-	case PFReferenceIntent:
+	case PFReferenceIntent, PFReferenceAbsent:
 		if !window || record.Reference != 0 {
 			return ErrRecoveryRequired
 		}
-	case PFReferenceAcquired, PFActive, PFCleanupIntent, PFReferenceReleased, PFAnchorRemoved:
+	case PFReferenceAcquired, PFActive, PFRuleUpdateIntent, PFCleanupIntent, PFReferenceReleased:
 		if !window || record.Reference == 0 {
+			return ErrRecoveryRequired
+		}
+	case PFAnchorRemovalIntent, PFAnchorRemoved:
+		if !noReference && !window {
 			return ErrRecoveryRequired
 		}
 	default:
@@ -102,10 +119,12 @@ func (record PFRecord) Advance(phase PFPhase, after, before int64, reference uin
 		next.ReferenceAfter, next.ReferenceBefore = after, before
 	case record.Phase == PFReferenceIntent && phase == PFReferenceAcquired:
 		next.Reference = reference
+	case record.Phase == PFReferenceIntent && phase == PFReferenceAbsent:
 	case record.Phase == PFReferenceAcquired && phase == PFActive:
 	case (record.Phase == PFReferenceAcquired || record.Phase == PFActive) && phase == PFCleanupIntent:
 	case record.Phase == PFCleanupIntent && phase == PFReferenceReleased:
-	case record.Phase == PFReferenceReleased && phase == PFAnchorRemoved:
+	case (record.Phase == PFInstallIntent || record.Phase == PFAnchorInstalled || record.Phase == PFReferenceAbsent || record.Phase == PFReferenceReleased) && phase == PFAnchorRemovalIntent:
+	case record.Phase == PFAnchorRemovalIntent && phase == PFAnchorRemoved:
 	default:
 		return PFRecord{}, ErrRecoveryRequired
 	}
@@ -121,6 +140,57 @@ func (record PFRecord) Advance(phase PFPhase, after, before int64, reference uin
 		return PFRecord{}, ErrRecoveryRequired
 	}
 	return next, nil
+}
+
+// Pending rules preserve both exact candidates. They authorize no kernel
+// write/removal. The coordinator must observe the actual owned anchor before
+// choosing confirmation/rollback; an unrelated hash is always ambiguous.
+func (record PFRecord) BeginRuleUpdate(desired string) (PFRecord, error) {
+	if record.Validate() != nil || record.Phase != PFActive || !hashCanonical(desired) || desired == record.RulesSHA256 || record.Generation == ^uint64(0) {
+		return PFRecord{}, ErrRecoveryRequired
+	}
+	next := record
+	next.Phase = PFRuleUpdateIntent
+	next.NextRulesSHA256 = desired
+	if next.Validate() != nil {
+		return PFRecord{}, ErrRecoveryRequired
+	}
+	return next, nil
+}
+func (record PFRecord) ResolveRuleUpdate(observed string) (PFRecord, error) {
+	if record.Validate() != nil || record.Phase != PFRuleUpdateIntent || (observed != record.RulesSHA256 && observed != record.NextRulesSHA256) {
+		return PFRecord{}, ErrRecoveryRequired
+	}
+	next := record
+	if observed == record.NextRulesSHA256 {
+		next.RulesSHA256 = observed
+		next.Generation++
+	}
+	next.NextRulesSHA256 = ""
+	next.Phase = PFActive
+	if next.Validate() != nil {
+		return PFRecord{}, ErrRecoveryRequired
+	}
+	return next, nil
+}
+
+func validatePFTransition(before, next PFRecord) error {
+	if before.Validate() != nil || next.Validate() != nil {
+		return ErrRecoveryRequired
+	}
+	var expected PFRecord
+	var err error
+	if before.Phase == PFActive && next.Phase == PFRuleUpdateIntent {
+		expected, err = before.BeginRuleUpdate(next.NextRulesSHA256)
+	} else if before.Phase == PFRuleUpdateIntent && next.Phase == PFActive {
+		expected, err = before.ResolveRuleUpdate(next.RulesSHA256)
+	} else {
+		expected, err = before.Advance(next.Phase, next.ReferenceAfter, next.ReferenceBefore, next.Reference)
+	}
+	if err != nil || expected != next {
+		return ErrRecoveryRequired
+	}
+	return nil
 }
 
 func EncodePF(record PFRecord) ([]byte, error) {

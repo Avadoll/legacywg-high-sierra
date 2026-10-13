@@ -39,13 +39,18 @@ def main() -> None:
         ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
     if not (required|checkpoints)<=passed:raise SystemExit('Privileged journal tests not actually exercised')
-    pf_required={'TestRootPFJournalDurabilityAndPreservation','TestRootPFJournalRejectsUnsafeFiles','TestRootPFJournalCrashPreservesUnknownEffects'}
+    pf_required={'TestRootPFJournalDurabilityAndPreservation','TestRootPFJournalRejectsUnsafeFiles','TestRootPFJournalCrashPreservesUnknownEffects',
+        'TestRootPFJournalCancellationAndRuleGenerations','TestRootPFJournalUpdateCrashPreservesBothCandidates'}
     pf_checkpoints={'TestRootPFJournalCrashPreservesUnknownEffects/'+stage for stage in
+        ('pf_temporary_created','pf_temporary_synced','pf_renamed','pf_directory_synced')}
+    pf_checkpoints|={'TestRootPFJournalUpdateCrashPreservesBothCandidates/'+stage for stage in
         ('pf_temporary_created','pf_temporary_synced','pf_renamed','pf_directory_synced')}
     if not (pf_required|pf_checkpoints)<=passed:raise SystemExit('Privileged PF metadata journal tests not actually exercised')
     (OUT/'pf-journal-ci.json').write_text(json.dumps({'status':'PASS','kind':'native-root-owned-PF-metadata-journal',
         'source_commit':os.environ.get('GITHUB_SHA'),
-        'required_root_tests':sorted(pf_required),'sigkill_checkpoints':4,'kernel_pf_effects':'NOT_RUN',
+        'required_root_tests':sorted(pf_required),'sigkill_checkpoints':8,'record_version':2,'kernel_pf_effects':'NOT_RUN',
+        'pre_reference_cancellation':'PASS','durable_rule_generation_confirmation_and_rollback':'PASS',
+        'pending_rule_update_crash_preserves_both_candidates':'PASS',
         'recovery_policy':'refuse and preserve; no automatic PF release or rule removal',
         'high_sierra':'NOT_RUN','power_loss':'NOT_RUN','protection_ready':False},indent=2)+'\n')
     (OUT/'recovery-journal-ci.json').write_text(json.dumps({'status':'PASS','kind':'native-root-owned-utun-journal',

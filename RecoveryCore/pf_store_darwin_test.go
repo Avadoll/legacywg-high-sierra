@@ -128,6 +128,41 @@ func TestRootPFCrashChild(t *testing.T) {
 		t.Fatal("PF crash child store failed")
 	}
 	defer store.Close()
+	if os.Getenv("LEGACYWG_PF_UPDATE_CRASH") == "1" {
+		record := testPFRecord(t)
+		if store.writePF(record) != nil {
+			t.Fatal("PF update initial intent failed")
+		}
+		for _, phase := range []PFPhase{PFAnchorInstalled, PFReferenceIntent, PFReferenceAcquired, PFActive} {
+			after, before, reference := record.ReferenceAfter, record.ReferenceBefore, record.Reference
+			if phase == PFReferenceIntent {
+				after, before = 100, 105
+			}
+			if phase == PFReferenceAcquired {
+				reference = 123
+			}
+			record, err = record.Advance(phase, after, before, reference)
+			if err != nil || store.writePF(record) != nil {
+				t.Fatal("PF update baseline metadata failed")
+			}
+		}
+		pending, err := record.BeginRuleUpdate(string(bytes.Repeat([]byte{'b'}, 64)))
+		if err != nil {
+			t.Fatal("PF pending update metadata failed")
+		}
+		store.checkpoint = func(current string) {
+			if current == stage {
+				fmt.Fprintln(os.Stdout, "READY")
+				for {
+					time.Sleep(time.Minute)
+				}
+			}
+		}
+		if store.writePF(pending) != nil {
+			t.Fatal("PF pending update save failed")
+		}
+		t.Fatal("PF update checkpoint not reached")
+	}
 	store.checkpoint = func(current string) {
 		if current == stage {
 			fmt.Fprintln(os.Stdout, "READY")
@@ -140,6 +175,151 @@ func TestRootPFCrashChild(t *testing.T) {
 		t.Fatal("PF crash child intent failed")
 	}
 	t.Fatal("requested PF crash checkpoint not reached")
+}
+
+func TestRootPFJournalCancellationAndRuleGenerations(t *testing.T) {
+	path := ownedTestDirectory(t)
+	store, err := directoryStore(t, path)
+	if err != nil {
+		t.Fatal("PF transition store failed")
+	}
+	defer store.Close()
+	record := testPFRecord(t)
+	if store.writePF(record) != nil {
+		t.Fatal("PF transition intent failed")
+	}
+	next, err := record.Advance(PFAnchorRemovalIntent, 0, 0, 0)
+	if err != nil || store.writePF(next) != nil {
+		t.Fatal("durable cancellation intent failed")
+	}
+	removed, err := next.Advance(PFAnchorRemoved, 0, 0, 0)
+	if err != nil || store.writePF(removed) != nil {
+		t.Fatal("durable no-reference cleanup confirmation failed")
+	}
+	if store.reconcile() == nil {
+		t.Fatal("metadata confirmation alone erased kernel-effect evidence")
+	}
+	// A second isolated transaction exercises update confirmation/rollback.
+	path2 := ownedTestDirectory(t)
+	other, err := directoryStore(t, path2)
+	if err != nil {
+		t.Fatal("PF update store failed")
+	}
+	defer other.Close()
+	record = testPFRecord(t)
+	if other.writePF(record) != nil {
+		t.Fatal("PF update intent failed")
+	}
+	for _, phase := range []PFPhase{PFAnchorInstalled, PFReferenceIntent, PFReferenceAcquired, PFActive} {
+		after, before, reference := record.ReferenceAfter, record.ReferenceBefore, record.Reference
+		if phase == PFReferenceIntent {
+			after, before = 100, 105
+		}
+		if phase == PFReferenceAcquired {
+			reference = 123
+		}
+		record, err = record.Advance(phase, after, before, reference)
+		if err != nil || other.writePF(record) != nil {
+			t.Fatal("PF update baseline save failed")
+		}
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		pending, err := record.BeginRuleUpdate(string(bytes.Repeat([]byte{'b'}, 64)))
+		if err != nil || other.writePF(pending) != nil {
+			t.Fatal("PF pending rule save failed")
+		}
+		observed := record.RulesSHA256
+		if attempt == 1 {
+			observed = pending.NextRulesSHA256
+		}
+		record, err = pending.ResolveRuleUpdate(observed)
+		if err != nil || other.writePF(record) != nil {
+			t.Fatal("PF rule resolution save failed")
+		}
+	}
+	if record.Generation != 2 {
+		t.Fatal("PF confirmed generation not persisted")
+	}
+}
+
+func TestRootPFJournalUpdateCrashPreservesBothCandidates(t *testing.T) {
+	requireRoot(t)
+	for _, stage := range []string{"pf_temporary_created", "pf_temporary_synced", "pf_renamed", "pf_directory_synced"} {
+		t.Run(stage, func(t *testing.T) {
+			path := ownedTestDirectory(t)
+			executable, err := os.Executable()
+			if err != nil {
+				t.Fatal("PF update executable unavailable")
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			defer cancel()
+			command := exec.CommandContext(ctx, executable, "-test.run=^TestRootPFCrashChild$", "-test.v")
+			command.Env = append(os.Environ(), "LEGACYWG_PF_JOURNAL_TEST_DIR="+path, "LEGACYWG_PF_JOURNAL_TEST_STAGE="+stage, "LEGACYWG_PF_UPDATE_CRASH=1")
+			output, err := command.StdoutPipe()
+			if err != nil {
+				t.Fatal("PF update pipe failed")
+			}
+			if command.Start() != nil {
+				t.Fatal("PF update child failed")
+			}
+			scanner := bufio.NewScanner(output)
+			ready := false
+			for scanner.Scan() {
+				if scanner.Text() == "READY" {
+					ready = true
+					break
+				}
+			}
+			if !ready {
+				command.Wait()
+				t.Fatal("PF update durable checkpoint not reached")
+			}
+			if command.Process.Kill() != nil {
+				command.Wait()
+				t.Fatal("PF update SIGKILL failed")
+			}
+			if command.Wait() == nil {
+				t.Fatal("PF update child not killed")
+			}
+			store, err := directoryStore(t, path)
+			if err != nil {
+				t.Fatal("PF update crash lock unavailable")
+			}
+			defer store.Close()
+			main, err := store.readPF(pfJournalFile)
+			if err != nil || main == nil {
+				t.Fatal("PF original/pending main metadata lost")
+			}
+			if stage == "pf_temporary_created" || stage == "pf_temporary_synced" {
+				if main.Phase != PFActive || main.Generation != 1 {
+					t.Fatal("PF active rules changed before rename")
+				}
+			}
+			pending := main
+			if stage == "pf_temporary_synced" {
+				pending, err = store.readPF(pfTemporaryFile)
+				if err != nil {
+					t.Fatal("PF synced update intent unreadable")
+				}
+			}
+			if stage != "pf_temporary_created" {
+				if pending == nil || pending.Phase != PFRuleUpdateIntent || pending.Generation != 1 || pending.RulesSHA256 != string(bytes.Repeat([]byte{'a'}, 64)) || pending.NextRulesSHA256 != string(bytes.Repeat([]byte{'b'}, 64)) {
+					t.Fatal("PF update candidate identities lost")
+				}
+			}
+			before, err := os.ReadFile(filepath.Join(path, pfJournalFile))
+			if err != nil {
+				t.Fatal("PF crash main vanished")
+			}
+			if store.reconcile() == nil {
+				t.Fatal("PF pending update auto-cleared")
+			}
+			after, err := os.ReadFile(filepath.Join(path, pfJournalFile))
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("PF pending update evidence modified")
+			}
+		})
+	}
 }
 func TestRootPFJournalCrashPreservesUnknownEffects(t *testing.T) {
 	requireRoot(t)
