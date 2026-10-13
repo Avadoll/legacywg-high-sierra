@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import argparse
+from datetime import datetime, timezone
 from inspect_macho import inspect
 from security_review import decode_stream
 
@@ -30,27 +32,35 @@ def classify(output: str) -> dict:
     return {'all_finding_count':len(findings),'unreviewed_symbol_findings':unreviewed,'reviewed_exclusions':excluded}
 
 def main() -> None:
-    binary=Path(sys.argv[1]).resolve()
+    parser=argparse.ArgumentParser()
+    parser.add_argument('binary')
+    parser.add_argument('--evidence-directory')
+    parser.add_argument('--source-commit')
+    args=parser.parse_args()
+    binary=Path(args.binary).resolve()
+    evidence=Path(args.evidence_directory).resolve() if args.evidence_directory else EVIDENCE
     if inspect(binary)['arch']!='x86_64':raise SystemExit('Expected the verified Darwin worker')
     info=subprocess.check_output([str(ROOT/'.tools/go1.27.1/go/bin/go.exe'),'version','-m',str(SCANNER)],text=True)
     if 'golang.org/x/vuln\tv1.8.0\t' not in info:raise SystemExit('Analyzer pin mismatch')
-    EVIDENCE.mkdir(parents=True,exist_ok=True)
+    evidence.mkdir(parents=True,exist_ok=True)
     env={**os.environ,'GOTOOLCHAIN':'local','GOENV':'off','GOFLAGS':'-mod=readonly','CGO_ENABLED':'0',
         'GOOS':'darwin','GOARCH':'amd64','GOCACHE':str(ROOT/'.cache/security-build'),
         'GOMODCACHE':str(ROOT/'.cache/gomod'),'GOROOT':str(ROOT/'.tools/go1.24.13/go'),
         'PATH':str(ROOT/'.tools/go1.24.13/go/bin')+os.pathsep+os.environ['PATH']}
-    summary={'date':'2026-10-07','analyzer':'v1.8.0','target':'darwin/amd64','binary':binary.name,
+    checked=datetime.now(timezone.utc)
+    summary={'date':checked.date().isoformat(),'checked_at_utc':checked.isoformat(),
+        'source_commit':args.source_commit,'analyzer':'v1.8.0','target':'darwin/amd64','binary':binary.name,
         'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
         'limitation':'Limited Go analysis; does not audit Objective-C, installation, target OS or all attack paths','results':[]}
     for label,args in [('binary',['-mode=binary','-format=json',str(binary)]),
                        ('source',['-format=json','./Engine/worker'])]:
         result=subprocess.run([str(SCANNER),*args],env=env,cwd=ROOT,capture_output=True,text=True,timeout=180)
-        (EVIDENCE/(label+'.json')).write_text(result.stdout,encoding='utf-8')
-        (EVIDENCE/(label+'-stderr.txt')).write_text(result.stderr,encoding='utf-8')
+        (evidence/(label+'.json')).write_text(result.stdout,encoding='utf-8')
+        (evidence/(label+'-stderr.txt')).write_text(result.stderr,encoding='utf-8')
         review=classify(result.stdout) if result.returncode in (0,3) else {'unreviewed_symbol_findings':['analysis failed']}
         summary['results'].append({'kind':label,'exit_code':result.returncode,
             'status':'PASS' if not review['unreviewed_symbol_findings'] else 'FAIL',**review})
-    (EVIDENCE/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+    (evidence/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
     print(json.dumps(summary,indent=2))
     if any(item['status']=='FAIL' for item in summary['results']):sys.exit(1)
 

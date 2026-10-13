@@ -6,6 +6,7 @@ from pathlib import Path
 import plistlib
 import re
 import subprocess
+import base64
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Build' / 'CI'
@@ -100,6 +101,29 @@ def main() -> None:
         spoofed = subprocess.run([str(allowed), 'identifier "org.legacywg.wrong-server"'], capture_output=True, text=True, timeout=20)
         assert spoofed.returncode == 1 and json.loads(spoofed.stdout)['ok'] is False
         results['wrong_server_requirement'] = 'PASS'
+        if (client_build/'legacywg-network').exists():
+            # Same component identifier is insufficient: the helper must
+            # reject a substituted root component before launching a worker.
+            import shutil
+            substitute=TEST/'rejected-network'
+            shutil.copyfile(client_build/'dns-probe',substitute);substitute.chmod(0o755)
+            run(['/usr/bin/codesign','--force','--sign','-','--timestamp=none','--identifier',
+                 'org.legacywg.network',str(substitute)])
+            assert cdhash(substitute)!=cdhash(client_build/'legacywg-network')
+            profile='[Interface]\nPrivateKey='+base64.b64encode(os.urandom(32)).decode()+\
+                '\nAddress=198.18.0.1/32\n[Peer]\nPublicKey='+base64.b64encode(os.urandom(32)).decode()+\
+                '\nEndpoint=127.0.0.1:51820\nAllowedIPs=198.18.0.2/32\n'
+            try:
+                run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',
+                     str(substitute),str(POLICY_DIR/'legacywg-network')])
+                attack=subprocess.run([str(allowed),helper_requirement,'start'],input=profile,
+                    capture_output=True,text=True,timeout=20)
+                refusal=json.loads(attack.stdout)
+                assert attack.returncode==1 and refusal['ok'] is False and refusal['error']=='Installed engine integrity check failed'
+                results['substituted_network_component']='PASS'
+            finally:
+                run(['/usr/bin/sudo','-n','/usr/bin/install','-o','root','-g','wheel','-m','0755',
+                     str(client_build/'legacywg-network'),str(POLICY_DIR/'legacywg-network')])
         if (client_build/'peercheck').exists():
             peer_result=run([str(client_build/'peercheck'),str(allowed),helper_requirement,str(client_build/'dns-probe')],timeout=180)
             report=json.loads(peer_result)
