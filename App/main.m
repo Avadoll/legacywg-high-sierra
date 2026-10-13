@@ -249,7 +249,8 @@ static int UILayoutTest(void) {
     if(!ci || strcmp(ci,"true")!=0)return 3;
     [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     ClientController *controller=[[ClientController alloc] init];
-    [controller applicationDidFinishLaunching:nil];[controller.timer invalidate];
+    [controller applicationDidFinishLaunching:[NSNotification notificationWithName:NSApplicationDidFinishLaunchingNotification object:NSApp]];
+    [controller.timer invalidate];
     controller.profiles=@[@{@"id":@"layout-only",@"name":@"GUI layout test — без ключей"}];
     [controller.table reloadData];[controller.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     controller.busy=NO;
