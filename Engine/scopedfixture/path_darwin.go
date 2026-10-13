@@ -26,6 +26,12 @@ type kernelPath struct {
 	scoped      bool
 }
 
+// Routing replies may be broadcast to multiple open AF_ROUTE sockets.
+// Observers/opening checks must not consume another concurrent query's reply.
+// Refuse exhaustion instead of reusing a sequence in this process.
+var fixtureRouteSequence atomic.Uint64
+var fixtureOtherQueryReplies atomic.Uint64
+
 func kernelIP(value route.Addr) (netip.Addr, int) {
 	switch value := value.(type) {
 	case *route.Inet4Addr:
@@ -45,6 +51,10 @@ func queryKernelPath(ctx context.Context, address netip.Addr, scope int) (kernel
 	if ctx.Err() != nil || !address.IsValid() || address.Zone() != "" || address.Is4In6() || address.IsUnspecified() || address.IsMulticast() || scope < 0 || scope > 65535 {
 		return kernelPath{}, failure
 	}
+	sequence := fixtureRouteSequence.Add(1)
+	if sequence > 0x7fffffff {
+		return kernelPath{}, failure
+	}
 	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
 	if err != nil {
 		return kernelPath{}, failure
@@ -61,7 +71,7 @@ func queryKernelPath(ctx context.Context, address netip.Addr, scope int) (kernel
 		addrs[unix.RTAX_DST] = &route.Inet6Addr{IP: address.As16()}
 	}
 	addrs[unix.RTAX_IFP] = &route.LinkAddr{}
-	request := &route.RouteMessage{Version: unix.RTM_VERSION, Type: unix.RTM_GET, ID: uintptr(os.Getpid()), Seq: 1, Index: scope, Addrs: addrs}
+	request := &route.RouteMessage{Version: unix.RTM_VERSION, Type: unix.RTM_GET, ID: uintptr(os.Getpid()), Seq: int(sequence), Index: scope, Addrs: addrs}
 	if scope != 0 {
 		request.Flags = unix.RTF_IFSCOPE
 	}
@@ -89,6 +99,9 @@ func queryKernelPath(ctx context.Context, address netip.Addr, scope int) (kernel
 		for _, message := range messages {
 			reply, ok := message.(*route.RouteMessage)
 			if !ok || reply.Type != request.Type || reply.ID != request.ID || reply.Seq != request.Seq {
+				if ok && reply.Type == request.Type && reply.ID == request.ID && reply.Seq != request.Seq {
+					fixtureOtherQueryReplies.Add(1)
+				}
 				continue
 			}
 			if ctx.Err() != nil || reply.Err != nil || reply.Flags&unix.RTF_UP == 0 || reply.Flags&(unix.RTF_REJECT|unix.RTF_BLACKHOLE|unix.RTF_CONDEMNED|unix.RTF_DEAD) != 0 || len(reply.Addrs) <= unix.RTAX_IFA {

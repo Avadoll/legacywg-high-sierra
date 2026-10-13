@@ -442,6 +442,47 @@ func (bind *dualPacketBind) allClosed() bool {
 	return true
 }
 
+func concurrentPathProof(link *dualOuter, decoy *dualDecoy) (uint64, error) {
+	before := fixtureOtherQueryReplies.Load()
+	for round := 0; round < 16; round++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		gate := make(chan struct{})
+		results := make(chan bool, 4)
+		for i := 0; i < 4; i++ {
+			go func(i int) {
+				<-gate
+				family := i % 2
+				scope := 0
+				if i < 2 {
+					scope = link.iface.Index
+				}
+				path, err := queryKernelPath(ctx, dualRemote[family], scope)
+				valid := err == nil && path.index == decoy.iface.Index
+				if scope != 0 {
+					valid = err == nil && path == link.paths[family]
+				}
+				results <- valid
+			}(i)
+		}
+		close(gate)
+		valid := true
+		for range 4 {
+			if !<-results {
+				valid = false
+			}
+		}
+		cancel()
+		if !valid {
+			return 0, errors.New("concurrent kernel query correlation failed")
+		}
+	}
+	ignored := fixtureOtherQueryReplies.Load() - before
+	if ignored == 0 {
+		return 0, errors.New("concurrent queries did not observe broadcast cross-replies")
+	}
+	return ignored, nil
+}
+
 func checkSimultaneous() (map[string]any, error) {
 	failure := errors.New("simultaneous scoped experiment failed")
 	var baseline [2]string
@@ -529,6 +570,10 @@ func checkSimultaneous() (map[string]any, error) {
 		}
 	}
 	before := [2]int64{decoy.packets[0].Load(), decoy.packets[1].Load()}
+	ignoredReplies, err := concurrentPathProof(link, decoy)
+	if err != nil {
+		return nil, err
+	}
 	for round := 2; round <= 5; round++ {
 		if !fixture.roundTrip(round) {
 			return nil, errors.New("simultaneous encrypted conflicting route echo failed")
@@ -594,6 +639,7 @@ func checkSimultaneous() (map[string]any, error) {
 		"actual_device_down_up_reopens_both": "PASS", "old_callbacks_closed_after_reopen": "PASS", "second_family_open_failure_closes_first": "PASS",
 		"one_family_route_loss_stops_entire_client": "PASS", "other_family_path_still_admissible": "PASS", "old_context_refused_after_restore": "PASS",
 		"both_native_sockets_closed_after_loss": "PASS", "both_peers_no_echo_after_loss": "PASS",
+		"concurrent_kernel_query_correlation": "PASS", "concurrent_query_count": 64, "other_query_replies_ignored": ignoredReplies,
 		"fresh_context_two_peer_encrypted_recovery": "PASS", "encrypted_decoy_packets_ipv4": 0, "encrypted_decoy_packets_ipv6": 0,
 		"observer_shutdown": "PASS", "baseline_destination_routes_restored": "PASS", "physical_nic": "NOT_RUN", "high_sierra": "NOT_RUN", "protection_ready": false}, nil
 }
