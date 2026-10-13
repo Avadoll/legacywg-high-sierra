@@ -59,8 +59,8 @@ func (store *Store) writePF(record PFRecord) error {
 	return store.writePFForOwner(record, false)
 }
 
-func (store *Store) writePFForOwner(record PFRecord, preReferenceRecovery bool) error {
-	if store.closed || record.Boot != store.boot || (record.PID != os.Getpid() && (!preReferenceRecovery || !store.preReferenceOwner(record))) {
+func (store *Store) writePFForOwner(record PFRecord, allowDeadOwner bool) error {
+	if store.closed || record.Boot != store.boot || (record.PID != os.Getpid() && (!allowDeadOwner || !store.pfJournalOwner(record))) {
 		return ErrRecoveryRequired
 	}
 	data, err := EncodePF(record)
@@ -72,7 +72,7 @@ func (store *Store) writePFForOwner(record PFRecord, preReferenceRecovery bool) 
 		return ErrRecoveryRequired
 	}
 	if before == nil {
-		if record.Phase != PFInstallIntent {
+		if record.Phase != PFInstallIntent || allowDeadOwner {
 			return ErrRecoveryRequired
 		}
 	} else {

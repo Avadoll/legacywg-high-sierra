@@ -47,71 +47,79 @@ func runOwnedPF(ctx context.Context, input string, args ...string) (string, erro
 	return output.String(), nil
 }
 
-type pfDisabledSnapshot struct {
+type pfPolicySnapshot struct {
 	root, recursive, nat, rules string
 }
 
 var pfStatusLine = regexp.MustCompile(`(?m)^Status:\s+(Enabled|Disabled)\b`)
 var pfStateLine = regexp.MustCompile(`(?m)^\s*current entries\s+([0-9]+)\b`)
 
-func readDisabledPF(ctx context.Context, owned string) (pfDisabledSnapshot, error) {
+func readDisabledPF(ctx context.Context, owned string) (pfPolicySnapshot, error) {
+	return readPFPolicy(ctx, owned, false)
+}
+
+func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnapshot, error) {
+	expectedStatus := "Disabled"
+	if enabled {
+		expectedStatus = "Enabled"
+	}
 	if !strings.HasPrefix(owned, "com.apple/legacywg-") || !hexID.MatchString(strings.TrimPrefix(owned, "com.apple/legacywg-")) {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	info, err := runOwnedPF(ctx, "", "-s", "info")
 	status, count := pfStatusLine.FindAllStringSubmatch(info, -1), pfStateLine.FindAllStringSubmatch(info, -1)
-	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != "Disabled" || count[0][1] != "0" {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != expectedStatus || count[0][1] != "0" {
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	root, err := runOwnedPF(ctx, "", "-s", "rules")
 	if err != nil || !strings.Contains(root, "anchor \"com.apple/*\" all\n") {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	if _, seen, err := pfForeignView(root, owned); err != nil || seen {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	recursive, err := runOwnedPF(ctx, "", "-a", "*", "-s", "rules")
 	if err != nil {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	foreign, _, err := pfForeignView(recursive, owned)
 	if err != nil {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	nat, err := runOwnedPF(ctx, "", "-s", "nat")
 	if err != nil {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	if _, seen, err := pfForeignView(nat, owned); err != nil || seen {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	natRecursive, err := runOwnedPF(ctx, "", "-a", "*", "-s", "nat")
 	if err != nil {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	natForeign, _, err := pfForeignView(natRecursive, owned)
 	if err != nil {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	rules, err := runOwnedPF(ctx, "", "-a", owned, "-s", "rules")
 	if err != nil || (rules != "" && rules != stagedPFRule) {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	for _, kind := range []string{"nat", "Anchors", "Tables"} {
 		text, err := runOwnedPF(ctx, "", "-a", owned, "-s", kind)
 		if err != nil || strings.TrimSpace(text) != "" {
-			return pfDisabledSnapshot{}, ErrRecoveryRequired
+			return pfPolicySnapshot{}, ErrRecoveryRequired
 		}
 	}
 	info, err = runOwnedPF(ctx, "", "-s", "info")
 	status, count = pfStatusLine.FindAllStringSubmatch(info, -1), pfStateLine.FindAllStringSubmatch(info, -1)
-	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != "Disabled" || count[0][1] != "0" {
-		return pfDisabledSnapshot{}, ErrRecoveryRequired
+	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != expectedStatus || count[0][1] != "0" {
+		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
-	return pfDisabledSnapshot{pfDigest(root), pfDigest(foreign), pfDigest(nat + "\x00" + natForeign), pfDigest(rules)}, nil
+	return pfPolicySnapshot{pfDigest(root), pfDigest(foreign), pfDigest(nat + "\x00" + natForeign), pfDigest(rules)}, nil
 }
 
-func (snapshot pfDisabledSnapshot) matches(record PFRecord) bool {
+func (snapshot pfPolicySnapshot) matches(record PFRecord) bool {
 	return snapshot.root == record.RootSHA256 && snapshot.recursive == record.RecursiveSHA256 && snapshot.nat == record.NATSHA256
 }
 
@@ -120,6 +128,8 @@ func (snapshot pfDisabledSnapshot) matches(record PFRecord) bool {
 // Two observations detect ordinary changes; no userspace check/load sequence
 // can claim an atomic transaction against competing privileged PF writers.
 func (store *Store) stageDisabledPFAnchor(ctx context.Context) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	if store.closed || store.pfResidue() || ctx.Err() != nil {
 		return ErrRecoveryRequired
 	}
@@ -157,14 +167,18 @@ func (store *Store) stageDisabledPFAnchor(ctx context.Context) error {
 	return nil
 }
 
-func (store *Store) preReferenceOwner(record PFRecord) bool {
-	if store.closed || record.Validate() != nil || record.Boot != store.boot || record.Reference != 0 || record.ReferenceAfter != 0 || record.ReferenceBefore != 0 {
+func (store *Store) pfJournalOwner(record PFRecord) bool {
+	if store.closed || record.Validate() != nil || record.Boot != store.boot {
 		return false
 	}
 	if record.PID != os.Getpid() && !errors.Is(unix.Kill(record.PID, 0), unix.ESRCH) {
 		return false
 	}
-	return record.Phase == PFInstallIntent || record.Phase == PFAnchorInstalled || record.Phase == PFAnchorRemovalIntent || record.Phase == PFAnchorRemoved
+	return true
+}
+
+func (store *Store) preReferenceOwner(record PFRecord) bool {
+	return store.pfJournalOwner(record) && record.Reference == 0 && record.ReferenceAfter == 0 && record.ReferenceBefore == 0 && (record.Phase == PFInstallIntent || record.Phase == PFAnchorInstalled || record.Phase == PFAnchorRemovalIntent || record.Phase == PFAnchorRemoved)
 }
 
 // Only this narrowly verified pre-reference cancellation may persist a dead
@@ -177,6 +191,12 @@ func (store *Store) commitPreReferencePF(record PFRecord) error {
 }
 
 func (store *Store) cancelDisabledPFAnchor(ctx context.Context) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	return store.finishPFAnchor(ctx, true)
+}
+
+func (store *Store) finishPFAnchor(ctx context.Context, requireDisabled bool) error {
 	if store.closed || ctx.Err() != nil {
 		return ErrRecoveryRequired
 	}
@@ -184,23 +204,23 @@ func (store *Store) cancelDisabledPFAnchor(ctx context.Context) error {
 		return ErrRecoveryRequired
 	}
 	record, err := store.readPF(pfJournalFile)
-	if err != nil || record == nil || !store.preReferenceOwner(*record) || record.RulesSHA256 != pfDigest(stagedPFRule) {
+	if err != nil || record == nil || !store.pfRemovalOwner(*record) || record.RulesSHA256 != pfDigest(stagedPFRule) {
 		return ErrRecoveryRequired
 	}
-	before, err := readDisabledPF(ctx, record.Anchor)
+	before, references, err := store.readPFRemoval(ctx, *record, requireDisabled)
 	if err != nil || !before.matches(*record) || (before.rules != record.RulesSHA256 && before.rules != pfDigest("")) {
 		return ErrRecoveryRequired
 	}
 	if record.Phase != PFAnchorRemovalIntent && record.Phase != PFAnchorRemoved {
-		next, err := record.Advance(PFAnchorRemovalIntent, 0, 0, 0)
-		if err != nil || store.commitPreReferencePF(next) != nil {
+		next, err := record.Advance(PFAnchorRemovalIntent, record.ReferenceAfter, record.ReferenceBefore, record.Reference)
+		if err != nil || store.commitOwnedPF(next) != nil {
 			return ErrRecoveryRequired
 		}
 		record = &next
 	}
 	store.mark("pf_removal_intent_committed")
-	check, err := readDisabledPF(ctx, record.Anchor)
-	if err != nil || check != before || !store.preReferenceOwner(*record) {
+	check, confirmedReferences, err := store.readPFRemoval(ctx, *record, requireDisabled)
+	if err != nil || check != before || !samePFReferences(references, confirmedReferences) || !store.pfRemovalOwner(*record) {
 		return ErrRecoveryRequired
 	}
 	if record.Phase == PFAnchorRemoved && check.rules != pfDigest("") {
@@ -212,20 +232,20 @@ func (store *Store) cancelDisabledPFAnchor(ctx context.Context) error {
 		}
 	}
 	store.mark("pf_anchor_emptied")
-	after, err := readDisabledPF(ctx, record.Anchor)
-	if err != nil || !after.matches(*record) || after.rules != pfDigest("") || !store.preReferenceOwner(*record) {
+	after, confirmedReferences, err := store.readPFRemoval(ctx, *record, requireDisabled)
+	if err != nil || !after.matches(*record) || after.rules != pfDigest("") || !samePFReferences(references, confirmedReferences) || !store.pfRemovalOwner(*record) {
 		return ErrRecoveryRequired
 	}
 	if record.Phase != PFAnchorRemoved {
-		next, err := record.Advance(PFAnchorRemoved, 0, 0, 0)
-		if err != nil || store.commitPreReferencePF(next) != nil {
+		next, err := record.Advance(PFAnchorRemoved, record.ReferenceAfter, record.ReferenceBefore, record.Reference)
+		if err != nil || store.commitOwnedPF(next) != nil {
 			return ErrRecoveryRequired
 		}
 		record = &next
 	}
 	// Retire only the exact confirmed document, under the same exclusive lock.
 	actual, err := store.readPF(pfJournalFile)
-	if err != nil || actual == nil || *actual != *record || !store.preReferenceOwner(*record) {
+	if err != nil || actual == nil || *actual != *record || !store.pfRemovalOwner(*record) {
 		return ErrRecoveryRequired
 	}
 	if unix.Unlinkat(store.directory, pfJournalFile, 0) != nil || unix.Fsync(store.directory) != nil || fullSync(store.lock) != nil {

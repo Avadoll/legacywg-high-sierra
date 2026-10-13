@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -27,6 +28,7 @@ type Store struct {
 	boot      string
 	record    Record
 	closed    bool
+	mutex     sync.Mutex
 	// Only compiled native tests install a checkpoint callback; no callback
 	// or crash-injection operation is reachable from a production request.
 	checkpoint func(string)
@@ -62,6 +64,8 @@ func Reconcile() error {
 }
 
 func (store *Store) reconcile() error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	if store.closed || store.recover() != nil || fullSync(store.lock) != nil {
 		return ErrRecoveryRequired
 	}
@@ -254,6 +258,8 @@ func (store *Store) recover() error {
 }
 
 func (store *Store) begin() error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	if store.closed || store.recover() != nil {
 		return ErrRecoveryRequired
 	}
@@ -320,6 +326,8 @@ func (store *Store) write(record Record) error {
 }
 
 func (store *Store) MarkInterface(name string, index int) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	record, err := store.record.Advance(InterfaceCreated, name, index, false)
 	if err != nil {
 		return ErrRecoveryRequired
@@ -328,6 +336,8 @@ func (store *Store) MarkInterface(name string, index int) error {
 }
 
 func (store *Store) MarkConfigured(dns bool) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	record, err := store.record.Advance(Configured, store.record.Interface, store.record.InterfaceIndex, dns)
 	if err != nil {
 		return ErrRecoveryRequired
@@ -338,6 +348,8 @@ func (store *Store) MarkConfigured(dns bool) error {
 // Finish is idempotent for the same store and only succeeds once its original
 // utun has disappeared. The lock inode stays fixed to avoid split-lock races.
 func (store *Store) Finish() error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	if store.closed {
 		return nil
 	}
@@ -368,11 +380,17 @@ func (store *Store) Finish() error {
 	if unix.Fsync(store.directory) != nil || fullSync(store.lock) != nil {
 		return ErrRecoveryRequired
 	}
-	store.Close()
+	store.closeLocked()
 	return nil
 }
 
 func (store *Store) Close() {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	store.closeLocked()
+}
+
+func (store *Store) closeLocked() {
 	if store.closed {
 		return
 	}
