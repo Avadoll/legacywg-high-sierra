@@ -79,7 +79,25 @@ func physicalRoute(address netip.Addr) (string, error) {
 	return strings.Join(selected, "\n"), nil
 }
 
-func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool, hostname ...bool) error {
+type checkOptions struct {
+	hostname  bool
+	routeLoss bool
+}
+
+func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool, options ...checkOptions) error {
+	settings := checkOptions{}
+	if len(options) > 0 {
+		settings = options[0]
+	}
+	var closeOuter func() error
+	if settings.routeLoss {
+		var err error
+		closeOuter, err = outerEndpointFixture()
+		if err != nil {
+			return err
+		}
+		defer closeOuter()
+	}
 	var dnsBefore dnsSnapshot
 	if dnsMode != "" {
 		var err error
@@ -93,6 +111,9 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 	bits := 32
 	udpFamily := "udp4"
 	endpointHost := "127.0.0.1"
+	if settings.routeLoss {
+		endpointHost = "198.18.99.3"
+	}
 	if ipv6 {
 		serverIP = netip.MustParseAddr("2001:db8:77::2")
 		clientIP = netip.MustParseAddr("2001:db8:77::1")
@@ -189,7 +210,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		echoResult <- err
 	}()
 	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s\n[Peer]\nPublicKey=%s\nEndpoint=%s\nAllowedIPs=%s\nPersistentKeepalive=1\n", clientPrivate, clientAddresses, serverPublic, net.JoinHostPort(endpointHost, strconv.Itoa(port)), serverRoutes)
-	if len(hostname) > 0 && hostname[0] {
+	if settings.hostname {
 		profile = strings.Replace(profile, net.JoinHostPort(endpointHost, strconv.Itoa(port)), net.JoinHostPort("localhost", strconv.Itoa(port)), 1)
 	}
 	if dnsMode != "" {
@@ -246,7 +267,18 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			return err
 		}
 	}
-	if dnsMode == "agent-crash" {
+	if settings.routeLoss {
+		if err = closeOuter(); err != nil {
+			return err
+		}
+		deadline := time.Now().Add(8 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, err = net.InterfaceByName(iface); err != nil {
+				break
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	} else if dnsMode == "agent-crash" {
 		// Select the single fixed component installed by this CI test. A
 		// truncated process-name match is insufficient on older Darwin.
 		pids, failure := exec.Command("/usr/bin/sudo", "-n", "/usr/bin/pgrep", "-f", "^/Library/Application Support/LegacyWG/legacywg-network$").Output()
@@ -285,8 +317,11 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		return err
 	}
 	status, ok = reply["status"].(map[string]any)
-	if !ok || (status["state"] != "Disconnected" && !(dnsMode == "agent-crash" && status["state"] == "Error")) {
+	if !ok || (status["state"] != "Disconnected" && !((dnsMode == "agent-crash" || settings.routeLoss) && status["state"] == "Error")) {
 		return errors.New("disconnect state failed")
+	}
+	if settings.routeLoss && (status["state"] != "Error" || status["tunnel_started"] != false || status["reason"] != "endpoint route changed or became unavailable; tunnel closed") {
+		return errors.New("endpoint route loss did not produce a closed-tunnel error")
 	}
 	if _, err = net.InterfaceByName(iface); err == nil {
 		return errors.New("native interface still exists after disconnect")
@@ -305,10 +340,18 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			return err
 		}
 	}
+	if settings.routeLoss {
+		if _, err = call(client, requirement, "stop", ""); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--outer-fixture" {
+		os.Exit(runOuterFixture())
+	}
 	if len(os.Args) != 4 {
 		os.Exit(2)
 	}
@@ -335,12 +378,16 @@ func main() {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "dual_stack": true, "reason": err.Error()})
 		os.Exit(1)
 	}
-	if err := check(os.Args[1], os.Args[2], false, os.Args[3], "disconnect", false, false, true); err != nil {
+	if err := check(os.Args[1], os.Args[2], false, os.Args[3], "disconnect", false, false, checkOptions{hostname: true}); err != nil {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "hostname_endpoint": true, "reason": err.Error()})
 		os.Exit(1)
 	}
 	if err := multiplePeers(os.Args[1], os.Args[2]); err != nil {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "multi_peer": true, "reason": err.Error()})
+		os.Exit(1)
+	}
+	if err := check(os.Args[1], os.Args[2], false, "", "", false, false, checkOptions{routeLoss: true}); err != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "endpoint_route_loss": true, "reason": err.Error()})
 		os.Exit(1)
 	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
@@ -351,5 +398,7 @@ func main() {
 		"dual_stack_encrypted_split":              "PASS",
 		"localhost_endpoint_encrypted_split":      "PASS",
 		"multi_peer_encrypted_routing_and_status": "PASS",
+		"endpoint_route_loss_closes_tunnel":       "PASS",
+		"owned_outer_interface_cleanup":           "PASS",
 		"external_server":                         "NOT_RUN", "high_sierra": "NOT_RUN"})
 }
