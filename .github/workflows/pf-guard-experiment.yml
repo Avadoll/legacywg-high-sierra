@@ -9,7 +9,9 @@ permissions:
 jobs:
   experiment:
     runs-on: macos-15-intel
-    timeout-minutes: 5
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - name: Check out reviewed developer experiment
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -17,6 +19,12 @@ jobs:
           persist-credentials: false
           lfs: false
           submodules: false
+      - name: Verify pinned sources and native toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Build developer-only pinned TCP fixture
+        run: |
+          mkdir -p Build/Research
+          env GOTOOLCHAIN=local GOENV=off GOFLAGS=-mod=readonly CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 GOAMD64=v1 ./.tools/go1.24.13/go/bin/go build -trimpath -o Build/Research/legacywg-pf-state-fixture ./Engine/pfstatefixture
       - name: Measure owned scoped IPv4 UDP guard and existing state
         run: |
           sudo -n /usr/bin/env GITHUB_ACTIONS=true RUNNER_OS=macOS GITHUB_SHA="$GITHUB_SHA" /usr/bin/python3 Scripts/test_pf_guard_macos.py

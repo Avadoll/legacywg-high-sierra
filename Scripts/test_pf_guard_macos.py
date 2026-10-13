@@ -4,8 +4,9 @@ Only a random owned child of the existing Apple wildcard is changed. Fixed
 synthetic benchmark UDP traffic is captured on the guest's egress Ethernet
 NIC. No global load/flush/disable/state kill, foreign state or route mutation.
 Two references are ours; retaining the second models reference coexistence,
-not proof of coexistence with arbitrary third-party rules. Established TCP,
-IPv6, DNS, crash/power-loss and target High Sierra remain untested.
+not proof of coexistence with arbitrary third-party rules. A pinned netstack
+fixture separately checks native established TCP on an owned utun. Physical
+TCP/IPv6, DNS leak policy, crash/power-loss and High Sierra remain untested.
 """
 from __future__ import annotations
 
@@ -87,7 +88,7 @@ def read_state():
         raise RuntimeError('invalid owned reference set')
     if any(type(token) is not int or not 0<token<2**64 for token in data['tokens']):
         raise RuntimeError('invalid owned reference')
-    if type(data['rules_hashes']) is not list or len(data['rules_hashes'])>4 or any(not re.fullmatch('[0-9a-f]{64}',item) for item in data['rules_hashes']):
+    if type(data['rules_hashes']) is not list or len(data['rules_hashes'])>16 or any(not re.fullmatch('[0-9a-f]{64}',item) for item in data['rules_hashes']):
         raise RuntimeError('invalid rule identity')
     if blob!=(json.dumps(data,sort_keys=True,separators=(',',':'))+'\n').encode():
         raise RuntimeError('noncanonical developer record')
@@ -286,6 +287,13 @@ def experiment(report):
             raise RuntimeError('removed stateless exception left an egress bypass')
         report['stateless_exception_removal']={'status':'PASS','previously_allowed_packets':closed[WARM],
             'fresh_packets':closed[FRESH],'native_block_counter':closed_packets,'state_count_after_traffic':0}
+        report['last_step']='owned_utun_tcp_state_policy'
+        from test_pf_tcp_macos import test_tcp
+        base_rules=f'block drop out quick on {iface} inet proto udp from any to {DEST} port {{ {WARM}, {FRESH} }}\n'
+        report['tcp_fixture']=test_tcp(data,base_rules,load=load,pf=pf,enabled=enabled,admit=admit_stateless_candidate)
+        report['established_tcp']='PASS on owned-utun fixture; physical Ethernet TCP NOT_RUN'
+        report['ipv6']='PASS on owned-utun TCP fixture; physical IPv6 NOT_RUN'
+        load(data,base_rules)
         report['last_step']='second_owned_reference'
         acquire(data);release(data)
         if not enabled()[0]:raise RuntimeError('other owned reference was lost')
