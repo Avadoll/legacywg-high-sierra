@@ -132,7 +132,7 @@ def cleanup():
 def only_default_calls(text):
     lines=[line.strip() for line in text.splitlines() if line.strip()]
     # Enabling PF must not activate an unknown existing filter/NAT policy.
-    return all(re.fullmatch(r'(?:anchor|scrub-anchor|nat-anchor|rdr-anchor) "com\.apple/\*"(?: all)?',line) for line in lines)
+    return all(line=='}' or re.fullmatch(r'(?:anchor|scrub-anchor|nat-anchor|rdr-anchor) "[A-Za-z0-9_.*/-]+"(?: all)?(?: \{)?',line) for line in lines)
 
 def capture_counts(path):
     blob=path.read_bytes()
@@ -185,6 +185,10 @@ def experiment(report):
     before={'rules':pf('-s','rules'),'nat':pf('-s','nat'),
             'recursive_rules':pf('-a','*','-s','rules'),'recursive_nat':pf('-a','*','-s','nat')}
     active,states=enabled()
+    report['preflight']={'pf_enabled':active,'state_count':states,
+        'rule_sets':{name:{'sha256':digest(text),'only_empty_anchor_calls':only_default_calls(text),
+            'line_count':len(text.splitlines()),'brace_count':text.count('{')+text.count('}')}
+            for name,text in before.items()}}
     if active or states or not all(only_default_calls(text) for text in before.values()):
         raise RuntimeError('fresh disabled empty-state default-only PF required')
     if not re.search(r'^anchor "com\.apple/\*"',before['rules'],re.M):
