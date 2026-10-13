@@ -81,7 +81,13 @@ func socket(local netip.Addr, index int) (*net.UDPConn, error) {
 			return failure
 		}
 	}
-	value, err := config.ListenPacket(context.Background(), family, net.JoinHostPort(local.String(), "0"))
+	// Match the official standard transport's wildcard listener: selecting a
+	// local source IP must not be the reason the socket chooses an interface.
+	listen := netip.IPv4Unspecified()
+	if local.Is6() {
+		listen = netip.IPv6Unspecified()
+	}
+	value, err := config.ListenPacket(context.Background(), family, net.JoinHostPort(listen.String(), "0"))
 	if err != nil {
 		return nil, errors.New("fixture native socket failed")
 	}
@@ -240,6 +246,22 @@ func check(ipv6 bool) (map[string]any, error) {
 	if err != nil {
 		return nil, failure
 	}
+	initialDecoy, err := net.InterfaceByName(decoyName)
+	if err != nil {
+		return nil, failure
+	}
+	if ipv6 {
+		_, err = command("/sbin/ifconfig", decoyName, "inet6", "2001:db8:77::9", "prefixlen", "128", "alias")
+	} else {
+		_, err = command("/sbin/ifconfig", decoyName, "inet", "198.18.77.9", "198.18.77.9", "netmask", "255.255.255.255", "alias")
+	}
+	if err != nil {
+		return nil, err
+	}
+	configuredDecoy, err := net.InterfaceByName(decoyName)
+	if err != nil || configuredDecoy.Flags&net.FlagUp == 0 {
+		return nil, errors.New("configured decoy interface not up")
+	}
 	var dropped atomic.Int64
 	decoyDone := make(chan struct{})
 	go func() {
@@ -266,7 +288,7 @@ func check(ipv6 bool) (map[string]any, error) {
 	}
 	conflict, err := path(remote)
 	if err != nil || !strings.Contains(conflict, "interface:"+decoyName) {
-		return nil, errors.New("more specific conflict did not select decoy")
+		return map[string]any{"decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, errors.New("more specific conflict did not select decoy")
 	}
 	// The old plain socket may cache a route, so test a fresh unbound socket.
 	negative, err := socket(local, 0)
@@ -316,7 +338,8 @@ func check(ipv6 bool) (map[string]any, error) {
 	}
 	return map[string]any{"status": "PASS", "baseline_plain_and_bound_echo": "PASS", "unbound_conflict_negative_control": "PASS",
 		"bound_echo_with_conflicting_host_route": "PASS", "bound_round_trips": 4, "bound_packets_on_decoy": 0,
-		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS"}, nil
+		"interface_loss_no_fallback": "PASS", "baseline_route_restoration": "PASS",
+		"wildcard_listeners": true, "decoy_initially_up": initialDecoy.Flags&net.FlagUp != 0, "decoy_configured_up": true}, nil
 }
 
 func main() {
@@ -343,6 +366,7 @@ func main() {
 		}
 		proof, err := check(v6)
 		if err != nil {
+			report[name] = proof
 			report["reason"] = err.Error()
 			json.NewEncoder(os.Stdout).Encode(report)
 			os.Exit(1)
