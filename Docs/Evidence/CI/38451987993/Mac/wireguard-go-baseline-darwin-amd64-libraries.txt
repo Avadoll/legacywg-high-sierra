@@ -1,0 +1,3 @@
+/Users/runner/work/legacywg-high-sierra/legacywg-high-sierra/Build/Research/wireguard-go-baseline-darwin-amd64:
+	/usr/lib/libSystem.B.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libresolv.9.dylib (compatibility version 0.0.0, current version 0.0.0)

@@ -1,0 +1,20 @@
+{
+  "confirmed_replies_during_sheet": 9,
+  "encrypted_echo_during_sheet_and_hidden_window": "PASS",
+  "encrypted_round_trips": 4,
+  "helper_requests_from_test_during_modal": 0,
+  "helper_requests_from_test_during_sheet": 0,
+  "helper_watchdog_seconds": 15,
+  "hidden_window_confirmed_replies": 2,
+  "hidden_window_keeps_active_tunnel": true,
+  "high_sierra": "NOT_RUN",
+  "kind": "native-real-controller-encrypted-long-sheet",
+  "license_sheet_opened": true,
+  "modal_actions_guarded": true,
+  "mouse_menu_tracking_accessibility": "NOT_RUN",
+  "route_interface_restoration": "PASS",
+  "sheet_closed_cleanly": true,
+  "sheet_heartbeat_and_same_active_interface": true,
+  "sheet_held_seconds": 19.641115897999953,
+  "status": "PASS"
+}
