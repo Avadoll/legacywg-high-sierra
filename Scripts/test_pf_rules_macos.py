@@ -30,6 +30,7 @@ def main():
     stages=('pf_rule_update_intent_committed','pf_rule_update_loaded_kernel','pf_rule_update_confirmation_committed')
     required={'TestRootPFRuleCanonicalGenerationsAndRefusals','TestRootPFRuleOwnedTunnelPolicy',
         'TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent',
+        'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
@@ -44,7 +45,9 @@ def main():
         'actual_old_hash_rollback_new_hash_confirmation_after_crash':checked('TestRootPFRuleEffectCrashResolution'),
         'kernel_rules_reference_and_displayed_baselines_restored':'PASS' if status=='PASS' else 'NOT_CONFIRMED',
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
-        'foreign_kernel_anchor_enumeration':'NOT_PROVEN','privileged_writer_atomicity':'NOT_PROVEN',
+        'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
+        'actual_nested_foreign_quick_and_nat_refused_without_mutation':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
+        'privileged_writer_atomicity':'NOT_PROVEN',
         'power_loss':'NOT_RUN','reboot':'NOT_RUN','high_sierra':'NOT_RUN','client_request_integration':False,'protection_ready':False}
     (output/'pf-rules-ci.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))

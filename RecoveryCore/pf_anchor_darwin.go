@@ -78,26 +78,20 @@ func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnap
 	if _, seen, err := pfForeignView(root, owned); err != nil || seen {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
-	recursive, err := runOwnedPF(ctx, "", "-a", "*", "-s", "rules")
+	observations, err := enumeratePFAnchors(ctx)
 	if err != nil {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
-	foreign, _, err := pfForeignView(recursive, owned)
-	if err != nil {
+	parentPresent := false
+	for _, observation := range observations {
+		if observation.path == "com.apple" {
+			parentPresent = true
+		}
+	}
+	if !parentPresent {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
-	nat, err := runOwnedPF(ctx, "", "-s", "nat")
-	if err != nil {
-		return pfPolicySnapshot{}, ErrRecoveryRequired
-	}
-	if _, seen, err := pfForeignView(nat, owned); err != nil || seen {
-		return pfPolicySnapshot{}, ErrRecoveryRequired
-	}
-	natRecursive, err := runOwnedPF(ctx, "", "-a", "*", "-s", "nat")
-	if err != nil {
-		return pfPolicySnapshot{}, ErrRecoveryRequired
-	}
-	natForeign, _, err := pfForeignView(natRecursive, owned)
+	filterHash, natHash, err := pfEnumeratedDigests(observations, owned)
 	if err != nil {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
@@ -121,7 +115,10 @@ func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnap
 	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != expectedStatus || count[0][1] != "0" {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
-	return pfPolicySnapshot{pfDigest(root), pfDigest(foreign), pfDigest(nat + "\x00" + natForeign), pfDigest(rules)}, nil
+	if len(observations) == 0 || observations[0].path != "" || observations[0].rules != root {
+		return pfPolicySnapshot{}, ErrRecoveryRequired
+	}
+	return pfPolicySnapshot{pfDigest(root), filterHash, natHash, pfDigest(rules)}, nil
 }
 
 func (snapshot pfPolicySnapshot) matches(record PFRecord) bool {
