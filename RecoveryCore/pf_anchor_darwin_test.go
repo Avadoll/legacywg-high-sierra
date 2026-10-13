@@ -112,6 +112,16 @@ func TestRootPFAnchorCancellationRefusesChangedRulesAndBoot(t *testing.T) {
 		t.Fatal("refusal fixture journal missing")
 	}
 	originalBoot := store.boot
+	// Runs after the restoration defer. A retired journal must never cause a
+	// test finalizer to recreate the just-emptied kernel anchor.
+	defer func() {
+		verify, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		defer stop()
+		actual, err := readDisabledPF(verify, record.Anchor)
+		if err != nil || actual.rules != pfDigest("") || !actual.matches(*record) || store.pfResidue() {
+			t.Error("post-finalizer kernel anchor/journal baseline not restored")
+		}
+	}()
 	defer func() {
 		store.boot = originalBoot
 		current, err := store.readPF(pfJournalFile)
