@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "binary_sha256": "e35a8a25f7c1c0911949fd5ad93d98d86ed0fa691b5c7ec58bd136128a259e9b",
+  "packaged_source_commit": "90efb8b8583422f857d8b1054299b2493babb0cf",
+  "original_scan_source_commit": "6f001c2db3332548925445fde22f822c450ae6aa",
+  "original_scan_summary": "Docs/Evidence/ClientSecurity/2026-10-13-EndpointPath/summary.json",
+  "production_go_source_identity": {
+    "status": "PASS",
+    "files": 128,
+    "manifest_sha256": "5c71c9e90ce8c12c3276c017201da92cbdec6608e087ea5ad39ff50948b553fd",
+    "scope": "production Go tree including test/build-specific files; dependencies additionally pinned by lock"
+  },
+  "limitation": "Byte-identical worker and same Go source; does not audit changed Objective-C/UI"
+}

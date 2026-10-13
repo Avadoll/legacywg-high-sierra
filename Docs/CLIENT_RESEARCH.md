@@ -1,6 +1,6 @@
 # LegacyWG 0.2: исследовательский IPv4/IPv6 split client
 
-Обновлено: 13 октября 2026. Это настоящий ограниченный VPN backend и AppKit окно, **не завершённый продукт по исходному ТЗ**. Реализованы IPv4/IPv6 split tunnel, numeric IPv4/IPv6 endpoints, до четырёх локальных адресов, 64 маршрутов и восьми routed DNS servers. Hostname bootstrap добавлен в исходники и проходит новую native проверку. Full tunnel, kill switch, обновление и GUI uninstaller не реализованы. Неподдерживаемые сетевые профили отвергаются до создания интерфейса/изменения сети. IPv6 routes требуют локального IPv6 address и MTU ≥1280; DNS из профиля должен покрываться tunnel routes.
+Обновлено: 13 октября 2026. Это настоящий ограниченный VPN backend и AppKit окно, **не завершённый продукт по исходному ТЗ**. Реализованы IPv4/IPv6 split tunnel, numeric IPv4/IPv6 endpoints, до четырёх локальных адресов, 64 маршрутов и восьми routed DNS servers. Hostname bootstrap и native encrypted localhost Endpoint прошли проверку; protected DNS reconnect не реализован. Full tunnel, kill switch, обновление и GUI uninstaller не реализованы. Неподдерживаемые сетевые профили отвергаются до создания интерфейса/изменения сети. IPv6 routes требуют локального IPv6 address и MTU ≥1280; DNS из профиля должен покрываться tunnel routes.
 
 ## Реальная реализация
 
@@ -64,3 +64,28 @@
 | LegacyWG-research-0.2-app.zip | `812dfa60cb49f231a6ac80dbe230339aaac4e79194e2fd94ac65e4e4d40cd98c` |
 
 Baseline tag signature теперь проверена по ключу `AB9942E6D4A4CFC3412620A749FC7012A5DE03AE`, опубликованному [сопровождающим](https://www.zx2c4.com/). Raw tag/key/log сохранены в `Evidence/SourceTrust`. Новый candidate commit `2631ce9…` unsigned и не покрывается старой tag signature; Web of Trust не заявляется. High Sierra/Developer ID/quarantine/существующий сервер по-прежнему NOT_RUN.
+
+
+## Промежуточная GUI сборка 13 октября
+
+Native run [38412666208](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38412666208), source `7284de0054976f2053c65e00e5e1f5a725e00900`: bounded hostname bootstrap/encrypted localhost, два независимых encrypted peers и отдельная статистика, IPv4/IPv6/dual-stack, real DNS UDP/TCP/crash restoration, signed-component authentication, Keychain, fresh research installer прошли. GUI: menu bar/close-window policy, handshake date, profile label rename with unchanged ID/data, unsafe label refusal и sanitized diagnostic preview/export. Native Aqua fixture inspected: labels/controls читаемы; pixel check предотвращает прежний пустой label capture. Fixture не является проверкой реальных modal/menu clicks, accessibility, target OS или VPN.
+
+Root worker byte-identical to reviewed PeerStatus scan: `9e68650c7914d1d512e4f4767906328f3789d487815217d7c61e3c216040ce3a`. 124-file production Go source identity также совпала; explicit reuse evidence сохранено. Это ограниченный Go analysis, не аудит изменённого Objective-C. Actual High Sierra, Developer ID, existing user server, full tunnel и kill switch не доказаны. Матрица незавершённого полного объёма — READINESS.md.
+
+Latest research artifacts (ad-hoc components / unsigned pkg, release_approved=false):
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `07bb6b421cbc6d57a5ed0d4bb5c67294a4262a771028e9079a9b933a8b00054a` |
+| `LegacyWG-research-0.2-app.zip` | `d1e1fe756426c0b6bd3f0e84ad1bda591a8ecd81f453ffa9894b0b3ae52cadcb` |
+
+## Текущая проверенная сборка
+
+Native [run 38419688718](https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38419688718), source `90efb8b8583422f857d8b1054299b2493babb0cf`: прежние IPv4/IPv6/dual-stack/DNS/crash/hostname/multi-peer/auth/Keychain/installer scenarios PASS; real NSApp launch/close-window lifecycle PASS; controlled endpoint path loss после настоящего encrypted traffic закрывает worker tunnel/Error с восстановлением own routes. Scope/limits — NETWORK_CHANGE.md. Full tunnel, guard/journal/reconnect/target/signing остаются незавершёнными.
+
+Worker SHA256 `e35a8a25f7c1c0911949fd5ad93d98d86ed0fa691b5c7ec58bd136128a259e9b`; 128-file production Go identity, scoped scanner PASS (90/92 module-level findings, narrow Windows-only exclusions). No independent audit/security approval. Latest downloaded/staged unsigned research artifacts:
+
+| Файл | SHA256 |
+| --- | --- |
+| `LegacyWG-research-0.2.pkg` | `f3ba3c52cec122ccc317459d5afc8d90dcf39c3625babbfeee37f788f98b589b` |
+| `LegacyWG-research-0.2-app.zip` | `fe514cda6242c3d4b85df36d6f2ad28da0a2dfb255d59ff5a7da82d75e3350cd` |

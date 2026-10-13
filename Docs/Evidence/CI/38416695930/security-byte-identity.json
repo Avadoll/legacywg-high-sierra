@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "binary_sha256": "9e68650c7914d1d512e4f4767906328f3789d487815217d7c61e3c216040ce3a",
+  "packaged_source_commit": "8a3130770834455aa42cf91054cf0a5aace30fd7",
+  "original_scan_source_commit": "0705cbe1b625ff8f84f4f5b4c3959cc56d7a8dfe",
+  "original_scan_summary": "Docs/Evidence/ClientSecurity/2026-10-13-PeerStatus/summary.json",
+  "production_go_source_identity": {
+    "status": "PASS",
+    "files": 124,
+    "manifest_sha256": "dab01576ebdf892d8168d0e6604940151a0c90d4d3734b29a4527a1f831f2787",
+    "scope": "production Go tree including test/build-specific files; dependencies additionally pinned by lock"
+  },
+  "limitation": "Byte-identical worker and same Go source; does not audit changed Objective-C/UI"
+}

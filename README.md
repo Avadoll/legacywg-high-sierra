@@ -2,7 +2,9 @@
 
 Research AppKit client for Intel macOS 10.13.6. The full product is not ready. Current native CI has verified IPv4/IPv6 split tunnels, simultaneous dual stack, routed OS DNS over UDP/TCP, authenticated Mach helper, Keychain, crash cleanup and a fresh unsigned research package on Intel macOS 15.7.9.
 
-Hostname bootstrap is added for a new native check. It uses the existing system resolver before tunnel changes, a five-second total deadline and typed route overlap checks. Validation performs no lookup. It selects one address, prefers IPv4 and supports IPv6-only answers; protected reconnect and automatic fallback are not implemented.
+Native checks have verified bounded hostname bootstrap/encrypted localhost, independently encrypted peers and statistics, menu bar/live window launch/close, Keychain label rename and sanitized diagnostic preview/export. Hostname bootstrap uses the existing system resolver before tunnel changes with a five-second total deadline; validation performs no lookup. One address is selected, IPv4 preferred, IPv6-only answers supported. Protected reconnect and automatic fallback are not implemented.
+
+The worker captures initial endpoint paths using kernel RTM_GET and closes a split session when its path changes or cannot be checked. This bounded monitor is not traffic protection, persistent route ownership or a recovery journal. Current proof and limits are recorded in NETWORK_CHANGE.md.
 
 Full tunnel, kill switch, durable recovery journal, sleep/network reconnect, GUI uninstall/update, High Sierra runtime and Developer ID distribution remain unfinished. Ad-hoc components and unsigned research pkg are not a trusted end-user installer. Do not disable Gatekeeper, SIP or quarantine.
 

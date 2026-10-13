@@ -1,6 +1,6 @@
 # Статус туннеля и peers
 
-Добавлено 13 октября 2026; native multi-peer проверка ожидается.
+Добавлено 13 октября 2026; native multi-peer run 38405248722 / source 0705cbe1b625ff8f84f4f5b4c3959cc56d7a8dfe прошёл: два independent encrypted peers, отдельные counters и rollback.
 
 `tunnel_started` означает наличие работающего engine и принадлежащего ему native interface. `Connected` в текущем IPC означает, что хотя бы один peer когда-либо завершил handshake в этом сеансе; GUI пишет «Handshake получен», не обещает доступность всех peers или защищённость всего трафика. `Connecting` означает ожидание первого handshake. Нет default health-check к третьей стороне.
 
