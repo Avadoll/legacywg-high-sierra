@@ -1,0 +1,19 @@
+{
+  "kind": "developer-only-scoped-PF-egress-experiment",
+  "source_commit": "dd669e1c43c3541a2f640a92c6f5ff4b9d207a0f",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "protection_ready": false,
+  "high_sierra": "NOT_RUN",
+  "established_tcp": "NOT_RUN",
+  "ipv6": "NOT_RUN",
+  "dns_leak_policy": "NOT_RUN",
+  "crash_power_loss_recovery": "NOT_RUN",
+  "foreign_quick_anchor_coexistence": "NOT_RUN",
+  "pf_api_stability": "NOT_GUARANTEED",
+  "status": "FAIL",
+  "reason": "bounded native operation failed",
+  "owned_cleanup": {
+    "status": "NO_OWNED_RECORD"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "kind": "developer-only-scoped-PF-egress-experiment",
+  "source_commit": "ce67fbd4a861a7703e8046a7cf1653097decc90a",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "protection_ready": false,
+  "high_sierra": "NOT_RUN",
+  "established_tcp": "NOT_RUN",
+  "ipv6": "NOT_RUN",
+  "dns_leak_policy": "NOT_RUN",
+  "crash_power_loss_recovery": "NOT_RUN",
+  "foreign_quick_anchor_coexistence": "NOT_RUN",
+  "pf_api_stability": "NOT_GUARANTEED",
+  "status": "FAIL",
+  "reason": "fresh disabled empty-state default-only PF required",
+  "owned_cleanup": {
+    "status": "NO_OWNED_RECORD"
+  }
+}

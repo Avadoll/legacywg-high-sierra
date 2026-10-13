@@ -1,0 +1,80 @@
+{
+  "kind": "developer-only-scoped-PF-egress-experiment",
+  "source_commit": "62bebb317f7769745d444e6e2c0847ab818e2a02",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "protection_ready": false,
+  "high_sierra": "NOT_RUN",
+  "established_tcp": "NOT_RUN",
+  "ipv6": "NOT_RUN",
+  "dns_leak_policy": "NOT_RUN",
+  "crash_power_loss_recovery": "NOT_RUN",
+  "foreign_quick_anchor_coexistence": "NOT_RUN",
+  "pf_api_stability": "NOT_GUARANTEED",
+  "last_step": "completed",
+  "preflight": {
+    "pf_enabled": false,
+    "state_count": 0,
+    "rule_sets": {
+      "rules": {
+        "sha256": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "recursive_rules": {
+        "sha256": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+        "only_empty_anchor_calls": true,
+        "line_count": 3,
+        "brace_count": 2
+      },
+      "recursive_nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      }
+    }
+  },
+  "baseline_packets": {
+    "existing_udp": 4,
+    "fresh_udp": 4
+  },
+  "block_rule_packet_count": 5,
+  "blocked_phase_packets": {
+    "existing_udp": 4,
+    "fresh_udp": 0
+  },
+  "new_udp_egress_blocked": true,
+  "existing_udp_state_confirmed": true,
+  "existing_udp_bypasses_replacement_block": true,
+  "capture": "guest egress Ethernet NIC, fixed synthetic IPv4 UDP only",
+  "second_owned_reference_preserved": true,
+  "ordinary_synthetic_egress_restored": true,
+  "root_and_foreign_rules_unchanged": true,
+  "initial_rule_hashes": {
+    "rules": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+    "nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+    "recursive_rules": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+    "recursive_nat": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3"
+  },
+  "state_count_after_reference_release": 1,
+  "existing_state_cleanup": "NOT_TESTED; never kill/flush state table",
+  "ruleset_packet_counter_proof": "PASS",
+  "global_timeouts_and_limits_unchanged": true,
+  "status": "PASS",
+  "owned_cleanup": {
+    "status": "PASS",
+    "own_anchor_empty": true,
+    "own_references_released": true,
+    "state_kill_used": false,
+    "global_disable_used": false,
+    "global_rules_loaded": false
+  }
+}

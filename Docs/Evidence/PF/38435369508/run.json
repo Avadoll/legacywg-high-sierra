@@ -1,0 +1,75 @@
+{
+  "conclusion": "failure",
+  "headSha": "dd669e1c43c3541a2f640a92c6f5ff4b9d207a0f",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T17:02:22Z",
+      "conclusion": "failure",
+      "databaseId": 115427830974,
+      "name": "experiment",
+      "startedAt": "2026-10-13T17:02:10Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T17:02:12Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T17:02:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:16Z",
+          "conclusion": "success",
+          "name": "Check out reviewed developer experiment",
+          "number": 2,
+          "startedAt": "2026-10-13T17:02:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:17Z",
+          "conclusion": "failure",
+          "name": "Measure owned scoped IPv4 UDP guard and existing state",
+          "number": 3,
+          "startedAt": "2026-10-13T17:02:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:17Z",
+          "conclusion": "success",
+          "name": "Retry only verified owned cleanup",
+          "number": 4,
+          "startedAt": "2026-10-13T17:02:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:19Z",
+          "conclusion": "success",
+          "name": "Save only sanitized experiment results",
+          "number": 5,
+          "startedAt": "2026-10-13T17:02:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:19Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed developer experiment",
+          "number": 10,
+          "startedAt": "2026-10-13T17:02:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T17:02:20Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-13T17:02:19Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38435369508/job/115427830974"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/38435369508"
+}

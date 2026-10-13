@@ -1,0 +1,54 @@
+{
+  "kind": "developer-only-scoped-PF-egress-experiment",
+  "source_commit": "6f2862f0cd86b30a9eac7a1aafea071d6232a15b",
+  "host_os": "15.7.9",
+  "host_arch": "x86_64",
+  "protection_ready": false,
+  "high_sierra": "NOT_RUN",
+  "established_tcp": "NOT_RUN",
+  "ipv6": "NOT_RUN",
+  "dns_leak_policy": "NOT_RUN",
+  "crash_power_loss_recovery": "NOT_RUN",
+  "foreign_quick_anchor_coexistence": "NOT_RUN",
+  "pf_api_stability": "NOT_GUARANTEED",
+  "preflight": {
+    "pf_enabled": false,
+    "state_count": 0,
+    "rule_sets": {
+      "rules": {
+        "sha256": "80a4aba0003d04855da31ea24b6e63ec4aee91da2570b488596a80d8beca202f",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      },
+      "recursive_rules": {
+        "sha256": "924b401ae9220d7d95c169d0a02335bf818ec8ca5019fd4dc458619e176bd51a",
+        "only_empty_anchor_calls": true,
+        "line_count": 3,
+        "brace_count": 2
+      },
+      "recursive_nat": {
+        "sha256": "d724ecf3af533fbb140d74e1c29b63d26a8bf1405d89c1341d484cbc7634f8c3",
+        "only_empty_anchor_calls": true,
+        "line_count": 2,
+        "brace_count": 0
+      }
+    }
+  },
+  "status": "FAIL",
+  "reason": "synthetic baseline absent from egress capture",
+  "owned_cleanup": {
+    "status": "PASS",
+    "own_anchor_empty": true,
+    "own_references_released": true,
+    "state_kill_used": false,
+    "global_disable_used": false,
+    "global_rules_loaded": false
+  }
+}
