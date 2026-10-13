@@ -132,7 +132,8 @@ def cleanup():
 def only_default_calls(text):
     lines=[line.strip() for line in text.splitlines() if line.strip()]
     # Enabling PF must not activate an unknown existing filter/NAT policy.
-    return all(line=='}' or re.fullmatch(r'(?:anchor|scrub-anchor|nat-anchor|rdr-anchor) "[A-Za-z0-9_.*/-]+"(?: all)?(?: \{)?',line) for line in lines)
+    return all(line=='}' or line=='scrub-anchor "com.apple/*" all fragment reassemble' or
+        re.fullmatch(r'(?:anchor|scrub-anchor|nat-anchor|rdr-anchor) "[A-Za-z0-9_.*/-]+"(?: all)?(?: \{)?',line) for line in lines)
 
 def capture_counts(path):
     blob=path.read_bytes()
