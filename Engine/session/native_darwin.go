@@ -45,6 +45,13 @@ func nativeCommand(program string, arguments ...string) error {
 	return nil
 }
 
+func routeFamily(address netip.Addr) string {
+	if address.Is6() {
+		return "-inet6"
+	}
+	return "-inet"
+}
+
 func (network *nativeNetwork) close() error {
 	if network.dns != nil {
 		if err := network.dns.close(); err != nil {
@@ -72,7 +79,7 @@ func (network *nativeNetwork) close() error {
 		prefix := network.routes[index]
 		// Scope deletion to the actual tunnel interface, not an unrelated
 		// route created by another application with the same destination.
-		if err := nativeCommand("/sbin/route", "-n", "delete", "-inet", "-net", prefix.String(), "-interface", network.iface); err != nil {
+		if err := nativeCommand("/sbin/route", "-n", "delete", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", network.iface); err != nil {
 			remaining = append(remaining, prefix)
 		}
 	}
@@ -119,6 +126,12 @@ func openNative(config *configcore.Config, uapi string) (*device.Device, *native
 		return fail()
 	}
 	for _, prefix := range config.Addresses {
+		if prefix.Addr().Is6() {
+			if err := nativeCommand("/sbin/ifconfig", name, "inet6", prefix.Addr().String(), "prefixlen", "128", "alias"); err != nil {
+				return fail()
+			}
+			continue
+		}
 		// Point-to-point host addresses avoid implicit broad connected routes;
 		// AllowedIPs explicitly determines which networks use this interface.
 		if err := nativeCommand("/sbin/ifconfig", name, "inet", prefix.Addr().String(), prefix.Addr().String(),
@@ -136,7 +149,7 @@ func openNative(config *configcore.Config, uapi string) (*device.Device, *native
 			if seen[prefix] {
 				continue
 			}
-			if err := nativeCommand("/sbin/route", "-n", "add", "-inet", "-net", prefix.String(), "-interface", name); err != nil {
+			if err := nativeCommand("/sbin/route", "-n", "add", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", name); err != nil {
 				return fail()
 			}
 			seen[prefix] = true

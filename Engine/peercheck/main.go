@@ -53,8 +53,16 @@ func call(client, requirement, op, profile string) (map[string]any, error) {
 }
 
 func physicalRoute(address netip.Addr) (string, error) {
-	data, err := exec.Command("/sbin/route", "-n", "get", "-inet", address.String()).Output()
+	family := "-inet"
+	if address.Is6() {
+		family = "-inet6"
+	}
+	data, err := exec.Command("/sbin/route", "-n", "get", family, address.String()).Output()
 	if err != nil {
+		var failed *exec.ExitError
+		if address.Is6() && errors.As(err, &failed) && strings.Contains(string(failed.Stderr), "not in table") {
+			return "NO_ROUTE", nil
+		}
 		return "", errors.New("cannot capture benchmark route")
 	}
 	selected := []string{}
@@ -70,7 +78,7 @@ func physicalRoute(address netip.Addr) (string, error) {
 	return strings.Join(selected, "\n"), nil
 }
 
-func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string) error {
+func check(client, requirement string, crashParent bool, dnsProbe, dnsMode string, ipv6, outerIPv6 bool) error {
 	var dnsBefore dnsSnapshot
 	if dnsMode != "" {
 		var err error
@@ -81,8 +89,33 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 	}
 	serverIP := netip.MustParseAddr("198.18.0.2")
 	clientIP := netip.MustParseAddr("198.18.0.1")
+	bits := 32
+	udpFamily := "udp4"
+	endpointHost := "127.0.0.1"
+	if ipv6 {
+		serverIP = netip.MustParseAddr("2001:db8:77::2")
+		clientIP = netip.MustParseAddr("2001:db8:77::1")
+		bits = 128
+		udpFamily = "udp6"
+	}
+	if outerIPv6 {
+		endpointHost = "::1"
+	}
+	dual := dnsMode == "dual-stack"
+	serverAddresses := []netip.Addr{serverIP}
+	clientAddresses := fmt.Sprintf("%s/%d", clientIP, bits)
+	serverRoutes := fmt.Sprintf("%s/%d", serverIP, bits)
+	benchmarkAddresses := []netip.Addr{clientIP, serverIP}
+	if dual {
+		server4 := netip.MustParseAddr("198.18.0.2")
+		client4 := netip.MustParseAddr("198.18.0.1")
+		serverAddresses = append(serverAddresses, server4)
+		clientAddresses += "," + client4.String() + "/32"
+		serverRoutes += "," + server4.String() + "/32"
+		benchmarkAddresses = append(benchmarkAddresses, client4, server4)
+	}
 	routeBefore := map[netip.Addr]string{}
-	for _, address := range []netip.Addr{clientIP, serverIP} {
+	for _, address := range benchmarkAddresses {
 		original, err := physicalRoute(address)
 		if err != nil {
 			return err
@@ -97,7 +130,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 	if err != nil {
 		return err
 	}
-	tunnel, stack, err := netstack.CreateNetTUN([]netip.Addr{serverIP}, nil, 1420)
+	tunnel, stack, err := netstack.CreateNetTUN(serverAddresses, nil, 1420)
 	if err != nil {
 		return errors.New("test server network stack creation failed")
 	}
@@ -112,7 +145,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		defer stop()
 		dnsCount = counters
 	}
-	profile := fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s/32\n[Peer]\nPublicKey=%s\nAllowedIPs=%s/32\n", serverPrivate, serverIP, clientPublic, clientIP)
+	profile := fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s\n[Peer]\nPublicKey=%s\nAllowedIPs=%s\n", serverPrivate, serverRoutes, clientPublic, clientAddresses)
 	config, err := configcore.Parse([]byte(profile))
 	if err != nil {
 		return errors.New("test server profile validation failed")
@@ -154,7 +187,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		}
 		echoResult <- err
 	}()
-	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s/32\n[Peer]\nPublicKey=%s\nEndpoint=127.0.0.1:%d\nAllowedIPs=%s/32\nPersistentKeepalive=1\n", clientPrivate, clientIP, serverPublic, port, serverIP)
+	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s\n[Peer]\nPublicKey=%s\nEndpoint=%s\nAllowedIPs=%s\nPersistentKeepalive=1\n", clientPrivate, clientAddresses, serverPublic, net.JoinHostPort(endpointHost, strconv.Itoa(port)), serverRoutes)
 	if dnsMode != "" {
 		profile = strings.Replace(profile, "Address=", "DNS="+serverIP.String()+"\nAddress=", 1)
 	}
@@ -167,7 +200,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			call(client, requirement, "stop", "")
 		}
 	}()
-	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{IP: net.IP(serverIP.AsSlice()), Port: 54321})
+	socket, err := net.DialUDP(udpFamily, nil, &net.UDPAddr{IP: net.IP(serverIP.AsSlice()), Port: 54321})
 	if err != nil {
 		return errors.New("native client UDP socket failed")
 	}
@@ -194,6 +227,11 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		return errors.New("actual handshake and traffic statistics missing")
 	}
 	iface, _ := status["interface"].(string)
+	if dual {
+		if err = extraIPv4Echo(stack); err != nil {
+			return err
+		}
+	}
 	if dnsMode != "" {
 		if status["dns_configured"] != true {
 			return errors.New("DNS transaction is not active")
@@ -272,20 +310,32 @@ func main() {
 	}
 	started := time.Now()
 	for cycle := 0; cycle < 21; cycle++ {
-		if err := check(os.Args[1], os.Args[2], cycle == 20, "", ""); err != nil {
+		if err := check(os.Args[1], os.Args[2], cycle == 20, "", "", false, false); err != nil {
 			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "cycle": cycle + 1, "reason": err.Error()})
 			os.Exit(1)
 		}
 	}
 	for _, mode := range []string{"disconnect", "helper-crash", "agent-crash"} {
-		if err := check(os.Args[1], os.Args[2], mode == "helper-crash", os.Args[3], mode); err != nil {
+		if err := check(os.Args[1], os.Args[2], mode == "helper-crash", os.Args[3], mode, false, false); err != nil {
 			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "dns_mode": mode, "reason": err.Error()})
 			os.Exit(1)
 		}
+	}
+	for _, outer6 := range []bool{false, true} {
+		if err := check(os.Args[1], os.Args[2], false, os.Args[3], "disconnect", true, outer6); err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "ipv6": true, "ipv6_endpoint": outer6, "reason": err.Error()})
+			os.Exit(1)
+		}
+	}
+	if err := check(os.Args[1], os.Args[2], false, os.Args[3], "dual-stack", true, true); err != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "dual_stack": true, "reason": err.Error()})
+		os.Exit(1)
 	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "authenticated-helper-native-utun-encrypted-loopback",
 		"connect_disconnect_cycles": 20, "helper_crash_cleanup": "PASS", "route_restoration": "PASS", "elapsed_ms": time.Since(started).Milliseconds(),
 		"system_dns_udp_tcp": "PASS", "dns_disconnect_recovery": "PASS", "dns_helper_crash_recovery": "PASS",
 		"dns_agent_crash_recovery": "PASS", "foreign_dns_restoration": "PASS",
-		"external_server": "NOT_RUN", "high_sierra": "NOT_RUN"})
+		"ipv6_encrypted_split": "PASS", "ipv6_endpoint": "PASS", "ipv6_dns_transport_udp_tcp": "PASS",
+		"dual_stack_encrypted_split": "PASS",
+		"external_server":            "NOT_RUN", "high_sierra": "NOT_RUN"})
 }

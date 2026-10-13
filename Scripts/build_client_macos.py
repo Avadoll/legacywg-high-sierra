@@ -56,8 +56,8 @@ def main() -> None:
     shutil.copyfile(ROOT/'THIRD_PARTY_NOTICES.md',app/'Contents/Resources/THIRD_PARTY_NOTICES.md')
     source=os.environ['GITHUB_SHA']
     (app/'Contents/Resources/BuildManifest.json').write_text(json.dumps({'source_commit':source,'vpn_ready':False,
-        'signing_mode':'ad-hoc','features':['IPv4 split tunnel','routed profile DNS','Keychain','authenticated Mach helper'],
-        'unsupported':['full tunnel','IPv6','hostname endpoint','kill switch'],
+        'signing_mode':'ad-hoc','features':['IPv4 and IPv6 split tunnel','routed profile DNS','numeric IPv4/IPv6 endpoints','Keychain','authenticated Mach helper'],
+        'unsupported':['full tunnel','hostname endpoint','kill switch'],
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN'},indent=2)+'\n')
     run(common+['-framework','Cocoa',str(ROOT/'App/main.m'),str(ROOT/'App/LWProfiles.m'),
                 '-o',str(app/'Contents/MacOS/LegacyWG')])

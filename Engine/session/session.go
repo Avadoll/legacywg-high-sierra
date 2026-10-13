@@ -50,9 +50,6 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 		return nil, errors.New("at most eight DNS servers are supported")
 	}
 	for _, address := range config.DNS {
-		if !address.Is4() {
-			return nil, errors.New("IPv6 DNS requires the IPv6 executor")
-		}
 		covered := false
 		for _, route := range plan.Routes {
 			covered = covered || route.Contains(address)
@@ -67,9 +64,17 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 	if len(config.Addresses) > 4 {
 		return nil, errors.New("initial native executor permits at most four local addresses")
 	}
-	for _, prefix := range append(append([]netip.Prefix(nil), plan.Addresses...), plan.Routes...) {
-		if !prefix.Addr().Is4() {
-			return nil, errors.New("IPv6 executor is not available")
+	hasIPv4, hasIPv6 := false, false
+	for _, prefix := range plan.Addresses {
+		hasIPv4 = hasIPv4 || prefix.Addr().Is4()
+		hasIPv6 = hasIPv6 || prefix.Addr().Is6()
+	}
+	if hasIPv6 && config.MTU != 0 && config.MTU < 1280 {
+		return nil, errors.New("IPv6 requires an MTU of at least 1280")
+	}
+	for _, route := range plan.Routes {
+		if route.Addr().Is4() && !hasIPv4 || route.Addr().Is6() && !hasIPv6 {
+			return nil, errors.New("tunnel route requires a local address of the same family")
 		}
 	}
 	endpoints := make([]netip.AddrPort, len(config.Peers))
@@ -78,8 +83,8 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 			continue
 		}
 		address, err := netip.ParseAddr(peer.Endpoint.Host)
-		if err != nil || !address.Is4() {
-			return nil, errors.New("initial native executor requires a numeric IPv4 endpoint")
+		if err != nil {
+			return nil, errors.New("hostname endpoint resolution is not available")
 		}
 		for _, route := range plan.Routes {
 			if route.Contains(address) {
