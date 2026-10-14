@@ -34,6 +34,19 @@ type pfObservedTUN struct {
 	capture *pfPacketObservation
 }
 
+// The upstream isolated netstack closes channels and must be closed once.
+// Both partial setup cleanup and Device.Close share this fixture-owned wrapper.
+type pfOnceTUN struct {
+	tun.Device
+	once       sync.Once
+	closeError error
+}
+
+func (link *pfOnceTUN) Close() error {
+	link.once.Do(func() { link.closeError = link.Device.Close() })
+	return link.closeError
+}
+
 func (observed *pfObservedTUN) Read(buffers [][]byte, sizes []int, offset int) (int, error) {
 	n, err := observed.Device.Read(buffers, sizes, offset)
 	for i := 0; i < n; i++ {
@@ -249,7 +262,6 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	if err != nil {
 		t.Fatal("encrypted outer stack failed")
 	}
-	defer outerPeer.Close()
 	outerCapture := &pfPacketObservation{counts: make(map[pfPacketKey]int)}
 	done := make(chan struct{}, 2)
 	go pfPacketBridge(outer, outerPeer, outerCapture, done)
@@ -275,6 +287,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	if err != nil {
 		t.Fatal("encrypted inner peer failed")
 	}
+	serverTUN = &pfOnceTUN{Device: serverTUN}
 	defer serverTUN.Close()
 	var listeners []net.Listener
 	var datagrams []net.PacketConn
