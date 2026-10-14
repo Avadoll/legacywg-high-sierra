@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "kind": "platform-probe",
+  "go": "go1.24.13",
+  "deployment_target": "10.13.6",
+  "engines": {
+    "baseline": {
+      "commit": "f333402bd9cbe0f3eeb02507bd14e23d7d639280",
+      "sha256": "7a117ae5ccf909a8d6864d1251d9aefc916994916298d8f2a0f5c7f1455ce8bc"
+    },
+    "candidate": {
+      "commit": "2631ce99a06f27120d581611cf125d68bc6aa565",
+      "sha256": "702717e4dea9894a7abb1d943841cb6deca326f7b44c762ef462b4bd100c4a63"
+    }
+  },
+  "signing_mode": "ad-hoc",
+  "signed_for_distribution": false,
+  "high_sierra_runtime": "NOT_RUN",
+  "vpn_ready": false,
+  "artifacts": {
+    "LegacyWGPlatformProbe-test.zip": "c5b1a1504beb368aa0837e478c925aaeb69f2d2fd205ed5659b8d2eeff6cc92d",
+    "LegacyWGPlatformProbe-test.dmg": "bc853c6bc3e236e58016030b0c4fcfca059d51d5364c188de52420c9b39afa21"
+  }
+}

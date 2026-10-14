@@ -1,0 +1,12 @@
+{
+  "status": "FAILED_ENCRYPTED_FIXTURE_NOT_ACCEPTED",
+  "run_id": 38607634121,
+  "source_commit": "e4ee1c1dd06826914097b384d3732a1005faa68e",
+  "observed": "Native failure stack ends at deferred fixture completion and upstream netstack/tun.go:176 twice. Upstream Close closes channels; fixture registered duplicate closes for outer netstack and device-owned inner peer.",
+  "correction": "Remove duplicate outer netstack close and share fixture-owned sync.Once TUN Close between partial-setup cleanup and official Device.Close. Upstream sources and production requests unchanged.",
+  "corrected_encrypted_only_run_id": 38608186954,
+  "corrected_source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "initial_run_acceptance": false,
+  "production_runtime_fix_claim": false,
+  "limitation": "Original panic message was suppressed by sanitized output filter; attribution is based on retained stack and matching source cleanup paths. Corrected test passes both outer families."
+}

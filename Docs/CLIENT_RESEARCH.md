@@ -192,3 +192,6 @@ Latest source `26d5903377af46ca37b19f13f1f4ae904f7082c2`: full PF rule run384992
 
 
 Latest packet checkpoint: source `7c0adcb679391e8be25cb877201f5b927a372778` / full PF run38502471592 PASS native owned-utun IPv4/IPv6 UDP/TCP/DNS port tests and actual owner SIGKILL persistent denial; full client run38502474171 and fresh160-file Go review PASS. Research artifacts staged; guard unactivated/full profiles rejected. Connected Go UDP/Go resolver issue remains OPEN. Next: official encrypted synthetic packet tests, then physical path/route/installed guard/full original acceptance. See PF_RESEARCH.md for precise scope. Product incomplete.
+
+
+Latest encrypted packet checkpoint: full PF run38609111273/source`118da12c1c078dd947eefb9075298ca73e2f6292` PASS official StdNetBind, synthetic outer4/outer6, inner dual-stack UDP/TCP/DNS-format exchange and independent outer/inner exception removal; prior SIGKILL/namespace/foreign-tree regressions retained. Full client run38608920722/source`4341a099ef27a687f216abc40e565868f2a5d82e` and fresh161-file Go review PASS; Go identity with PF suite separately verified. Unsigned split-only research app/pkg staged, installed guard remains disabled. See PF_RESEARCH.md for scope. Next: encrypted owner SIGKILL, physical scoped lifetime/owned routes and full original target/trust/acceptance. Product incomplete.

@@ -1,0 +1,10 @@
+{
+  "status": "BUILD_AND_TESTS_PASS_ARTIFACT_NOT_RECEIVED",
+  "run_id": 38608920722,
+  "attempt": 1,
+  "source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "observed": "All native build/test steps passed. Upload step failed: ArtifactService/CreateArtifact request timeout after five service retries.",
+  "binary_download_verified": false,
+  "staging_authorized_by_this_attempt": false,
+  "action": "Rerun the failed job against the identical source to obtain verifiable artifacts. Keep previous staged research package until checksum/source/worker review succeeds."
+}

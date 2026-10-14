@@ -1,0 +1,10 @@
+{
+  "status": "CANCELLED_NOT_ACCEPTANCE",
+  "run_id": 38608867580,
+  "source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "reason": "Previously measured full suite 178.015s plus encrypted-only 138.305s exceed the original 300s test process allowance. Cancelled before relying on incomplete combined evidence; replacement changes only CI time allowances.",
+  "replacement_run_id": 38609111273,
+  "replacement_source_commit": "118da12c1c078dd947eefb9075298ca73e2f6292",
+  "acceptance_assertions_weakened": false,
+  "cleanup_or_protection_proof": false
+}

@@ -1,0 +1,13 @@
+{
+  "authenticated_stop_acknowledged_before_exit": true,
+  "disconnected_before_coordinator_stop": "PASS",
+  "encrypted_echo_during_quit_confirmation": "PASS",
+  "encrypted_round_trips": 1,
+  "helper_requests_from_test_during_modal": 0,
+  "high_sierra": "NOT_RUN",
+  "kind": "native-live-quit-accept",
+  "mouse_accessibility": "NOT_RUN",
+  "real_appkit_termination_notification": true,
+  "route_interface_restoration": "PASS",
+  "status": "PASS"
+}

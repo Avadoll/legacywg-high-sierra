@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "client_source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "pf_suite_source_commit": "118da12c1c078dd947eefb9075298ca73e2f6292",
+  "go_source_identity": {
+    "status": "PASS",
+    "files": 161,
+    "manifest_sha256": "f2cf27363ab7862c924bf2d768057fed294c9cf2cad227958f4b33ba32284da1",
+    "scope": "production Go tree including test/build-specific files; dependencies additionally pinned by lock"
+  },
+  "difference": "Only PF CI workflow/test-process time allowances differ; Go source tree is byte-identical. No runtime or acceptance assertion change."
+}
