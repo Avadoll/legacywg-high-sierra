@@ -153,7 +153,8 @@ func (store *Store) stageDisabledPFAnchor(ctx context.Context) error {
 	if err != nil || check != before {
 		return ErrRecoveryRequired
 	}
-	if _, err = runOwnedPF(ctx, stagedPFRule, "-a", record.Anchor, "-f", "-"); err != nil {
+	deny := pfPolicy{}
+	if err = store.changePFFilter(ctx, record, before, []pfReference{}, &deny, false); err != nil {
 		return ErrRecoveryRequired
 	}
 	store.mark("pf_anchor_loaded")
@@ -228,8 +229,9 @@ func (store *Store) finishPFAnchor(ctx context.Context, requireDisabled bool) er
 	if record.Phase == PFAnchorRemoved && check.rules != pfDigest("") {
 		return ErrRecoveryRequired
 	}
-	if check.rules != pfDigest("") {
-		if _, err = runOwnedPF(ctx, "", "-a", record.Anchor, "-f", "-"); err != nil {
+	if record.Phase != PFAnchorRemoved {
+		// Also retire a crashed owned inactive transaction with no active rules.
+		if err = store.changePFFilter(ctx, *record, check, references, nil, false); err != nil {
 			return ErrRecoveryRequired
 		}
 	}

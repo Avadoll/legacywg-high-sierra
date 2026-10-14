@@ -128,7 +128,7 @@ func (store *Store) updatePFPolicy(ctx context.Context, desired pfPolicy) error 
 	if err != nil || policyCheck != before || referenceErr != nil || !samePFReferences(entries, check) || store.validatePFPaths(ctx, desired) != nil {
 		return ErrRecoveryRequired
 	}
-	if _, err = runOwnedPF(ctx, canonical, "-o", "none", "-a", record.Anchor, "-f", "-"); err != nil {
+	if err = store.changePFFilter(ctx, *record, before, entries, &desired, false); err != nil {
 		return ErrRecoveryRequired
 	}
 	store.mark("pf_rule_update_loaded_kernel")
@@ -181,7 +181,17 @@ func (store *Store) resolvePFPolicyLocked(ctx context.Context) error {
 		return ErrRecoveryRequired
 	}
 	next, err := record.ResolveRuleUpdate(observed.rules)
-	if err != nil || store.commitOwnedPF(next) != nil {
+	if err != nil {
+		return ErrRecoveryRequired
+	}
+	if observed.rules == record.RulesSHA256 {
+		// Retire the owned inactive candidate before rolling back durable intent.
+		// Active original rules stay intact; no text is reconstructed from a hash.
+		if store.changePFFilter(ctx, *record, observed, entries, nil, true) != nil {
+			return ErrRecoveryRequired
+		}
+	}
+	if store.commitOwnedPF(next) != nil {
 		return ErrRecoveryRequired
 	}
 	return nil

@@ -14,7 +14,10 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator'):raise SystemExit('Unknown native PF scope')
+    pattern='^TestRootPFRule'
+    if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
+    if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|SingleClassCodecPrimaryABI)$'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -30,7 +33,7 @@ def main():
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),str(test),
-        '-test.run='+('^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$' if scope=='single-class' else '^TestRootPFRule'),
+        '-test.run='+pattern,
         '-test.v=test2json','-test.timeout=180s'],
         capture_output=True,text=True,env=env,timeout=210)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
@@ -44,11 +47,15 @@ def main():
         'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
     if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy','TestRootPFRuleSingleClassCodecPrimaryABI'}
+    if scope=='coordinator':
+        required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused','TestRootPFRuleEmptyTransactionNamespace'}
+        required.add('TestRootPFRuleSingleClassCodecPrimaryABI')
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
-        'scope':scope,'full_rule_generation_suite':'NOT_RUN' if scope=='single-class' else status,
+        'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
+        'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
         'dual_family_numeric_udp_loopback_deny_generations':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
@@ -63,7 +70,7 @@ def main():
         'standalone_actual_sigkill_checkpoints':3 if 'TestRootPFRuleSingleClassRealPolicy' in passed else 0,
         'standalone_own_inactive_queue_cleanup_after_sigkill':checked('TestRootPFRuleSingleClassRealPolicy'),
         'go_rule_codec_complete_primary_struct_comparison':checked('TestRootPFRuleSingleClassCodecPrimaryABI'),
-        'shared_pool_staging':'USED_NOT_ATOMIC','production_loader_integration':False,
+        'shared_pool_staging':'USED_NOT_ATOMIC','production_loader_integration':True,'installed_client_guard_integration':False,
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
         'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
         'actual_nested_foreign_quick_and_nat_refused_without_mutation':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),

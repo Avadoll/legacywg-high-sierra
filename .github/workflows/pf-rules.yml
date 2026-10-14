@@ -7,6 +7,10 @@ on:
         description: Test standalone single-class real-policy prototype only
         type: boolean
         default: false
+      coordinator_only:
+        description: Test journal-bound Go singleton coordinator without legacy foreign fixture experiments
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,7 +31,7 @@ jobs:
       GOOS: darwin
       GOARCH: amd64
       GOAMD64: v1
-      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.fixture_only && 'single-class' || 'full' }}
+      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.fixture_only && 'single-class' || inputs.coordinator_only && 'coordinator' || 'full' }}
     steps:
       - name: Check out reviewed rule coordinator
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/tun"
 )
 
@@ -32,6 +33,37 @@ func fixturePFUDPPolicy(t *testing.T) pfPolicy {
 		{pfInterface{"lo0", iface.Index}, netip.MustParseAddr("127.0.0.1"), netip.MustParseAddrPort("127.0.0.2:53")},
 		{pfInterface{"lo0", iface.Index}, netip.MustParseAddr("::1"), netip.MustParseAddrPort("[::1]:443")},
 	}}
+}
+
+// Only compiled test code may deliberately replace/restore its own controlled
+// third-policy fixture. It checks the full journal identity, baseline and refs;
+// production recovery never uses this authority to overwrite a third hash.
+func forceFixturePFPolicy(ctx context.Context, store *Store, identity PFRecord, expectedHash string, policy pfPolicy) error {
+	guard := func() error {
+		record, err := store.readPF(pfJournalFile)
+		if err != nil || record == nil || record.ID != identity.ID || record.PID != identity.PID || record.Reference != identity.Reference || !store.pfJournalOwner(*record) {
+			return ErrRecoveryRequired
+		}
+		fd, err := openPFReferences(ctx)
+		if err != nil {
+			return ErrRecoveryRequired
+		}
+		defer unix.Close(fd)
+		refs, err := readPFReferences(ctx, fd)
+		if err != nil {
+			return ErrRecoveryRequired
+		}
+		owner, err := selectPFReference(*record, refs)
+		if err != nil || owner == nil {
+			return ErrRecoveryRequired
+		}
+		actual, err := readPFPolicy(ctx, identity.Anchor, true)
+		if err != nil || !actual.matches(identity) || actual.rules != expectedHash {
+			return ErrRecoveryRequired
+		}
+		return nil
+	}
+	return performOwnedPFFilter(ctx, identity.Anchor, &policy, false, false, guard, nil)
 }
 
 func TestRootPFRuleCanonicalGenerationsAndRefusals(t *testing.T) {
@@ -208,14 +240,14 @@ func TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent(t *testing.T) {
 		defer stop()
 		// Test-only restoration of this deliberately replaced owned fixture.
 		// Production resolution never writes unknown or reconstructed policies.
-		if _, err := runOwnedPF(cleanup, stagedPFRule, "-o", "none", "-a", initial.Anchor, "-f", "-"); err == nil {
+		if err := forceFixturePFPolicy(cleanup, store, *initial, pfDigest(thirdRules), pfPolicy{}); err == nil {
 			_ = store.recoverPFLifecycle(cleanup)
 		}
 	}()
 	replaced := false
 	store.checkpoint = func(point string) {
 		if point == "pf_rule_update_intent_committed" {
-			_, err := runOwnedPF(ctx, thirdRules, "-o", "none", "-a", initial.Anchor, "-f", "-")
+			err := forceFixturePFPolicy(ctx, store, *initial, initial.RulesSHA256, pfPolicy{loopback: true})
 			replaced = err == nil
 		}
 	}
@@ -237,7 +269,7 @@ func TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent(t *testing.T) {
 	}
 	// Restore and finish explicitly. The finalizer observes retired metadata and
 	// must not recreate the just-removed anchor afterward.
-	if _, err := runOwnedPF(ctx, stagedPFRule, "-o", "none", "-a", initial.Anchor, "-f", "-"); err != nil || store.recoverPFLifecycle(ctx) != nil || store.pfResidue() {
+	if err := forceFixturePFPolicy(ctx, store, *initial, pfDigest(thirdRules), pfPolicy{}); err != nil || store.recoverPFLifecycle(ctx) != nil || store.pfResidue() {
 		t.Fatal("controlled third-hash fixture could not restore baseline")
 	}
 }
