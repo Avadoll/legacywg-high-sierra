@@ -57,7 +57,7 @@ typedef u_int32_t pf_osfp_t;
     for name in names:
         if name == 'struct pf_poolhashkey': parts.append('TAILQ_HEAD(pf_palist, pf_pooladdr);\n')
         parts.append(declaration(text, name))
-    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS'):
+    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR'):
         match = re.search(r'^#define\s+'+name+r'\s+[^\n]+',text,re.M)
         if not match: raise ValueError('Pinned ABI request missing')
         parts.append(match.group(0)+'\n')
@@ -81,7 +81,7 @@ def build_probe(build):
         lines.append(f'printf("{struct}.size=%zu\\n", sizeof(struct {struct}));')
         for member in members:
             lines.append(f'printf("{struct}.{member}=%zu\\n", offsetof(struct {struct}, {member}));')
-    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS'):
+    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR'):
         lines.append(f'printf("{name}=%lu\\n", (unsigned long){name});')
     lines += ['return 0;', '}']
     printer = build/'abi-layout.c';printer.write_text('\n'.join(lines)+'\n')
@@ -106,4 +106,5 @@ def build_probe(build):
     (build/'abi-comparison.json').write_text(json.dumps(evidence,indent=2)+'\n')
     probe=build/'pf-single-rule-probe'
     subprocess.run(flags+['-I',str(build/'modern'),str(ROOT/'Tests/PFSingleRuleProbe.c'),'-o',str(probe)],check=True,timeout=30)
+    subprocess.run(flags+['-I',str(build/'modern'),str(ROOT/'Tests/PFNestedRuleProbe.c'),'-o',str(build/'pf-nested-rule-probe')],check=True,timeout=30)
     return probe,evidence

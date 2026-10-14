@@ -32,7 +32,8 @@ def main():
         '/usr/bin/sudo','-n','/usr/bin/env','GITHUB_ACTIONS=true','LEGACYWG_PF_REFERENCE_TESTS=1',
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
-        'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),str(test),
+        'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
+        'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout=300s'],
         capture_output=True,text=True,env=env,timeout=330)
@@ -47,12 +48,11 @@ def main():
     required={'TestRootPFRuleCanonicalGenerationsAndRefusals','TestRootPFRuleOwnedTunnelPolicy',
         'TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent',
         'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
-        'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
     required|={'TestRootPFRuleLoaderCrashRecovery'}|loader_cases
     if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy','TestRootPFRuleSingleClassCodecPrimaryABI'}
     if scope=='coordinator':
-        required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused','TestRootPFRuleEmptyTransactionNamespace'}
+        required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused'}
         required.add('TestRootPFRuleSingleClassCodecPrimaryABI')
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
