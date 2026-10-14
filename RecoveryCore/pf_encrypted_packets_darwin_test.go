@@ -447,4 +447,17 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 		t.Fatal("encrypted PF baseline differs")
 	}
 	phase("recovered", true, true, true)
+	// The devices and both native interfaces remain alive. A different root
+	// process owns a deny-only guard, and actual SIGKILL must not reopen either
+	// path. This is synthetic guard-owner death, not installed worker/GUI death.
+	deadOwner, crashed := pfKilledPacketGuard(t, ctx)
+	phase("owner-sigkill", false, false, false)
+	if deadOwner.recoverPFLifecycle(ctx) != nil || deadOwner.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
+		t.Fatal("encrypted dead owner explicit recovery failed")
+	}
+	phase("owner-recovered", true, true, true)
+	after, err = readDisabledPF(ctx, crashed.Anchor)
+	if err != nil || !after.matches(*crashed) || after.rules != pfDigest("") {
+		t.Fatal("encrypted dead owner final baseline differs")
+	}
 }

@@ -38,6 +38,57 @@ func TestRootPFRulePacketGuardCrashChild(t *testing.T) {
 	select {}
 }
 
+// The parent owns the live packet topology; only this child's independently
+// journaled deny guard dies. Confirm the native termination signal, not just
+// an unsuccessful Wait, before testing persistent blocking and recovery.
+func pfKilledPacketGuard(t *testing.T, ctx context.Context) (*Store, *PFRecord) {
+	t.Helper()
+	path := ownedReferenceTestDirectory(t)
+	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRootPFRulePacketGuardCrashChild$", "-test.v")
+	child.Env = append(os.Environ(), "LEGACYWG_PACKET_CRASH_DIR="+path)
+	pipe, err := child.StdoutPipe()
+	if err != nil || child.Start() != nil {
+		t.Fatal("packet guard crash child unavailable")
+	}
+	defer func() { _ = child.Process.Kill() }()
+	scanner := bufio.NewScanner(pipe)
+	scanner.Buffer(make([]byte, 1024), 4096)
+	reached := false
+	for scanner.Scan() {
+		if scanner.Text() == "OWNED_PACKET_GUARD_ACTIVE" {
+			reached = true
+			break
+		}
+	}
+	if !reached || child.Process.Kill() != nil {
+		_ = child.Wait()
+		t.Fatal("packet active guard SIGKILL checkpoint not reached")
+	}
+	err = child.Wait()
+	exit, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatal("packet guard did not terminate by signal")
+	}
+	status, ok := exit.Sys().(syscall.WaitStatus)
+	if !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
+		t.Fatal("packet guard actual SIGKILL not confirmed")
+	}
+	recovery := realBootStore(t, path)
+	t.Cleanup(func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 25*time.Second)
+		defer stop()
+		if recovery.pfResidue() && recovery.recoverPFLifecycle(cleanup) != nil {
+			t.Error("dead packet guard ownership retained after cleanup refusal")
+		}
+		recovery.Close()
+	})
+	record, err := recovery.readPF(pfJournalFile)
+	if err != nil || record == nil || record.PID != child.Process.Pid || record.Phase != PFActive {
+		t.Fatal("packet dead owner intent missing")
+	}
+	return recovery, record
+}
+
 const pfPacketServer4 = "198.18.99.130"
 const pfPacketServer6 = "fd00:198:18:99::130"
 
@@ -440,39 +491,13 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 	// A separate process owns the deny policy while this parent's utun remains
 	// alive. Actual process death must retain packet blocking until explicit
 	// journal-authorized dead-owner recovery. No client runtime integration.
-	crashPath := ownedReferenceTestDirectory(t)
-	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRootPFRulePacketGuardCrashChild$", "-test.v")
-	child.Env = append(os.Environ(), "LEGACYWG_PACKET_CRASH_DIR="+crashPath)
-	pipe, err := child.StdoutPipe()
-	if err != nil || child.Start() != nil {
-		t.Fatal("packet crash child unavailable")
-	}
-	defer func() { _ = child.Process.Kill() }()
-	scanner := bufio.NewScanner(pipe)
-	reached := false
-	for scanner.Scan() {
-		if scanner.Text() == "OWNED_PACKET_GUARD_ACTIVE" {
-			reached = true
-			break
-		}
-	}
-	if !reached || child.Process.Kill() != nil {
-		_ = child.Wait()
-		t.Fatal("packet active guard actual SIGKILL not reached")
-	}
-	_ = child.Wait()
+	recovery, crashed := pfKilledPacketGuard(t, ctx)
 	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
 			for _, port := range []int{45121, 53} {
 				probe(family, protocol, port, false)
 			}
 		}
-	}
-	recovery := realBootStore(t, crashPath)
-	defer recovery.Close()
-	crashed, err := recovery.readPF(pfJournalFile)
-	if err != nil || crashed == nil || crashed.PID != child.Process.Pid || crashed.Phase != PFActive {
-		t.Fatal("packet dead owner intent missing")
 	}
 	if recovery.recoverPFLifecycle(ctx) != nil || recovery.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
 		t.Fatal("packet dead owner explicit recovery failed")
