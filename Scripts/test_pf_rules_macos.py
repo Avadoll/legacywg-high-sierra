@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+from build_pf_single_rule_probe import build_probe
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,6 +13,9 @@ def main():
         raise SystemExit('Disposable native Intel CI only')
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
+    scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
+    if scope not in ('full','single-class'):raise SystemExit('Unknown native PF scope')
+    singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
         '-Wall','-Wextra','-Werror',str(ROOT/'Tests/ACLProbe.c'),'-o',str(acl)],check=True,timeout=30)
@@ -24,8 +28,10 @@ def main():
     result=subprocess.run([str(go),'tool','test2json','-p','legacywg/RecoveryCore','-t',
         '/usr/bin/sudo','-n','/usr/bin/env','GITHUB_ACTIONS=true','LEGACYWG_PF_REFERENCE_TESTS=1',
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
-        'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),str(test),
-        '-test.run=^TestRootPFRule','-test.v=test2json','-test.timeout=180s'],
+        'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
+        'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),str(test),
+        '-test.run='+('^TestRootPFRuleSingleClassRealPolicy$' if scope=='single-class' else '^TestRootPFRule'),
+        '-test.v=test2json','-test.timeout=180s'],
         capture_output=True,text=True,env=env,timeout=210)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
@@ -37,10 +43,13 @@ def main():
         'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
         'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
+    if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy'}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
-        'kind':'native journal-bound typed own-PF rule generations','record_version':2,'required_tests':sorted(required),
+        'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
+        'scope':scope,'full_rule_generation_suite':'NOT_RUN' if scope=='single-class' else status,
+        'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
         'dual_family_numeric_udp_loopback_deny_generations':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
         'wrong_index_unassigned_source_unowned_tunnel_refusals':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
@@ -48,7 +57,8 @@ def main():
         'native_journal_owned_tunnel_policy':checked('TestRootPFRuleOwnedTunnelPolicy'),
         'pre_load_cancellation_and_unknown_third_hash_preserve_intent':checked('TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent'),
         'actual_old_hash_rollback_new_hash_confirmation_after_crash':checked('TestRootPFRuleEffectCrashResolution'),
-        'kernel_rules_reference_and_displayed_baselines_restored':'PASS' if status=='PASS' else 'NOT_CONFIRMED',
+        'kernel_rules_reference_and_displayed_baselines_restored':'PASS' if status=='PASS' and scope=='full' else 'NOT_CONFIRMED',
+        'standalone_real_deny_loopback_rollback_and_exact_namespace_cleanup':checked('TestRootPFRuleSingleClassRealPolicy'),
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
         'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
         'actual_nested_foreign_quick_and_nat_refused_without_mutation':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
