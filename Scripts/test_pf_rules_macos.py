@@ -14,10 +14,11 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
+    if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -33,7 +34,8 @@ def main():
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
-        'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),str(test),
+        'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
+        'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout=300s'],
         capture_output=True,text=True,env=env,timeout=330)
@@ -54,12 +56,16 @@ def main():
     if scope=='coordinator':
         required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused'}
         required.add('TestRootPFRuleSingleClassCodecPrimaryABI')
+    if scope=='packets':required={'TestRootPFRuleNativePackets'}
+    if scope=='full':required.add('TestRootPFRuleNativePackets')
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
+        'packet_test_scope':'native kernel to journal-owned utun/pinned netstack; physical/encrypted/OS-resolver NOT_RUN',
+        'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),
         'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
         'go_loader_actual_stage_removal_sigkill_checkpoints':sum(name in passed for name in loader_cases),
