@@ -14,11 +14,12 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
+    if scope=='encrypted':pattern='^TestRootPFRuleEncryptedPackets$'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -35,7 +36,8 @@ def main():
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
-        'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),str(test),
+        'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout=300s'],
         capture_output=True,text=True,env=env,timeout=330)
@@ -57,7 +59,8 @@ def main():
         required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused'}
         required.add('TestRootPFRuleSingleClassCodecPrimaryABI')
     if scope=='packets':required={'TestRootPFRuleNativePackets'}
-    if scope=='full':required.add('TestRootPFRuleNativePackets')
+    if scope=='encrypted':required={'TestRootPFRuleEncryptedPackets','TestRootPFRuleEncryptedPackets/outer4','TestRootPFRuleEncryptedPackets/outer6'}
+    if scope=='full':required|={'TestRootPFRuleNativePackets','TestRootPFRuleEncryptedPackets','TestRootPFRuleEncryptedPackets/outer4','TestRootPFRuleEncryptedPackets/outer6'}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -68,6 +71,10 @@ def main():
         'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),
         'owned_utun_packet_deny_survives_owner_sigkill':checked('TestRootPFRuleNativePackets'),
         'owned_utun_packet_guard_actual_sigkill_checkpoints':1 if 'TestRootPFRuleNativePackets' in passed else 0,
+        'encrypted_packet_test_scope':'official StdNetBind/client native inner utun and isolated synthetic outer utun/netstack peer; physical/OS-resolver/installed guard NOT_RUN',
+        'encrypted_inner_dual_stack_udp_tcp_dns_outer_ipv4':checked('TestRootPFRuleEncryptedPackets/outer4'),
+        'encrypted_inner_dual_stack_udp_tcp_dns_outer_ipv6':checked('TestRootPFRuleEncryptedPackets/outer6'),
+        'encrypted_outer_and_inner_exception_removal':checked('TestRootPFRuleEncryptedPackets'),
         'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
         'go_loader_actual_stage_removal_sigkill_checkpoints':sum(name in passed for name in loader_cases),

@@ -44,7 +44,8 @@ const pfPacketServer6 = "fd00:198:18:99::130"
 type pfPacketKey struct{ family, protocol, port int }
 type pfPacketObservation struct {
 	sync.Mutex
-	counts map[pfPacketKey]int
+	counts           map[pfPacketKey]int
+	server4, server6 net.IP // Nil retains the original fixed plaintext fixture.
 }
 
 // Match the unconnected WriteMsgUDP API used by official StdNetBind on Darwin.
@@ -70,15 +71,22 @@ func (connection *pfFixtureUDPConnection) Read(data []byte) (int, error) {
 func (connection *pfFixtureUDPConnection) RemoteAddr() net.Addr { return connection.destination }
 
 func (capture *pfPacketObservation) observe(packet []byte) {
+	server4, server6 := capture.server4, capture.server6
+	if server4 == nil {
+		server4 = net.ParseIP(pfPacketServer4).To4()
+	}
+	if server6 == nil {
+		server6 = net.ParseIP(pfPacketServer6).To16()
+	}
 	var family, protocol, offset int
 	if len(packet) >= 20 && packet[0]>>4 == 4 {
 		family, protocol, offset = 4, int(packet[9]), int(packet[0]&15)*4
-		if offset < 20 || !bytes.Equal(packet[16:20], net.ParseIP(pfPacketServer4).To4()) {
+		if offset < 20 || !bytes.Equal(packet[16:20], server4) {
 			return
 		}
 	} else if len(packet) >= 40 && packet[0]>>4 == 6 {
 		family, protocol, offset = 6, int(packet[6]), 40
-		if !bytes.Equal(packet[24:40], net.ParseIP(pfPacketServer6).To16()) {
+		if !bytes.Equal(packet[24:40], server6) {
 			return
 		}
 	} else {
