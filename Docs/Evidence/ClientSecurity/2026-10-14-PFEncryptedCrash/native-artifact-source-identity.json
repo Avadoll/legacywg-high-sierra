@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "native_artifact_run_id": 38608920722,
+  "native_artifact_source_commit": "4341a099ef27a687f216abc40e565868f2a5d82e",
+  "reviewed_pf_test_source_commit": "fb70c4dd2a9b0cd2709622e27eb45cab2b7d7cfe",
+  "native_worker_sha256": "49eb72b622e0f87457e572a50289041cfa94d24644c84eda7c64dfb51a11eaf2",
+  "manifest_sha256": "f137290b5bfcb1dc643d22b61b1686bf62e6a8840c6624fa169610ed1fce714f",
+  "changed_non_document_paths": [
+    ".github/workflows/pf-rules.yml",
+    "RecoveryCore/pf_encrypted_packets_darwin_test.go",
+    "RecoveryCore/pf_packets_darwin_test.go",
+    "Scripts/test_pf_rules_macos.py"
+  ],
+  "scope": "Exact Git source identity of every exported file except public documentation and the four enumerated PF test-only files/workflow. Native Objective-C, worker Go source, vendored dependencies, lock files and native application build scripts unchanged.",
+  "limitation": "No new application/package build claimed; retained artifact metadata/source stamp remains 4341a09. New PF tests require separate native results and fresh current-tree Go source review.",
+  "unchanged_exported_files": 351
+}
