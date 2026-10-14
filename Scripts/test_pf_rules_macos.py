@@ -59,6 +59,8 @@ def main():
         'actual_old_hash_rollback_new_hash_confirmation_after_crash':checked('TestRootPFRuleEffectCrashResolution'),
         'kernel_rules_reference_and_displayed_baselines_restored':'PASS' if status=='PASS' and scope=='full' else 'NOT_CONFIRMED',
         'standalone_real_deny_loopback_rollback_and_exact_namespace_cleanup':checked('TestRootPFRuleSingleClassRealPolicy'),
+        'standalone_exact_namespace_cycles':3 if 'TestRootPFRuleSingleClassRealPolicy' in passed else 0,
+        'shared_pool_staging':'USED_NOT_ATOMIC','production_loader_integration':False,
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
         'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
         'actual_nested_foreign_quick_and_nat_refused_without_mutation':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),

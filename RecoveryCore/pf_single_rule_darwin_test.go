@@ -117,22 +117,31 @@ func TestRootPFRuleSingleClassRealPolicy(t *testing.T) {
 		}
 		return pfDigest(rules)
 	}
-	if call(ctx, "deny") != nil {
-		t.Fatal("singleton actual deny installation failed")
-	}
-	denyHash := check(false)
-	if call(ctx, "deny") == nil || check(false) != denyHash {
-		t.Fatal("singleton new-install operation adopted an existing node")
-	}
-	if call(ctx, "rollback") != nil || check(false) != denyHash {
-		t.Fatal("singleton pending loopback rollback changed active deny")
-	}
-	if call(ctx, "loopback") != nil {
-		t.Fatal("singleton actual loopback replacement failed")
-	}
-	loopbackHash := check(true)
-	if call(ctx, "rollback") != nil || check(true) != loopbackHash {
-		t.Fatal("singleton pending deny rollback changed active loopback")
+	for cycle := 0; cycle < 3; cycle++ {
+		if call(ctx, "deny") != nil {
+			t.Fatal("singleton actual deny installation failed")
+		}
+		denyHash := check(false)
+		if call(ctx, "deny") == nil || check(false) != denyHash {
+			t.Fatal("singleton new-install operation adopted an existing node")
+		}
+		if call(ctx, "rollback") != nil || check(false) != denyHash {
+			t.Fatal("singleton pending loopback rollback changed active deny")
+		}
+		if call(ctx, "loopback") != nil {
+			t.Fatal("singleton actual loopback replacement failed")
+		}
+		loopbackHash := check(true)
+		if call(ctx, "rollback") != nil || check(true) != loopbackHash {
+			t.Fatal("singleton pending deny rollback changed active loopback")
+		}
+		if call(ctx, "clear") != nil {
+			t.Fatal("singleton cycle clear refused")
+		}
+		after, err := readDisabledPF(ctx, probe.Anchor)
+		if err != nil || after != before || len(fixturePFReferences(t, ctx)) != 0 {
+			t.Fatal("singleton cycle did not restore exact namespace/PF baseline")
+		}
 	}
 	if store.pfResidue() {
 		t.Fatal("standalone prototype unexpectedly wrote guard journal")

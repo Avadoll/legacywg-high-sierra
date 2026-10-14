@@ -15,6 +15,7 @@
 | golang.zx2c4.com/wintun | v0.0.0-20230126152724-0fa3db229ce2 | Windows test dependencies; в Darwin engine не включён | MIT, сохранён LICENSE в Licenses |
 | golang.org/x/vuln | v1.8.0 | Только внешний анализатор, вне продукта | BSD-3-Clause; module sum/build dependencies — Evidence/analyzer-buildinfo.txt |
 | Go | 1.27.1 | Только сборка анализатора, вне продукта | BSD-3-Clause, .tools/go1.27.1/go/LICENSE; toolchain не входит в исходный ZIP |
+| Apple XNU pfvar.h | xnu-4570.71.2 / xnu-11417.140.69 | Только временные заголовки ABI для developer CI; compiler сравнивает закреплённые объявления. В приложение/установщик не входят. | APSL-2.0 и сохранённые BSD notices; Licenses/Apple-XNU-APSL-2.0.txt; URL/SHA и воспроизводимое выделение объявлений в Scripts/build_pf_single_rule_probe.py |
 
 В lock перечислен полный upstream module graph. Узлы, исходные архивы которых не требовались выбранному build/test, имеют NOASSERTION и не заявлены включёнными в бинарник. Для каждой фактически включённой зависимости есть проверенный module sum, SHA256 module archive и копия лицензии. Перед релизом требуется финальная проверка состава каждого артефакта, дополнительных NOTICE и лицензий фактически поставляемых файлов.
 

@@ -32,7 +32,7 @@ static int known_rule(const struct pf_rule *r, int loopback) {
     return r->action == (loopback ? PF_PASS : PF_DROP) &&
         r->direction == PF_OUT && r->quick == 1 && r->keep_state == 0 &&
         r->af == 0 && r->proto == 0 && r->flags == 0 && r->flagset == 0 &&
-        r->rule_flag == 0 && r->rtableid == (unsigned)-1 &&
+        r->rule_flag == 0 && r->rtableid == 0 &&
         strcmp(r->ifname, loopback ? "lo0" : "") == 0 &&
         r->src.addr.type == 0 && r->dst.addr.type == 0 &&
         r->src.addr.iflags == 0 && r->dst.addr.iflags == 0 &&
@@ -79,7 +79,8 @@ static int stage_rule(int fd, const char *path, unsigned ticket, int loopback) {
     request.ticket=ticket;request.pool_ticket=pool.ticket;
     request.rule.action=loopback ? PF_PASS : PF_DROP;
     request.rule.direction=PF_OUT;request.rule.quick=1;
-    request.rule.rtableid=(unsigned)-1;
+    /* Apple's default rule uses IFSCOPE_NONE (0), not OpenBSD's -1. */
+    request.rule.rtableid=0;
     if (loopback) memcpy(request.rule.ifname,"lo0",4);
     return ioctl(fd,DIOCADDRULE,&request);
 }
