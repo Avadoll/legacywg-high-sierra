@@ -32,7 +32,7 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	// Cleanup authority covers only our two random, separately named fixture
 	// nodes. Unexpected replacement is preserved, never globally flushed.
 	defer func() {
-		cleanup, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		cleanup, stop := context.WithTimeout(context.Background(), 25*time.Second)
 		defer stop()
 		p, pErr := readPFAnchorText(cleanup, parent, "rules")
 		r, rErr := readPFAnchorText(cleanup, child, "rules")
@@ -62,6 +62,14 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 			}
 		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
+		// Observe possible deferred namespace retirement without changing global
+		// timeouts, states, PF enabled status or foreign rules. Exact baseline
+		// equality remains mandatory; expiry of this wait is a test failure.
+		deadline := time.Now().Add(15 * time.Second)
+		for err == nil && after != before && time.Now().Before(deadline) && cleanup.Err() == nil {
+			time.Sleep(250 * time.Millisecond)
+			after, err = readDisabledPF(cleanup, probe.Anchor)
+		}
 		if err != nil || after != before {
 			t.Errorf("enumeration cleanup mismatch: readable=%t root_same=%t filter_tree_same=%t nat_tree_same=%t", err == nil, after.root == before.root, after.recursive == before.recursive, after.nat == before.nat)
 			tree, treeErr := enumeratePFAnchors(cleanup)
