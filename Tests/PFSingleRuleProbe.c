@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -85,6 +86,12 @@ static int stage_rule(int fd, const char *path, unsigned ticket, int loopback) {
     return ioctl(fd,DIOCADDRULE,&request);
 }
 
+static void crash_checkpoint(void) {
+    fputs("OWNED_SINGLE_RULE_CHECKPOINT\n",stdout);
+    fflush(stdout);
+    for (;;) pause(); /* disposable CI parent must send actual SIGKILL */
+}
+
 int main(int argc, char **argv) {
     const char prefix[]="com.apple/lw-rule-ci-";
     const char *ci=getenv("GITHUB_ACTIONS");
@@ -93,7 +100,11 @@ int main(int argc, char **argv) {
         strspn(argv[1]+sizeof(prefix)-1,"0123456789abcdef") != 32) return 2;
     int deny=strcmp(argv[2],"deny") == 0, loopback=strcmp(argv[2],"loopback") == 0;
     int rollback=strcmp(argv[2],"rollback") == 0, clear=strcmp(argv[2],"clear") == 0;
-    if (!deny && !loopback && !rollback && !clear) return 2;
+    int crash_begin=strcmp(argv[2],"crash-begin") == 0;
+    int crash_rules=strcmp(argv[2],"crash-rules") == 0;
+    int crash_commit=strcmp(argv[2],"crash-commit") == 0;
+    int crash=crash_begin || crash_rules || crash_commit;
+    if (!deny && !loopback && !rollback && !clear && !crash) return 2;
     int fd=open("/dev/pf",O_RDWR|O_CLOEXEC|O_NOFOLLOW);
     struct stat status;
     if (fd<0 || fstat(fd,&status) || status.st_uid || !S_ISCHR(status.st_mode)) {
@@ -111,15 +122,18 @@ int main(int argc, char **argv) {
     if (entry.rs_num != PF_RULESET_FILTER || strcmp(entry.anchor,argv[1]) || !entry.ticket) {
         close(fd); return 6; /* unexpected identity is preserved */
     }
+    if (crash_begin) crash_checkpoint();
     int result=0;
-    int with_loopback=loopback || (rollback && old == 1);
+    int with_loopback=loopback || crash || (rollback && old == 1);
     if (!clear && ((with_loopback && stage_rule(fd,argv[1],entry.ticket,1)) ||
         stage_rule(fd,argv[1],entry.ticket,0))) result=7;
+    if (!result && crash_rules) crash_checkpoint();
     if (result || rollback) {
         if (ioctl(fd,DIOCXROLLBACK,&tx) != 0) result=8;
     } else if (ioctl(fd,DIOCXCOMMIT,&tx) != 0) {
         (void)ioctl(fd,DIOCXROLLBACK,&tx); result=9;
     }
+    if (!result && crash_commit) crash_checkpoint();
     close(fd);
     return result;
 }

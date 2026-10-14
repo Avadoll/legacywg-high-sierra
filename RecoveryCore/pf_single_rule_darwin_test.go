@@ -1,6 +1,7 @@
 package recoverycore
 
 import (
+	"bufio"
 	"context"
 	"os"
 	"os/exec"
@@ -141,6 +142,43 @@ func TestRootPFRuleSingleClassRealPolicy(t *testing.T) {
 		after, err := readDisabledPF(ctx, probe.Anchor)
 		if err != nil || after != before || len(fixturePFReferences(t, ctx)) != 0 {
 			t.Fatal("singleton cycle did not restore exact namespace/PF baseline")
+		}
+	}
+	for _, point := range []string{"crash-begin", "crash-rules", "crash-commit"} {
+		if call(ctx, "deny") != nil {
+			t.Fatal("singleton crash fixture deny installation failed")
+		}
+		denyHash := check(false)
+		bounded, stop := context.WithTimeout(ctx, 12*time.Second)
+		command := exec.CommandContext(bounded, helper, path, point)
+		command.Env = []string{"GITHUB_ACTIONS=true"}
+		pipe, err := command.StdoutPipe()
+		if err != nil || command.Start() != nil {
+			stop()
+			t.Fatal("singleton crash child unavailable")
+		}
+		scanner := bufio.NewScanner(pipe)
+		scanner.Buffer(make([]byte, 64), 64)
+		reached := scanner.Scan() && scanner.Text() == "OWNED_SINGLE_RULE_CHECKPOINT"
+		killed := command.Process.Kill()
+		_ = command.Wait()
+		stop()
+		if !reached || killed != nil {
+			t.Fatal("singleton actual SIGKILL checkpoint not reached")
+		}
+		if point == "crash-commit" {
+			check(true)
+		} else if check(false) != denyHash {
+			t.Fatal("singleton pre-commit process death changed active deny")
+		}
+		// Explicit TEST fixture ownership permits retiring its inactive queue.
+		// No production durable ownership/reboot claim follows from this probe.
+		if call(ctx, "clear") != nil {
+			t.Fatal("singleton crashed fixture cleanup refused")
+		}
+		after, err := readDisabledPF(ctx, probe.Anchor)
+		if err != nil || after != before || len(fixturePFReferences(t, ctx)) != 0 {
+			t.Fatal("singleton process death left a namespace/PF baseline difference")
 		}
 	}
 	if store.pfResidue() {
