@@ -17,7 +17,7 @@ def main():
     if scope not in ('full','single-class','coordinator'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
-    if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|SingleClassCodecPrimaryABI)$'
+    if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -34,18 +34,22 @@ def main():
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),str(test),
         '-test.run='+pattern,
-        '-test.v=test2json','-test.timeout=180s'],
-        capture_output=True,text=True,env=env,timeout=210)
+        '-test.v=test2json','-test.timeout=300s'],
+        capture_output=True,text=True,env=env,timeout=330)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
     (output/'pf-rules-tests.json').write_text(json.dumps(sanitized,indent=2)+'\n')
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
-    stages=('pf_rule_update_intent_committed','pf_rule_update_loaded_kernel','pf_rule_update_confirmation_committed')
+    stages=('pf_rule_update_intent_committed','pf_rule_update_loaded_kernel','pf_rule_update_confirmation_committed',
+            'pf_filter_transaction_begin_kernel','pf_filter_rules_staged_kernel','pf_filter_transaction_committed_kernel')
+    loader_points=('pf_filter_transaction_begin_kernel','pf_filter_rules_staged_kernel','pf_filter_transaction_committed_kernel')
+    loader_cases={'TestRootPFRuleLoaderCrashRecovery/'+role+'/'+point for role in ('stage','remove') for point in loader_points}
     required={'TestRootPFRuleCanonicalGenerationsAndRefusals','TestRootPFRuleOwnedTunnelPolicy',
         'TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent',
         'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
         'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
+    required|={'TestRootPFRuleLoaderCrashRecovery'}|loader_cases
     if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy','TestRootPFRuleSingleClassCodecPrimaryABI'}
     if scope=='coordinator':
         required-={'TestRootPFRuleEnumerationForeignFilterAndNATRefused','TestRootPFRuleEmptyTransactionNamespace'}
@@ -58,6 +62,8 @@ def main():
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
+        'go_loader_actual_stage_removal_sigkill_checkpoints':sum(name in passed for name in loader_cases),
+        'go_loader_owned_inactive_queue_and_namespace_crash_cleanup':checked('TestRootPFRuleLoaderCrashRecovery'),
         'dual_family_numeric_udp_loopback_deny_generations':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
         'wrong_index_unassigned_source_unowned_tunnel_refusals':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
         'identical_policy_does_not_increment_generation':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),

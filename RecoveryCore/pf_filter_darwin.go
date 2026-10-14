@@ -196,6 +196,14 @@ func (store *Store) changePFFilter(ctx context.Context, record PFRecord, before 
 		if err != nil || !samePFReferences(current, references) {
 			return ErrRecoveryRequired
 		}
+		if phase == PFRuleUpdateIntent || record.ReferenceAfter > 0 {
+			owned, err := selectPFReference(record, current)
+			if err != nil || (phase == PFRuleUpdateIntent && owned == nil) || (phase == PFAnchorRemovalIntent && owned != nil) {
+				return ErrRecoveryRequired
+			}
+		} else if len(current) != 0 {
+			return ErrRecoveryRequired
+		}
 		observed, err := readPFPolicy(ctx, record.Anchor, len(current) > 0)
 		check, checkErr := readPFReferences(ctx, fd)
 		if err != nil || observed != before || !observed.matches(record) || checkErr != nil || !samePFReferences(current, check) || (desired != nil && store.validatePFPaths(ctx, *desired) != nil) {

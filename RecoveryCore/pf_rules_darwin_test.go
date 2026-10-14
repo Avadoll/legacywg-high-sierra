@@ -310,6 +310,9 @@ func TestRootPFRuleEffectCrashResolution(t *testing.T) {
 		{"pf_rule_update_intent_committed", PFRuleUpdateIntent, 1, false},
 		{"pf_rule_update_loaded_kernel", PFRuleUpdateIntent, 1, true},
 		{"pf_rule_update_confirmation_committed", PFActive, 2, true},
+		{"pf_filter_transaction_begin_kernel", PFRuleUpdateIntent, 1, false},
+		{"pf_filter_rules_staged_kernel", PFRuleUpdateIntent, 1, false},
+		{"pf_filter_transaction_committed_kernel", PFRuleUpdateIntent, 1, true},
 	} {
 		t.Run(fixture.stage, func(t *testing.T) {
 			path := ownedReferenceTestDirectory(t)
