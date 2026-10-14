@@ -66,6 +66,8 @@ def main():
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'packet_test_scope':'native kernel to journal-owned utun/pinned netstack; physical/encrypted/OS-resolver NOT_RUN',
         'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),
+        'owned_utun_packet_deny_survives_owner_sigkill':checked('TestRootPFRuleNativePackets'),
+        'owned_utun_packet_guard_actual_sigkill_checkpoints':1 if 'TestRootPFRuleNativePackets' in passed else 0,
         'record_version':2,'required_tests':sorted(required),'compiler_primary_abi_comparison':abi,
         'actual_sigkill_checkpoints':sum('TestRootPFRuleEffectCrashResolution/'+stage in passed for stage in stages),
         'go_loader_actual_stage_removal_sigkill_checkpoints':sum(name in passed for name in loader_cases),

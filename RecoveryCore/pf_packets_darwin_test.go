@@ -1,6 +1,7 @@
 package recoverycore
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -19,6 +20,23 @@ import (
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/tun/netstack"
 )
+
+func TestRootPFRulePacketGuardCrashChild(t *testing.T) {
+	path := os.Getenv("LEGACYWG_PACKET_CRASH_DIR")
+	if path == "" {
+		t.Skip("explicit packet guard crash child")
+	}
+	requirePFRuleCI(t)
+	store := realBootStore(t, path)
+	defer store.Close()
+	ctx, stop := context.WithTimeout(context.Background(), 30*time.Second)
+	defer stop()
+	if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
+		t.Fatal("packet crash child guard activation failed")
+	}
+	fmt.Println("OWNED_PACKET_GUARD_ACTIVE")
+	select {}
+}
 
 const pfPacketServer4 = "198.18.99.130"
 const pfPacketServer6 = "fd00:198:18:99::130"
@@ -410,6 +428,57 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 	after, err := readDisabledPF(ctx, record.Anchor)
 	if err != nil || !after.matches(*record) || after.rules != pfDigest("") {
 		t.Fatal("packet final PF baseline differs")
+	}
+	// A separate process owns the deny policy while this parent's utun remains
+	// alive. Actual process death must retain packet blocking until explicit
+	// journal-authorized dead-owner recovery. No client runtime integration.
+	crashPath := ownedReferenceTestDirectory(t)
+	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRootPFRulePacketGuardCrashChild$", "-test.v")
+	child.Env = append(os.Environ(), "LEGACYWG_PACKET_CRASH_DIR="+crashPath)
+	pipe, err := child.StdoutPipe()
+	if err != nil || child.Start() != nil {
+		t.Fatal("packet crash child unavailable")
+	}
+	defer func() { _ = child.Process.Kill() }()
+	scanner := bufio.NewScanner(pipe)
+	reached := false
+	for scanner.Scan() {
+		if scanner.Text() == "OWNED_PACKET_GUARD_ACTIVE" {
+			reached = true
+			break
+		}
+	}
+	if !reached || child.Process.Kill() != nil {
+		_ = child.Wait()
+		t.Fatal("packet active guard actual SIGKILL not reached")
+	}
+	_ = child.Wait()
+	for _, family := range []int{4, 6} {
+		for _, protocol := range []int{6, 17} {
+			for _, port := range []int{45121, 53} {
+				probe(family, protocol, port, false)
+			}
+		}
+	}
+	recovery := realBootStore(t, crashPath)
+	defer recovery.Close()
+	crashed, err := recovery.readPF(pfJournalFile)
+	if err != nil || crashed == nil || crashed.PID != child.Process.Pid || crashed.Phase != PFActive {
+		t.Fatal("packet dead owner intent missing")
+	}
+	if recovery.recoverPFLifecycle(ctx) != nil || recovery.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
+		t.Fatal("packet dead owner explicit recovery failed")
+	}
+	for _, family := range []int{4, 6} {
+		for _, protocol := range []int{6, 17} {
+			for _, port := range []int{45121, 53} {
+				probe(family, protocol, port, true)
+			}
+		}
+	}
+	after, err = readDisabledPF(ctx, crashed.Anchor)
+	if err != nil || !after.matches(*crashed) || after.rules != pfDigest("") {
+		t.Fatal("packet crash recovery final baseline differs")
 	}
 }
 
