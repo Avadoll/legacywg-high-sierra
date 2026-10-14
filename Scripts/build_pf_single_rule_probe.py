@@ -52,7 +52,7 @@ typedef u_int32_t pf_osfp_t;
              'struct pf_rule_addr', 'struct pf_pooladdr', 'struct pf_poolhashkey',
              'struct pf_pool', 'union pf_rule_ptr', 'struct pf_rule',
              'struct pfioc_rule', 'struct pfioc_pooladdr', 'struct pfioc_trans')
-    parts = [notices, '/* Mechanical declaration subset for CI; no policy implementation. */\n', prefix,
+    parts = [notices, '/* Modified 2026-10-14: mechanical declaration subset for CI; no policy implementation.\n * Source: pinned Apple XNU pfvar.h; modifications are reproducible by this public builder.\n * Covered declarations remain subject to APSL-2.0 and their original notices. */\n', prefix,
              '\n'.join(enums)]
     for name in names:
         if name == 'struct pf_poolhashkey': parts.append('TAILQ_HEAD(pf_palist, pf_pooladdr);\n')

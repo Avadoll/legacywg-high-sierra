@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
@@ -42,6 +43,13 @@ func TestRootPFRuleSingleClassRealPolicy(t *testing.T) {
 		command := exec.CommandContext(bounded, helper, path, mode)
 		command.Env = []string{"GITHUB_ACTIONS=true"}
 		return command.Run()
+	}
+	if call(ctx, "unknown-operation") == nil {
+		t.Fatal("singleton accepted an uncompiled operation")
+	}
+	afterInvalid, err := readDisabledPF(ctx, probe.Anchor)
+	if err != nil || afterInvalid != before {
+		t.Fatal("singleton invalid operation changed native baseline")
 	}
 	defer func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 15*time.Second)
@@ -85,6 +93,17 @@ func TestRootPFRuleSingleClassRealPolicy(t *testing.T) {
 		}
 		policy, err := parsePFPolicy(rules)
 		if !found || err != nil || policy.loopback != loopback || policy.tunnel != nil || len(policy.escapes) != 0 {
+			// Fixed vocabulary only: unexpected values/rules remain private.
+			known := map[string]bool{"block": true, "drop": true, "out": true, "quick": true, "all": true, "pass": true, "on": true, "lo0": true, "flags": true, "any": true, "no": true, "state": true, "rtable": true, "priority": true, "prio": true, "keep": true}
+			var shape []string
+			for _, token := range strings.Fields(rules) {
+				if known[token] {
+					shape = append(shape, token)
+				} else {
+					shape = append(shape, "VALUE")
+				}
+			}
+			t.Logf("singleton native representation: found=%t parsed=%t fixed_vocabulary=%s", found, err == nil, strings.Join(shape, " "))
 			t.Fatal("singleton native policy differs from compiled fixed recipe")
 		}
 		filter, nat, err := pfEnumeratedDigests(outside, probe.Anchor)
@@ -102,6 +121,9 @@ func TestRootPFRuleSingleClassRealPolicy(t *testing.T) {
 		t.Fatal("singleton actual deny installation failed")
 	}
 	denyHash := check(false)
+	if call(ctx, "deny") == nil || check(false) != denyHash {
+		t.Fatal("singleton new-install operation adopted an existing node")
+	}
 	if call(ctx, "rollback") != nil || check(false) != denyHash {
 		t.Fatal("singleton pending loopback rollback changed active deny")
 	}
