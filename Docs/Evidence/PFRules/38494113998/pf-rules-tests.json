@@ -1,0 +1,37 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleSingleClassRealPolicy",
+    "Elapsed": 2.88
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 2.939
+  }
+]

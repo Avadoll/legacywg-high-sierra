@@ -1,0 +1,29 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassRealPolicy",
+    "Elapsed": 12.42
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 12.469
+  }
+]
