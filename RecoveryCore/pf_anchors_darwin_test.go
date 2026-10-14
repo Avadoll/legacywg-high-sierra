@@ -51,6 +51,16 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 			t.Error("owned enumeration child cleanup failed")
 			return
 		}
+		// Fixed owned ruleset modifiers only. Never -F all/states, global scope,
+		// enable/disable, or an unknown/foreign anchor cleanup operation.
+		for _, path := range []string{parent, child} {
+			for _, kind := range []string{"rules", "nat"} {
+				if _, err := runOwnedPF(cleanup, "", "-a", path, "-F", kind); err != nil {
+					t.Error("owned enumeration fixed ruleset retirement failed")
+					return
+				}
+			}
+		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
 		if err != nil || after != before {
 			t.Errorf("enumeration cleanup mismatch: readable=%t root_same=%t filter_tree_same=%t nat_tree_same=%t", err == nil, after.root == before.root, after.recursive == before.recursive, after.nat == before.nat)
