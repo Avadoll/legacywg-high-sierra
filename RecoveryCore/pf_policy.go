@@ -30,7 +30,7 @@ type pfPolicy struct {
 }
 
 var pfInterfaceName = regexp.MustCompile(`^[a-z][a-z0-9]{0,14}$`)
-var pfUDPRule = regexp.MustCompile(`^pass out quick on ([a-z][a-z0-9]{0,14}) (inet6?) proto udp from ([0-9a-f.:]+) to ([0-9a-f.:]+) port = ([0-9]{1,5}) no state$`)
+var pfUDPRule = regexp.MustCompile(`^pass out quick on ([a-z][a-z0-9]{0,14}) (inet6?) proto udp from ([0-9a-f.:]+) to ([0-9a-f.:]+) port = ([0-9]{1,5}) user = (?:0|root) no state$`)
 var pfTunnelRule = regexp.MustCompile(`^pass out quick on (utun[0-9]{1,10}) all(?: flags any)? no state$`)
 
 func pfNumericAddress(address netip.Addr) bool {
@@ -90,7 +90,10 @@ func (policy pfPolicy) render() (string, error) {
 		if escape.source.Is4() {
 			family = "inet"
 		}
-		fmt.Fprintf(&text, "pass out quick on %s %s proto udp from %s to %s port = %d no state\n", escape.path.name, family, escape.source, escape.endpoint.Addr(), escape.endpoint.Port())
+		// The worker opens outer UDP sockets as root. Ordinary application
+		// sockets must not reuse this physical/synthetic endpoint exception.
+		// This is a UID boundary, not a worker-PID or other-root restriction.
+		fmt.Fprintf(&text, "pass out quick on %s %s proto udp from %s to %s port = %d user = 0 no state\n", escape.path.name, family, escape.source, escape.endpoint.Addr(), escape.endpoint.Port())
 	}
 	text.WriteString(stagedPFRule)
 	return text.String(), nil

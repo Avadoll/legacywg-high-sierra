@@ -427,6 +427,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 			}
 		}
 	}
+	for _, family := range []int{4, 6} {
+		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
+	}
 	if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
 		t.Fatal("durable packet guard activation failed")
 	}
@@ -451,6 +454,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		t.Fatal("numeric packet exception generation failed")
 	}
 	for _, family := range []int{4, 6} {
+		pfNonrootPacketProbe(t, ctx, iface, capture, family, false)
+	}
+	for _, family := range []int{4, 6} {
 		probe(family, 17, 45121, true)
 		probe(family, 17, 53, true)
 		probe(family, 17, 45122, false)
@@ -461,6 +467,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		t.Fatal("journal-owned tunnel packet exception failed")
 	}
 	for _, family := range []int{4, 6} {
+		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
+	}
+	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
 			for _, port := range []int{45121, 53} {
 				probe(family, protocol, port, true)
@@ -469,6 +478,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 	}
 	if store.updatePFPolicy(ctx, pfPolicy{}) != nil {
 		t.Fatal("packet exceptions removal failed")
+	}
+	for _, family := range []int{4, 6} {
+		pfNonrootPacketProbe(t, ctx, iface, capture, family, false)
 	}
 	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
@@ -487,6 +499,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 	after, err := readDisabledPF(ctx, record.Anchor)
 	if err != nil || !after.matches(*record) || after.rules != pfDigest("") {
 		t.Fatal("packet final PF baseline differs")
+	}
+	for _, family := range []int{4, 6} {
+		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
 	}
 	// A separate process owns the deny policy while this parent's utun remains
 	// alive. Actual process death must retain packet blocking until explicit

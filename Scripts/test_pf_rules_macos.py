@@ -33,14 +33,15 @@ def main():
     result=subprocess.run([str(go),'tool','test2json','-p','legacywg/RecoveryCore','-t',
         '/usr/bin/sudo','-n','/usr/bin/env','GITHUB_ACTIONS=true','LEGACYWG_PF_REFERENCE_TESTS=1',
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
+        'LEGACYWG_PF_NONROOT_UID='+str(os.getuid()),'LEGACYWG_PF_NONROOT_GID='+str(os.getgid()),
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
         'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','full') else '0'),str(test),
         '-test.run='+pattern,
-        '-test.v=test2json','-test.timeout='+('450s' if scope=='full' else '300s')],
-        capture_output=True,text=True,env=env,timeout=480 if scope=='full' else 330)
+        '-test.v=test2json','-test.timeout='+('600s' if scope=='full' else '300s')],
+        capture_output=True,text=True,env=env,timeout=630 if scope=='full' else 330)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
     (output/'pf-rules-tests.json').write_text(json.dumps(sanitized,indent=2)+'\n')
@@ -69,6 +70,8 @@ def main():
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'packet_test_scope':'native kernel to journal-owned utun/pinned netstack; physical/encrypted/OS-resolver NOT_RUN',
         'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),
+        'outer_udp_escapes_fixed_root_socket_uid':checked('TestRootPFRuleCanonicalGenerationsAndRefusals'),
+        'ordinary_process_outer_udp_refusal_with_positive_baseline_and_tunnel_permission':checked('TestRootPFRuleNativePackets'),
         'owned_utun_packet_deny_survives_owner_sigkill':checked('TestRootPFRuleNativePackets'),
         'owned_utun_packet_guard_actual_sigkill_checkpoints':1 if 'TestRootPFRuleNativePackets' in passed else 0,
         'encrypted_packet_test_scope':'official StdNetBind/client native inner utun and isolated synthetic outer utun/netstack peer; physical/OS-resolver/installed guard NOT_RUN',

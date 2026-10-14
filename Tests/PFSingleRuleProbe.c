@@ -92,6 +92,8 @@ static void fixed_recipe(struct pfioc_rule *request, const char *path, int kind)
         request->rule.dst.xport.range.port[0]=port;
         request->rule.dst.xport.range.port[1]=port;
         request->rule.dst.xport.range.op=2; /* PF_OP_EQ */
+        request->rule.uid.uid[0]=request->rule.uid.uid[1]=0;
+        request->rule.uid.op=PF_OP_EQ; /* fixed root-owned socket escape */
     }
 }
 

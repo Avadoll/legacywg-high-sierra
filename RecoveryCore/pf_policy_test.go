@@ -32,6 +32,9 @@ func TestPFPolicyTypedOrderingFreezeAndNativeGrammar(t *testing.T) {
 	if _, err := parsePFPolicy(strings.ReplaceAll(text, " flags any", "")); err != nil {
 		t.Fatal("equivalent native unrestricted flags display refused")
 	}
+	if _, err := parsePFPolicy(strings.ReplaceAll(text, "user = 0", "user = root")); err != nil {
+		t.Fatal("equivalent native root UID display refused")
+	}
 }
 
 func TestPFPolicyRefusesRuleInjectionUnboundedAndUnscopedFields(t *testing.T) {
@@ -73,6 +76,10 @@ func TestPFPolicyRefusesRuleInjectionUnboundedAndUnscopedFields(t *testing.T) {
 		strings.Replace(text, "udp", "tcp", 1), strings.Replace(text, "51820", "domain", 1),
 		strings.Replace(text, "51820", "051820", 1), "table <x> { 192.0.2.10 }\n" + text,
 		text + "pass out all\n", "set skip on en0\n" + text,
+		strings.Replace(text, " user = 0", "", 1),
+		strings.Replace(text, "user = 0", "user = 501", 1),
+		strings.Replace(text, "user = 0", "user != 0", 1),
+		strings.Replace(text, "user = 0", "user = { 0, 501 }", 1),
 	} {
 		if _, err := parsePFPolicy(bad); err == nil {
 			t.Fatal("unknown/wider/stateful/malformed native policy adopted")

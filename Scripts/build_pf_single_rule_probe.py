@@ -43,7 +43,7 @@ def extract_header(text):
 typedef u_int32_t pf_osfp_t;
 '''
     enums = []
-    for name in ('PF_INOUT', 'PF_PASS', 'PF_RULESET_SCRUB', 'PFTM_TCP_FIRST_PACKET'):
+    for name in ('PF_INOUT', 'PF_PASS', 'PF_RULESET_SCRUB', 'PFTM_TCP_FIRST_PACKET', 'PF_OP_NONE'):
         match = re.search(r'enum\s*\{\s*'+name+r'\b[^}]*\};', text)
         if not match: raise ValueError('Pinned ABI enum missing')
         enums.append(match.group(0))
@@ -72,6 +72,7 @@ def build_probe(build):
         'pf_rule_addr': ('addr','xport','neg'),
         'pf_addr_wrap': ('v','p','type','iflags'),
         'pf_port_range': ('port','op'),
+        'pf_rule_uid': ('uid','op'),
         'pfioc_pooladdr': ('action','ticket','anchor','addr'),
         'pfioc_trans': ('size','esize','array'),
         'pfioc_trans_e': ('rs_num','anchor','ticket'),

@@ -72,6 +72,9 @@ func compiledPFFilterFrames(anchor string, policy pfPolicy) ([]pfFilterFrame, er
 		binary.BigEndian.PutUint16(frame[port:port+2], escape.endpoint.Port())
 		binary.BigEndian.PutUint16(frame[port+2:port+4], escape.endpoint.Port())
 		frame[port+4] = 2 // PF_OP_EQ, not a range
+		// pf_rule.uid: two native uint32 UID0 bounds remain zero, op at +8.
+		// Full primary-C payload comparison measures this unsupported layout.
+		frame[pfFilterRuleOffset+976+8] = 2 // PF_OP_EQ: root-owned socket only
 		frames = append(frames, frame)
 	}
 	frames = append(frames, base("", true))
