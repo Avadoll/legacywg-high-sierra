@@ -1,0 +1,237 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceActivationAndSerializedStop",
+    "Elapsed": 4.89
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceCancellationBeforeAcquire",
+    "Elapsed": 3.12
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFReferenceEffectCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_intent_committed",
+    "Elapsed": 3.25
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_acquired_kernel",
+    "Elapsed": 3.94
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_confirmation_committed",
+    "Elapsed": 4.13
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_active_committed",
+    "Elapsed": 4.15
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_cleanup_intent_committed",
+    "Elapsed": 4.29
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_released_kernel",
+    "Elapsed": 4.74
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_reference_release_confirmation_committed",
+    "Elapsed": 5.29
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery/pf_anchor_emptied",
+    "Elapsed": 5.26
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceEffectCrashRecovery"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceEffectCrashRecovery",
+    "Elapsed": 35.05
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFReferenceOtherOwnerPreserved",
+    "Elapsed": 4.36
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 47.473
+  }
+]

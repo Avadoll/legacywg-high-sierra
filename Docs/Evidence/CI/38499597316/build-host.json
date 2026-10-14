@@ -1,0 +1,10 @@
+{
+  "source_commit": "26d5903377af46ca37b19f13f1f4ae904f7082c2",
+  "runner": "20260824.0482.1",
+  "os": "15.7.9",
+  "arch": "x86_64",
+  "xcode": "Xcode 16.4\nBuild version 16F6\n",
+  "sdk": "15.5",
+  "deployment_target": "10.13.6",
+  "target_high_sierra_test": "NOT_RUN"
+}
