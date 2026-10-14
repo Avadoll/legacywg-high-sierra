@@ -1,0 +1,11 @@
+{
+  "status": "FAILED_PACKET_TEST_NOT_ACCEPTED",
+  "source_commit": "1df9c7958a2d45fe87487a8d6515329b5154d58e",
+  "observed": "Native test panicked in internal/poll.FD.Write at the pinned Go source line389, reached from connected UDP net.Conn.Write during the initial deny probes.",
+  "cause_inference": "Pinned source line389 is the explicit invalid write-length panic. Exact returned numeric value was not retained by the sanitized reporter; kernel cause is not proven.",
+  "primary_related_issue": "https://github.com/golang/go/issues/61060",
+  "transport_change": "Official pinned Darwin StdNetBind uses unconnected WriteMsgUDP; packet fixture now uses that API. Official WireGuard and Go runtime are unchanged.",
+  "production_runtime_fix_claim": false,
+  "protected_connected_udp_and_go_dns_resolver_compatibility": "OPEN",
+  "scope": "Disposable CI synthetic traffic only; no user configuration or keys involved"
+}

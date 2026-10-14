@@ -1,0 +1,14 @@
+{
+  "cancel_preserves_active_tunnel": true,
+  "connected_replies_during_quit_confirmation": 9,
+  "encrypted_echo_during_quit_confirmation": "PASS",
+  "encrypted_round_trips": 3,
+  "helper_requests_from_test_during_modal": 0,
+  "high_sierra": "NOT_RUN",
+  "kind": "native-live-quit-cancel",
+  "mouse_accessibility": "NOT_RUN",
+  "quit_confirmation_held_seconds": 19.859336563000056,
+  "real_appkit_terminate_event": true,
+  "route_interface_restoration": "PASS",
+  "status": "PASS"
+}

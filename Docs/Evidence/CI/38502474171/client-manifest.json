@@ -1,0 +1,14 @@
+{
+  "source_commit": "7c0adcb679391e8be25cb877201f5b927a372778",
+  "kind": "limited-native-client-research",
+  "signing_mode": "ad-hoc",
+  "installer_signed": false,
+  "signed_for_distribution": false,
+  "vpn_ready": false,
+  "high_sierra_runtime": "NOT_RUN",
+  "external_server": "NOT_RUN",
+  "artifacts": {
+    "LegacyWG-research-0.2.pkg": "2f9465a225e2054f1c8cf11b6a7d2739b87178a0aeb85f5085f9ad242861f076",
+    "LegacyWG-research-0.2-app.zip": "e2de53ccafb7a3c13bcade649abd4267f2c12fdf0c18784aa4b4842355ce6a9b"
+  }
+}

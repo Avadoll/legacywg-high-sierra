@@ -189,3 +189,6 @@ Standalone source `d49b20be0097171b65b060d4f481c4964ec84845` / run38495436572 PA
 
 
 Latest source `26d5903377af46ca37b19f13f1f4ae904f7082c2`: full PF rule run38499210383 PASS6update+6stage/removal SIGKILL, journal-bound singleton Go loader, exact namespace retirement and nested foreign quick/NAT refusal/restore. Reference run38499353808 PASS8SIGKILL/other owner preserved. Full client run38499597316 and fresh 159-file worker review PASS; research artifacts verified/staged. Guard APIs remain private/unactivated; full profiles rejected. Shared pool/private ABI/privileged atomicity/physical routes/protected packets/reconnect/sleep/GUI/target/signing/full acceptance open. PF_RESEARCH.md records exact scope; goal incomplete.
+
+
+Latest packet checkpoint: source `7c0adcb679391e8be25cb877201f5b927a372778` / full PF run38502471592 PASS native owned-utun IPv4/IPv6 UDP/TCP/DNS port tests and actual owner SIGKILL persistent denial; full client run38502474171 and fresh160-file Go review PASS. Research artifacts staged; guard unactivated/full profiles rejected. Connected Go UDP/Go resolver issue remains OPEN. Next: official encrypted synthetic packet tests, then physical path/route/installed guard/full original acceptance. See PF_RESEARCH.md for precise scope. Product incomplete.
