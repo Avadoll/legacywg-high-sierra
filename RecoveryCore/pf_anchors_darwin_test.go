@@ -77,6 +77,23 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 				observeFixture(cleanup, stage)
 			}
 		}
+		// Read otherwise hidden rule classes before any additional owned flush.
+		// An unknown value is preserved; the fixture never creates these classes.
+		for _, path := range []string{child, parent} {
+			for _, kind := range []string{"dummynet", "Tables"} {
+				text, err := runOwnedPF(cleanup, "", "-a", path, "-s", kind)
+				t.Logf("enumeration fixture extra_class=%s readable=%t empty=%t", kind, err == nil, text == "")
+				if err != nil || text != "" {
+					t.Error("unknown fixture extra class preserved")
+					return
+				}
+				if _, err := runOwnedPF(cleanup, "", "-a", path, "-F", kind); err != nil {
+					t.Error("owned empty extra-class retirement failed")
+					return
+				}
+				observeFixture(cleanup, "empty-extra-class-retirement")
+			}
+		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
 		// Observe possible deferred namespace retirement without changing global
 		// timeouts, states, PF enabled status or foreign rules. Exact baseline
