@@ -6,18 +6,25 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-struct transaction_entry { int32_t kind; uint32_t ticket; char anchor[1024]; };
+struct transaction_entry { int32_t kind; char anchor[1024]; uint32_t ticket; };
 struct transaction { int32_t count, entry_size; struct transaction_entry *entries; };
 _Static_assert(sizeof(void *) == 8, "Intel LP64 only");
 _Static_assert(sizeof(struct transaction_entry) == 1032, "entry ABI");
 _Static_assert(sizeof(struct transaction) == 16, "header ABI");
+_Static_assert(offsetof(struct transaction_entry, kind) == 0, "ruleset offset");
+_Static_assert(offsetof(struct transaction_entry, anchor) == 4, "anchor offset");
+_Static_assert(offsetof(struct transaction_entry, ticket) == 1028, "ticket offset");
+_Static_assert(offsetof(struct transaction, entries) == 8, "pointer offset");
 #define BEGIN _IOWR('D', 81, struct transaction)
 #define COMMIT _IOWR('D', 82, struct transaction)
 #define ROLLBACK _IOWR('D', 83, struct transaction)
+_Static_assert(BEGIN == 0xc0104451UL && COMMIT == 0xc0104452UL &&
+    ROLLBACK == 0xc0104453UL, "request ABI");
 
 int main(int argc, char **argv) {
     const char prefix[] = "com.apple/lw-xact-ci-";

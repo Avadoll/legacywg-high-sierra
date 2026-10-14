@@ -4,9 +4,19 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
+
+func requireAbsentPFFixture(t *testing.T, tree []pfAnchorObservation, path string) {
+	t.Helper()
+	for _, node := range tree {
+		if node.path == path || strings.HasPrefix(node.path, path+"/") {
+			t.Fatal("fixture namespace already exists; preserved without mutation")
+		}
+	}
+}
 
 func TestRootPFRuleEmptyTransactionNamespace(t *testing.T) {
 	requirePFRuleCI(t)
@@ -26,6 +36,11 @@ func TestRootPFRuleEmptyTransactionNamespace(t *testing.T) {
 				t.Fatal("transaction baseline unavailable")
 			}
 			path := "com.apple/lw-xact-ci-" + probe.ID
+			tree, err := enumeratePFAnchors(ctx)
+			if err != nil {
+				t.Fatal("transaction fixture absence unavailable")
+			}
+			requireAbsentPFFixture(t, tree, path)
 			helper := os.Getenv("LEGACYWG_PF_TRANSACTION_HELPER")
 			if helper == "" {
 				t.Fatal("transaction developer fixture unavailable")
@@ -64,6 +79,7 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	}
 	parent := "com.apple/lw-enum-ci-" + probe.ID
 	child := parent + "/hidden"
+	requireAbsentPFFixture(t, baselineTree, parent)
 	observeFixture := func(ctx context.Context, stage string) {
 		tree, err := enumeratePFAnchors(ctx)
 		parentExists, childExists := false, false
