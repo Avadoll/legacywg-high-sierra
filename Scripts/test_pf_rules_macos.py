@@ -15,12 +15,16 @@ def main():
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
         '-Wall','-Wextra','-Werror',str(ROOT/'Tests/ACLProbe.c'),'-o',str(acl)],check=True,timeout=30)
+    transaction=build/'pf-transaction-probe'
+    subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
+        '-Wall','-Wextra','-Werror',str(ROOT/'Tests/PFTransactionProbe.c'),'-o',str(transaction)],check=True,timeout=30)
     go=ROOT/'.tools/go1.24.13/go/bin/go'
     env={**os.environ,'GOCACHE':str(ROOT/'.cache/macos-build'),'GOMODCACHE':str(ROOT/'.cache/gomod')}
     subprocess.run([str(go),'test','-c','-o',str(test),'./RecoveryCore'],env=env,check=True,timeout=180)
     result=subprocess.run([str(go),'tool','test2json','-p','legacywg/RecoveryCore','-t',
         '/usr/bin/sudo','-n','/usr/bin/env','GITHUB_ACTIONS=true','LEGACYWG_PF_REFERENCE_TESTS=1',
-        'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),str(test),
+        'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
+        'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),str(test),
         '-test.run=^TestRootPFRule','-test.v=test2json','-test.timeout=180s'],
         capture_output=True,text=True,env=env,timeout=210)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
@@ -31,6 +35,7 @@ def main():
     required={'TestRootPFRuleCanonicalGenerationsAndRefusals','TestRootPFRuleOwnedTunnelPolicy',
         'TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent',
         'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
+        'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
@@ -47,6 +52,8 @@ def main():
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
         'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
         'actual_nested_foreign_quick_and_nat_refused_without_mutation':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
+        'empty_single_class_transaction_namespace_retired':checked('TestRootPFRuleEmptyTransactionNamespace/single'),
+        'empty_multi_class_transaction_namespace_retired':checked('TestRootPFRuleEmptyTransactionNamespace/multi'),
         'privileged_writer_atomicity':'NOT_PROVEN',
         'power_loss':'NOT_RUN','reboot':'NOT_RUN','high_sierra':'NOT_RUN','client_request_integration':False,'protection_ready':False}
     (output/'pf-rules-ci.json').write_text(json.dumps(report,indent=2)+'\n')

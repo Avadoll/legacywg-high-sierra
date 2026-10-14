@@ -2,9 +2,46 @@ package recoverycore
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
+
+func TestRootPFRuleEmptyTransactionNamespace(t *testing.T) {
+	requirePFRuleCI(t)
+	for _, mode := range []string{"single", "multi"} {
+		t.Run(mode, func(t *testing.T) {
+			store := realBootStore(t, ownedReferenceTestDirectory(t))
+			defer store.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+			empty := pfDigest("")
+			probe, err := NewPFRecord(store.boot, pfDigest(stagedPFRule), empty, empty, empty)
+			if err != nil {
+				t.Fatal("transaction fixture identity unavailable")
+			}
+			before, err := readDisabledPF(ctx, probe.Anchor)
+			if err != nil {
+				t.Fatal("transaction baseline unavailable")
+			}
+			path := "com.apple/lw-xact-ci-" + probe.ID
+			helper := os.Getenv("LEGACYWG_PF_TRANSACTION_HELPER")
+			if helper == "" {
+				t.Fatal("transaction developer fixture unavailable")
+			}
+			command := exec.CommandContext(ctx, helper, path, mode)
+			command.Env = []string{"GITHUB_ACTIONS=true"}
+			if command.Run() != nil {
+				t.Fatal("empty transaction operation failed")
+			}
+			after, err := readDisabledPF(ctx, probe.Anchor)
+			if err != nil || after != before {
+				t.Fatalf("empty %s transaction did not retire namespace: readable=%t root_same=%t filter_tree_same=%t nat_tree_same=%t", mode, err == nil, before.root == after.root, before.recursive == after.recursive, before.nat == after.nat)
+			}
+		})
+	}
+}
 
 func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	requirePFRuleCI(t)

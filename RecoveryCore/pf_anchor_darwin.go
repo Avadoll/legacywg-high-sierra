@@ -238,6 +238,22 @@ func (store *Store) finishPFAnchor(ctx context.Context, requireDisabled bool) er
 	if err != nil || !after.matches(*record) || after.rules != pfDigest("") || !samePFReferences(references, confirmedReferences) || !store.pfRemovalOwner(*record) {
 		return ErrRecoveryRequired
 	}
+	// Empty rule text does not prove that the owned namespace was retired.
+	// Preserve the journal when the kernel still enumerates our anchor, even
+	// if it contains no rules. Never discard ownership of a retained node.
+	tree, err := enumeratePFAnchors(ctx)
+	if err != nil {
+		return ErrRecoveryRequired
+	}
+	filterHash, natHash, err := pfEnumeratedDigests(tree, record.Anchor)
+	if err != nil || filterHash != record.RecursiveSHA256 || natHash != record.NATSHA256 {
+		return ErrRecoveryRequired
+	}
+	for _, node := range tree {
+		if node.path == record.Anchor || strings.HasPrefix(node.path, record.Anchor+"/") {
+			return ErrRecoveryRequired
+		}
+	}
 	if record.Phase != PFAnchorRemoved {
 		next, err := record.Advance(PFAnchorRemoved, record.ReferenceAfter, record.ReferenceBefore, record.Reference)
 		if err != nil || store.commitOwnedPF(next) != nil {
