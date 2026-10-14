@@ -29,6 +29,28 @@ type pfPacketObservation struct {
 	counts map[pfPacketKey]int
 }
 
+// Match the unconnected WriteMsgUDP API used by official StdNetBind on Darwin.
+// Connected UDP Write is a separate observed runtime/kernel compatibility issue.
+type pfFixtureUDPConnection struct {
+	*net.UDPConn
+	destination *net.UDPAddr
+}
+
+func (connection *pfFixtureUDPConnection) Write(data []byte) (int, error) {
+	n, _, err := connection.WriteMsgUDP(data, nil, connection.destination)
+	return n, err
+}
+
+func (connection *pfFixtureUDPConnection) Read(data []byte) (int, error) {
+	n, address, err := connection.ReadFromUDP(data)
+	if err == nil && (!address.IP.Equal(connection.destination.IP) || address.Port != connection.destination.Port) {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return n, err
+}
+
+func (connection *pfFixtureUDPConnection) RemoteAddr() net.Addr { return connection.destination }
+
 func (capture *pfPacketObservation) observe(packet []byte) {
 	var family, protocol, offset int
 	if len(packet) >= 20 && packet[0]>>4 == 4 {
@@ -251,7 +273,7 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		}
 		key := pfPacketKey{family, protocol, port}
 		prior := capture.count(key)
-		dialer := net.Dialer{Timeout: 650 * time.Millisecond, Control: func(_, _ string, raw syscall.RawConn) error {
+		bind := func(raw syscall.RawConn) error {
 			var result error
 			err := raw.Control(func(fd uintptr) {
 				level, option := unix.IPPROTO_IP, unix.IP_BOUND_IF
@@ -264,13 +286,28 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 				return err
 			}
 			return result
-		}}
-		if protocol == 6 {
-			dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(source)}
-		} else {
-			dialer.LocalAddr = &net.UDPAddr{IP: net.ParseIP(source)}
 		}
-		connection, err := dialer.DialContext(ctx, network, net.JoinHostPort(address, fmtPort(port)))
+		var connection net.Conn
+		var err error
+		if protocol == 6 {
+			dialer := net.Dialer{Timeout: 650 * time.Millisecond, LocalAddr: &net.TCPAddr{IP: net.ParseIP(source)}, Control: func(_, _ string, raw syscall.RawConn) error { return bind(raw) }}
+			connection, err = dialer.DialContext(ctx, network, net.JoinHostPort(address, fmtPort(port)))
+		} else {
+			udp, listenErr := net.ListenUDP(network, &net.UDPAddr{IP: net.ParseIP(source)})
+			err = listenErr
+			if err == nil {
+				raw, rawErr := udp.SyscallConn()
+				err = rawErr
+				if err == nil {
+					err = bind(raw)
+				}
+				if err != nil {
+					udp.Close()
+				} else {
+					connection = &pfFixtureUDPConnection{udp, &net.UDPAddr{IP: net.ParseIP(address), Port: port}}
+				}
+			}
+		}
 		succeeded := false
 		if err == nil {
 			_ = connection.SetDeadline(time.Now().Add(650 * time.Millisecond))
