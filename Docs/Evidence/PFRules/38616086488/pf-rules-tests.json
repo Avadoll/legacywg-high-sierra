@@ -1,0 +1,572 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEmptyTransactionNamespace"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEmptyTransactionNamespace"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEmptyTransactionNamespace"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEmptyTransactionNamespace"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleEmptyTransactionNamespace",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEnumerationForeignFilterAndNATRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEnumerationForeignFilterAndNATRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEnumerationForeignFilterAndNATRefused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEnumerationForeignFilterAndNATRefused",
+    "Elapsed": 1.67
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEncryptedPackets/outer4",
+    "Elapsed": 56.29
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEncryptedPackets/outer6",
+    "Elapsed": 65.07
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEncryptedPackets",
+    "Elapsed": 121.36
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleLoaderCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_begin_kernel",
+    "Elapsed": 4.6
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_rules_staged_kernel",
+    "Elapsed": 4.69
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/stage/pf_filter_transaction_committed_kernel",
+    "Elapsed": 5.63
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_begin_kernel",
+    "Elapsed": 9.35
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_rules_staged_kernel",
+    "Elapsed": 8.32
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery/remove/pf_filter_transaction_committed_kernel",
+    "Elapsed": 7.22
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleLoaderCrashRecovery"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleLoaderCrashRecovery",
+    "Elapsed": 39.83
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRulePacketGuardCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRulePacketGuardCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRulePacketGuardCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRulePacketGuardCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRulePacketGuardCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleNativePackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleNativePackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleNativePackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleNativePackets",
+    "Elapsed": 36.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleCanonicalGenerationsAndRefusals",
+    "Elapsed": 10.38
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedTunnelPolicy",
+    "Elapsed": 6.03
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleCanceledAndThirdHashRemainBoundToIntent",
+    "Elapsed": 8.81
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleEffectCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_intent_committed",
+    "Elapsed": 6.17
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_loaded_kernel",
+    "Elapsed": 6.15
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_rule_update_confirmation_committed",
+    "Elapsed": 5.63
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_begin_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_begin_kernel",
+    "Elapsed": 6.03
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_rules_staged_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_rules_staged_kernel",
+    "Elapsed": 6.71
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_committed_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution/pf_filter_transaction_committed_kernel",
+    "Elapsed": 6.55
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEffectCrashResolution"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEffectCrashResolution",
+    "Elapsed": 37.24
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-deny"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-deny"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-deny"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-deny",
+    "Elapsed": 0.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-loopback"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-loopback"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-loopback"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-loopback",
+    "Elapsed": 0.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp4",
+    "Elapsed": 0.01
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI/emit-udp6",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassCodecPrimaryABI",
+    "Elapsed": 0.02
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSingleClassRealPolicy"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSingleClassRealPolicy",
+    "Elapsed": 6.84
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 268.232
+  }
+]

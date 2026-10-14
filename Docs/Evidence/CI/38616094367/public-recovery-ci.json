@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "startup_corrupt_journal": "PASS",
+  "blocked_start_recover_stop": "PASS",
+  "ambiguous_record_preserved": "PASS",
+  "explicit_recovery_idempotent": "PASS",
+  "startup_stale_journal_cleanup": "PASS",
+  "no_connection_intent_or_interface_created": "PASS",
+  "high_sierra": "NOT_RUN"
+}

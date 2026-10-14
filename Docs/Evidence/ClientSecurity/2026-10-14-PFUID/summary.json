@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T18:39:17.583624+00:00",
+  "source_commit": "92bb44033b09b3534657f682bd5950ddb1878bac",
+  "analyzer": "v1.8.0",
+  "target": "darwin/amd64",
+  "binary": "legacywg-worker-PFUID-darwin-amd64",
+  "binary_sha256": "d98d77db280a82c5e35c111f8d42e86a01fd80145c29dc049c7c3bf21b2d3b16",
+  "limitation": "Limited Go analysis; does not audit Objective-C, installation, target OS or all attack paths",
+  "results": [
+    {
+      "kind": "binary",
+      "exit_code": 0,
+      "status": "PASS",
+      "all_finding_count": 90,
+      "unreviewed_symbol_findings": [],
+      "reviewed_exclusions": [
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        }
+      ]
+    },
+    {
+      "kind": "source",
+      "exit_code": 0,
+      "status": "PASS",
+      "all_finding_count": 92,
+      "unreviewed_symbol_findings": [],
+      "reviewed_exclusions": [
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4971",
+          "status": "NOT_APPLICABLE",
+          "target": "darwin/amd64",
+          "reason": "Official advisory explicitly limits the NUL panic to Windows",
+          "source": "https://pkg.go.dev/vuln/GO-2026-4971"
+        }
+      ]
+    }
+  ],
+  "source_identity": {
+    "status": "PASS",
+    "files": 162,
+    "manifest_sha256": "6d057900c4ecce215e30c5b929510710b87d226967d9734cd107b627cb1e88f2",
+    "scope": "production Go tree including test/build-specific files; dependencies additionally pinned by lock"
+  }
+}
