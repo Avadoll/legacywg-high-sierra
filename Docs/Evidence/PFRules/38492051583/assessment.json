@@ -1,0 +1,11 @@
+{
+  "status": "REJECTED_INVALID_EXPERIMENT",
+  "run": "38492051583",
+  "source_commit": "fb553afa3cc96c5439b94684cfbe745f1135c383",
+  "reason": "C transaction projection placed ticket before anchor; XNU requires kind, anchor, ticket. Zero ticket at native anchor offset selected root instead of random fixture. Empty filter commit changed disposable CI root filter and subsequent admission refused.",
+  "kernel_transaction_retirement_conclusion": "INVALID",
+  "client_package_contains_probe": false,
+  "corrected_source": "28f159a643bcc21a4c26f6e5c45031283fa32020",
+  "correction": "Anchor offset4, ticket offset1028, header pointer offset8 and full ioctl values compile-time asserted; names must be absent before mutation.",
+  "release_approved": false
+}
