@@ -52,16 +52,21 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 		}
 		// Drop the parent's owned reference before retiring the child; clearing
 		// a referenced child first can leave empty namespace nodes behind.
-		if _, err := runOwnedPF(cleanup, "", "-a", parent, "-f", "-"); err != nil {
+		if _, err := runOwnedPF(cleanup, "", "-R", "-a", parent, "-f", "-"); err != nil {
 			t.Error("owned enumeration parent cleanup failed")
 			return
 		}
 		observeFixture(cleanup, "parent-empty-load")
-		if _, err := runOwnedPF(cleanup, "", "-a", child, "-f", "-"); err != nil {
+		if _, err := runOwnedPF(cleanup, "", "-N", "-a", child, "-f", "-"); err != nil {
 			t.Error("owned enumeration child cleanup failed")
 			return
 		}
 		observeFixture(cleanup, "child-empty-load")
+		if _, err := runOwnedPF(cleanup, "", "-R", "-a", child, "-f", "-"); err != nil {
+			t.Error("owned child filter retirement failed")
+			return
+		}
+		observeFixture(cleanup, "child-filter-empty-load")
 		// Fixed owned ruleset modifiers only. Never -F all/states, global scope,
 		// enable/disable, or an unknown/foreign anchor cleanup operation.
 		for _, path := range []string{parent, child} {
@@ -127,7 +132,7 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 			t.Errorf("enumeration cleanup detail: tree_readable=%t baseline_nodes=%d final_nodes=%d new_fixture_nodes=%d new_other_nodes=%d changed_existing_content=%d", treeErr == nil, len(baselineTree), len(tree), newFixture, newOther, changedContent)
 		}
 	}()
-	if _, err := runOwnedPF(ctx, parentRule, "-o", "none", "-a", parent, "-f", "-"); err != nil {
+	if _, err := runOwnedPF(ctx, parentRule, "-R", "-o", "none", "-a", parent, "-f", "-"); err != nil {
 		t.Fatal("owned nested fixture parent setup failed")
 	}
 	parentText, err := readPFAnchorText(ctx, parent, "rules")
@@ -136,7 +141,7 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	}
 	parentHash = pfDigest(parentText)
 	const quick = "pass out quick all flags any no state\n"
-	if _, err := runOwnedPF(ctx, quick, "-o", "none", "-a", child, "-f", "-"); err != nil {
+	if _, err := runOwnedPF(ctx, quick, "-R", "-o", "none", "-a", child, "-f", "-"); err != nil {
 		t.Fatal("owned hidden quick-rule fixture setup failed")
 	}
 	filter, err := readPFAnchorText(ctx, child, "rules")
@@ -164,7 +169,10 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	// Deliberately replace ONLY this fixture with a known NAT rule. PF remains
 	// disabled; no actual traffic, global policy or third-party node is changed.
 	const natRule = "nat on lo0 inet from 198.18.99.0/24 to any -> 127.0.0.1\n"
-	if _, err := runOwnedPF(ctx, natRule, "-o", "none", "-a", child, "-f", "-"); err != nil {
+	if _, err := runOwnedPF(ctx, "", "-R", "-a", child, "-f", "-"); err != nil {
+		t.Fatal("owned fixture filter-to-NAT retirement failed")
+	}
+	if _, err := runOwnedPF(ctx, natRule, "-N", "-o", "none", "-a", child, "-f", "-"); err != nil {
 		t.Fatal("owned hidden NAT fixture setup failed")
 	}
 	filter, err = readPFAnchorText(ctx, child, "rules")
