@@ -27,6 +27,15 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 	}
 	parent := "com.apple/lw-enum-ci-" + probe.ID
 	child := parent + "/hidden"
+	observeFixture := func(ctx context.Context, stage string) {
+		tree, err := enumeratePFAnchors(ctx)
+		parentExists, childExists := false, false
+		for _, node := range tree {
+			parentExists = parentExists || node.path == parent
+			childExists = childExists || node.path == child
+		}
+		t.Logf("enumeration fixture stage=%s readable=%t parent_present=%t child_present=%t nodes=%d", stage, err == nil, parentExists, childExists, len(tree))
+	}
 	const parentRule = "anchor \"hidden\" all\n"
 	var parentHash, filterHash, natHash string
 	// Cleanup authority covers only our two random, separately named fixture
@@ -47,10 +56,12 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 			t.Error("owned enumeration parent cleanup failed")
 			return
 		}
+		observeFixture(cleanup, "parent-empty-load")
 		if _, err := runOwnedPF(cleanup, "", "-a", child, "-f", "-"); err != nil {
 			t.Error("owned enumeration child cleanup failed")
 			return
 		}
+		observeFixture(cleanup, "child-empty-load")
 		// Fixed owned ruleset modifiers only. Never -F all/states, global scope,
 		// enable/disable, or an unknown/foreign anchor cleanup operation.
 		for _, path := range []string{parent, child} {
@@ -59,6 +70,11 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 					t.Error("owned enumeration fixed ruleset retirement failed")
 					return
 				}
+				stage := "parent-" + kind + "-flush"
+				if path == child {
+					stage = "child-" + kind + "-flush"
+				}
+				observeFixture(cleanup, stage)
 			}
 		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
