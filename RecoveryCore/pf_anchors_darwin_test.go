@@ -41,12 +41,14 @@ func TestRootPFRuleEnumerationForeignFilterAndNATRefused(t *testing.T) {
 			t.Error("changed enumeration fixture retained after cleanup refusal")
 			return
 		}
-		if _, err := runOwnedPF(cleanup, "", "-a", child, "-f", "-"); err != nil {
-			t.Error("owned enumeration child cleanup failed")
-			return
-		}
+		// Drop the parent's owned reference before retiring the child; clearing
+		// a referenced child first can leave empty namespace nodes behind.
 		if _, err := runOwnedPF(cleanup, "", "-a", parent, "-f", "-"); err != nil {
 			t.Error("owned enumeration parent cleanup failed")
+			return
+		}
+		if _, err := runOwnedPF(cleanup, "", "-a", child, "-f", "-"); err != nil {
+			t.Error("owned enumeration child cleanup failed")
 			return
 		}
 		after, err := readDisabledPF(cleanup, probe.Anchor)
