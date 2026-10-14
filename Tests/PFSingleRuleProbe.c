@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include "pf_rule_abi.h"
 
 _Static_assert(sizeof(void *) == 8 && sizeof(struct pfioc_trans) == 16, "LP64 ABI");
@@ -71,18 +72,36 @@ static int current_policy(int fd, const char *path) {
     return (int)count;
 }
 
+/* Fixed read-only recipe vectors also validate the product Go codec against
+ * actual primary C declarations. UDP recipes are emitted, never loaded here. */
+static void fixed_recipe(struct pfioc_rule *request, const char *path, int kind) {
+    memset(request,0,sizeof(*request));
+    memcpy(request->anchor,path,strlen(path)+1);
+    request->rule.action=kind ? PF_PASS : PF_DROP;
+    request->rule.direction=PF_OUT;request->rule.quick=1;
+    request->rule.rtableid=0; /* Apple's IFSCOPE_NONE */
+    if (kind) memcpy(request->rule.ifname,"lo0",4);
+    if (kind >= 2) {
+        int family=kind == 2 ? AF_INET : AF_INET6;
+        request->rule.af=family;request->rule.proto=IPPROTO_UDP;
+        (void)inet_pton(family,kind == 2 ? "127.0.0.1" : "::1",&request->rule.src.addr.v.a.addr);
+        (void)inet_pton(family,kind == 2 ? "127.0.0.2" : "::2",&request->rule.dst.addr.v.a.addr);
+        memset(&request->rule.src.addr.v.a.mask,255,kind == 2 ? 4 : 16);
+        memset(&request->rule.dst.addr.v.a.mask,255,kind == 2 ? 4 : 16);
+        uint16_t port=htons(kind == 2 ? 53 : 443);
+        request->rule.dst.xport.range.port[0]=port;
+        request->rule.dst.xport.range.port[1]=port;
+        request->rule.dst.xport.range.op=2; /* PF_OP_EQ */
+    }
+}
+
 static int stage_rule(int fd, const char *path, unsigned ticket, int loopback) {
     struct pfioc_pooladdr pool = {0};
     memcpy(pool.anchor,path,strlen(path)+1);
     if (ioctl(fd,DIOCBEGINADDRS,&pool) != 0) return -1;
-    struct pfioc_rule request = {0};
-    memcpy(request.anchor,path,strlen(path)+1);
+    struct pfioc_rule request;
+    fixed_recipe(&request,path,loopback ? 1 : 0);
     request.ticket=ticket;request.pool_ticket=pool.ticket;
-    request.rule.action=loopback ? PF_PASS : PF_DROP;
-    request.rule.direction=PF_OUT;request.rule.quick=1;
-    /* Apple's default rule uses IFSCOPE_NONE (0), not OpenBSD's -1. */
-    request.rule.rtableid=0;
-    if (loopback) memcpy(request.rule.ifname,"lo0",4);
     return ioctl(fd,DIOCADDRULE,&request);
 }
 
@@ -93,11 +112,23 @@ static void crash_checkpoint(void) {
 }
 
 int main(int argc, char **argv) {
-    const char prefix[]="com.apple/lw-rule-ci-";
+    if (argc != 3) return 2;
+    int emit=-1;
+    if (!strcmp(argv[2],"emit-deny")) emit=0;
+    if (!strcmp(argv[2],"emit-loopback")) emit=1;
+    if (!strcmp(argv[2],"emit-udp4")) emit=2;
+    if (!strcmp(argv[2],"emit-udp6")) emit=3;
+    const char *prefix=emit >= 0 ? "com.apple/legacywg-" : "com.apple/lw-rule-ci-";
+    size_t prefix_length=strlen(prefix);
     const char *ci=getenv("GITHUB_ACTIONS");
-    if (argc != 3 || geteuid() != 0 || !ci || strcmp(ci,"true") ||
-        strncmp(argv[1],prefix,sizeof(prefix)-1) || strlen(argv[1]) != sizeof(prefix)-1+32 ||
-        strspn(argv[1]+sizeof(prefix)-1,"0123456789abcdef") != 32) return 2;
+    if (geteuid() != 0 || !ci || strcmp(ci,"true") ||
+        strncmp(argv[1],prefix,prefix_length) || strlen(argv[1]) != prefix_length+32 ||
+        strspn(argv[1]+prefix_length,"0123456789abcdef") != 32) return 2;
+    if (emit >= 0) {
+        struct pfioc_rule request;
+        fixed_recipe(&request,argv[1],emit);
+        return fwrite(&request,1,sizeof(request),stdout) == sizeof(request) ? 0 : 10;
+    }
     int deny=strcmp(argv[2],"deny") == 0, loopback=strcmp(argv[2],"loopback") == 0;
     int rollback=strcmp(argv[2],"rollback") == 0, clear=strcmp(argv[2],"clear") == 0;
     int crash_begin=strcmp(argv[2],"crash-begin") == 0;

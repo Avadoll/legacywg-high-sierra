@@ -2,13 +2,50 @@ package recoverycore
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"net/netip"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestRootPFRuleSingleClassCodecPrimaryABI(t *testing.T) {
+	requirePFRuleCI(t)
+	helper := os.Getenv("LEGACYWG_PF_SINGLE_RULE_HELPER")
+	if helper == "" {
+		t.Skip("explicit primary ABI helper required")
+	}
+	anchor := "com.apple/legacywg-0123456789abcdef0123456789abcdef"
+	fixtures := []struct {
+		mode   string
+		policy pfPolicy
+	}{
+		{"emit-deny", pfPolicy{}},
+		{"emit-loopback", pfPolicy{loopback: true}},
+		{"emit-udp4", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("127.0.0.1"), endpoint: netip.MustParseAddrPort("127.0.0.2:53")}}}},
+		{"emit-udp6", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("::1"), endpoint: netip.MustParseAddrPort("[::2]:443")}}}},
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.mode, func(t *testing.T) {
+			frames, err := compiledPFFilterFrames(anchor, fixture.policy)
+			if err != nil || len(frames) < 1 {
+				t.Fatal("typed Go frame unavailable")
+			}
+			ctx, stop := context.WithTimeout(context.Background(), 8*time.Second)
+			defer stop()
+			command := exec.CommandContext(ctx, helper, anchor, fixture.mode)
+			command.Env = []string{"GITHUB_ACTIONS=true"}
+			var output pfBoundedOutput
+			command.Stdout = &output
+			if command.Run() != nil || output.Len() != pfFilterFrameSize || !bytes.Equal(output.Bytes(), frames[0][:]) {
+				t.Fatal("complete Go rule frame differs from compiled primary struct")
+			}
+		})
+	}
+}
 
 // Standalone developer prototype, not the installed guard coordinator. The
 // fixture owns one absent nonce leaf; exact foreign tree and final absence are

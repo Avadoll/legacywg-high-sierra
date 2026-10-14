@@ -30,7 +30,7 @@ def main():
         'LEGACYWG_PF_RULE_TESTS=1','LEGACYWG_ACL_TEST_HELPER='+str(acl),
         'LEGACYWG_PF_TRANSACTION_HELPER='+str(transaction),
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),str(test),
-        '-test.run='+('^TestRootPFRuleSingleClassRealPolicy$' if scope=='single-class' else '^TestRootPFRule'),
+        '-test.run='+('^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$' if scope=='single-class' else '^TestRootPFRule'),
         '-test.v=test2json','-test.timeout=180s'],
         capture_output=True,text=True,env=env,timeout=210)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
@@ -43,7 +43,7 @@ def main():
         'TestRootPFRuleEnumerationForeignFilterAndNATRefused',
         'TestRootPFRuleEmptyTransactionNamespace',
         'TestRootPFRuleEffectCrashResolution'}|{'TestRootPFRuleEffectCrashResolution/'+stage for stage in stages}
-    if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy'}
+    if scope=='single-class':required={'TestRootPFRuleSingleClassRealPolicy','TestRootPFRuleSingleClassCodecPrimaryABI'}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -62,6 +62,7 @@ def main():
         'standalone_exact_namespace_cycles':3 if 'TestRootPFRuleSingleClassRealPolicy' in passed else 0,
         'standalone_actual_sigkill_checkpoints':3 if 'TestRootPFRuleSingleClassRealPolicy' in passed else 0,
         'standalone_own_inactive_queue_cleanup_after_sigkill':checked('TestRootPFRuleSingleClassRealPolicy'),
+        'go_rule_codec_complete_primary_struct_comparison':checked('TestRootPFRuleSingleClassCodecPrimaryABI'),
         'shared_pool_staging':'USED_NOT_ATOMIC','production_loader_integration':False,
         'packet_leak_captures':'NOT_RUN','physical_scoped_endpoint_path':'NOT_RUN','interface_generation_reuse':'NOT_RUN',
         'bounded_direct_kernel_anchor_enumeration':checked('TestRootPFRuleEnumerationForeignFilterAndNATRefused'),
