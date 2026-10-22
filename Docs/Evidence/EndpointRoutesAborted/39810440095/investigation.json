@@ -1,0 +1,9 @@
+{
+  "status": "CANCELLED_UNVERIFIED",
+  "source_commit": "4f79c207cc94c2a4cd9d36365fc134f7cb7faf88",
+  "native_test_result": "NOT_AVAILABLE",
+  "artifact_download": "NO_ARTIFACT_OBSERVED",
+  "reason": "Cancellation then force-cancellation requested after static review established offset0 in new native utun competing-reader fixture; NativeTun requires4-byte headroom. No native result is inferred for this run.",
+  "fixed_source": "f02890a3aa08e21cbd1e87523aa4b2b28396e0eb",
+  "replacement_focused_run": "39812129604"
+}

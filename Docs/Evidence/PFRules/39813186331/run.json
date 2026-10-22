@@ -1,0 +1,75 @@
+{
+  "conclusion": "",
+  "headSha": "f02890a3aa08e21cbd1e87523aa4b2b28396e0eb",
+  "jobs": [
+    {
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "databaseId": 119944673509,
+      "name": "native-rules",
+      "startedAt": "2026-10-22T16:20:30Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T16:20:14Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T16:20:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:20:19Z",
+          "conclusion": "success",
+          "name": "Check out reviewed rule coordinator",
+          "number": 2,
+          "startedAt": "2026-10-22T16:20:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:20:58Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-22T16:20:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:21:05Z",
+          "conclusion": "success",
+          "name": "Verify native routing header offsets",
+          "number": 4,
+          "startedAt": "2026-10-22T16:20:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Measure actual typed rule generations and crash resolution",
+          "number": 5,
+          "startedAt": "2026-10-22T16:21:05Z",
+          "status": "in_progress"
+        },
+        {
+          "completedAt": "2026-10-22T16:36:48Z",
+          "conclusion": "success",
+          "name": "Save sanitized rule generation evidence",
+          "number": 6,
+          "startedAt": "2026-10-22T16:36:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Post Check out reviewed rule coordinator",
+          "number": 12,
+          "startedAt": "2026-10-22T16:36:48Z",
+          "status": "in_progress"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39813186331/job/119944673509"
+    }
+  ],
+  "status": "in_progress",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39813186331"
+}

@@ -1,0 +1,75 @@
+{
+  "conclusion": "success",
+  "headSha": "60d4d9807adf973f8c625a234446fadaf4bc8677",
+  "jobs": [
+    {
+      "completedAt": "2026-10-22T15:55:37Z",
+      "conclusion": "success",
+      "databaseId": 119930594498,
+      "name": "native-endpoint-paths",
+      "startedAt": "2026-10-22T15:54:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T15:54:38Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T15:54:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:54:41Z",
+          "conclusion": "success",
+          "name": "Check out reviewed endpoint path queries",
+          "number": 2,
+          "startedAt": "2026-10-22T15:54:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:55:02Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-22T15:54:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:55:28Z",
+          "conclusion": "success",
+          "name": "Check decoder invariants and characterize egress without mutation",
+          "number": 4,
+          "startedAt": "2026-10-22T15:55:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:55:30Z",
+          "conclusion": "success",
+          "name": "Save sanitized endpoint path evidence",
+          "number": 5,
+          "startedAt": "2026-10-22T15:55:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:55:32Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed endpoint path queries",
+          "number": 10,
+          "startedAt": "2026-10-22T15:55:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T15:55:34Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-22T15:55:32Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39809219588/job/119930594498"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39809219588"
+}

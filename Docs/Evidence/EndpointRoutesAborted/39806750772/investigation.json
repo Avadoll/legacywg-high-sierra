@@ -1,0 +1,8 @@
+{
+  "status": "CANCELLED_UNVERIFIED",
+  "source_commit": "41f3e9606421749c86002cef8f66cc5744db6786",
+  "native_test_result": "NOT_AVAILABLE",
+  "artifact_download": "NO_ARTIFACT_OBSERVED",
+  "reason": "Cancellation requested after independent wire run39808607023 established IPv6 static direct-route LLINFO mismatch in the source under test. No native result is inferred for this run.",
+  "related_wire_run": "39808607023"
+}

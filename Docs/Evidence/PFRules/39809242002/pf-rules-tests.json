@@ -1,0 +1,29 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointWire",
+    "Elapsed": 0.08
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 0.13
+  }
+]

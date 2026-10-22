@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "tested_source_commit": "4f79c207cc94c2a4cd9d36365fc134f7cb7faf88",
+  "current_source_commit": "f02890a3aa08e21cbd1e87523aa4b2b28396e0eb",
+  "native_run": "39810386824",
+  "unchanged_components": [
+    "NetworkCore",
+    "Tests/RouteHeaderProbe.c",
+    "Scripts/test_endpoint_paths_macos.py",
+    ".github/workflows/endpoint-paths.yml"
+  ],
+  "method": "git diff --name-only between exact commits is empty for all listed components",
+  "limitation": "Reuse is limited to unchanged endpoint query/header tests; worker/source security scan is fresh."
+}

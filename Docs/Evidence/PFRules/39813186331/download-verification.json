@@ -1,0 +1,15 @@
+{
+  "run_id": "39813186331",
+  "source_commit": "f02890a3aa08e21cbd1e87523aa4b2b28396e0eb",
+  "artifact_id": 12442331446,
+  "sha256": "c7a13aa7db1225d1025cd5917d532544aa571fcbc5ddb9bf1dd49291cc98bf42",
+  "embedded_source": "PASS",
+  "report_sha256": "f12d7793b8fa8d769bd24cb06d631fbfef8b315717e49c6eee1208126c66f044",
+  "artifact_bytes": 4892,
+  "checked_at": "2026-10-22T16:39:46.564883+00:00",
+  "native_report_status": "PASS",
+  "required_tests_and_package_pass": "PASS",
+  "observed_workflow_status": "in_progress",
+  "observed_workflow_conclusion": "",
+  "limitation": "Native artifact and complete test events PASS. Run status is preserved exactly as observed; no terminal workflow success is inferred."
+}

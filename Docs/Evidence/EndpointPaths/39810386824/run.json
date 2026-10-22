@@ -1,0 +1,83 @@
+{
+  "conclusion": "success",
+  "headSha": "4f79c207cc94c2a4cd9d36365fc134f7cb7faf88",
+  "jobs": [
+    {
+      "completedAt": "2026-10-22T16:03:06Z",
+      "conclusion": "success",
+      "databaseId": 119934739810,
+      "name": "native-endpoint-paths",
+      "startedAt": "2026-10-22T16:02:05Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T16:02:09Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T16:02:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:02:12Z",
+          "conclusion": "success",
+          "name": "Check out reviewed endpoint path queries",
+          "number": 2,
+          "startedAt": "2026-10-22T16:02:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:02:39Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-22T16:02:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:02:42Z",
+          "conclusion": "success",
+          "name": "Verify native routing header offsets",
+          "number": 4,
+          "startedAt": "2026-10-22T16:02:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:03:01Z",
+          "conclusion": "success",
+          "name": "Check decoder invariants and characterize egress without mutation",
+          "number": 5,
+          "startedAt": "2026-10-22T16:02:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:03:03Z",
+          "conclusion": "success",
+          "name": "Save sanitized endpoint path evidence",
+          "number": 6,
+          "startedAt": "2026-10-22T16:03:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:03:03Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed endpoint path queries",
+          "number": 12,
+          "startedAt": "2026-10-22T16:03:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T16:03:03Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-10-22T16:03:03Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39810386824/job/119934739810"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39810386824"
+}

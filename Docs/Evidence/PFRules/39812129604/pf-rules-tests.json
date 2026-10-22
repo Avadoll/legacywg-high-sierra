@@ -1,0 +1,237 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointWire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointWire",
+    "Elapsed": 0.06
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointLifecycle"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointLifecycle",
+    "Elapsed": 16.9
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointGuestGateway"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointGuestGateway"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointGuestGateway"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointGuestGateway",
+    "Elapsed": 14.93
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleOwnedEndpointCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_plan_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_plan_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_plan_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_plan_committed",
+    "Elapsed": 12.05
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_add_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_add_intent_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_add_intent_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_add_intent_committed",
+    "Elapsed": 11.22
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_added_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_added_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_added_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_added_kernel",
+    "Elapsed": 8.58
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_installed_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_installed_committed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_installed_committed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_installed_committed",
+    "Elapsed": 7.47
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_deleted_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_deleted_kernel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_deleted_kernel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery/endpoint_deleted_kernel",
+    "Elapsed": 10.96
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointCrashRecovery",
+    "Elapsed": 50.37
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer4",
+    "Elapsed": 29.92
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets/outer6",
+    "Elapsed": 30.4
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnedEndpointEncryptedPackets",
+    "Elapsed": 60.32
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 142.63
+  }
+]
