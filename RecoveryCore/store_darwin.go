@@ -29,6 +29,9 @@ type Store struct {
 	record    Record
 	closed    bool
 	mutex     sync.Mutex
+	// A private transport pins the journal until its sockets have been retired
+	// under verified deny-only policy and it has explicitly detached.
+	pfTransport *pfGuardBind
 	// Only compiled native tests install a checkpoint callback; no callback
 	// or crash-injection operation is reachable from a production request.
 	checkpoint func(string)
@@ -391,7 +394,9 @@ func (store *Store) Close() {
 }
 
 func (store *Store) closeLocked() {
-	if store.closed {
+	// Never abandon the journal lock of a retained transport. Its owner must
+	// reconcile/close and detach first; calling Close does not release its port.
+	if store.closed || store.pfTransport != nil {
 		return
 	}
 	store.closed = true

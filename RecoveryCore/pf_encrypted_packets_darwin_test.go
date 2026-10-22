@@ -282,11 +282,21 @@ func TestRootPFRuleEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable encrypted packet test")
 	}
 	for _, outerFamily := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily) })
+		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false) })
 	}
 }
 
-func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
+func TestRootPFRuleGuardedEncryptedPackets(t *testing.T) {
+	requirePFRuleCI(t)
+	if os.Getenv("LEGACYWG_PF_ENCRYPTED_PACKET_TESTS") != "1" {
+		t.Skip("explicit disposable guarded transport test")
+	}
+	for _, family := range []int{4, 6} {
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true) })
+	}
+}
+
+func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
@@ -333,6 +343,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	var listeners []net.Listener
 	var datagrams []net.PacketConn
 	var client, peer *device.Device
+	var guarded *pfGuardBind
 	defer func() {
 		for _, l := range listeners {
 			l.Close()
@@ -344,6 +355,20 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	defer func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 25*time.Second)
 		defer stop()
+		if guarded != nil {
+			if client != nil {
+				client.Close()
+				client = nil
+			}
+			if guarded.retained && guarded.reconcile(cleanup) != nil {
+				t.Error("guarded socket ownership retained after cleanup refusal")
+				return
+			}
+			if !guarded.detached && guarded.detach() != nil {
+				t.Error("guarded journal detachment refused")
+				return
+			}
+		}
 		failed := store.pfResidue() && store.recoverPFLifecycle(cleanup) != nil
 		if client != nil {
 			client.Close()
@@ -394,7 +419,21 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 		remote, source = pfPacketServer6, "fd00:198:18:99::129"
 	}
 	clientBind := &pfObservedBind{Bind: conn.NewStdNetBind()}
-	client = device.NewDevice(&pfObservedTUN{inner, innerCapture}, clientBind, device.NewLogger(device.LogLevelSilent, ""))
+	var transport conn.Bind = clientBind
+	if automatic {
+		if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
+			t.Fatal("automatic encrypted guard activation failed")
+		}
+		guarded, err = newPFGuardBind(ctx, store, pfPolicy{
+			tunnel:  &pfInterface{innerIface.Name, innerIface.Index},
+			escapes: []pfUDPEscape{{path: pfInterface{outerIface.Name, outerIface.Index}, source: netip.MustParseAddr(source), endpoint: netip.AddrPortFrom(netip.MustParseAddr(remote), 45121), sourcePort: 1}},
+		})
+		if err != nil {
+			t.Fatal("automatic encrypted transport admission failed")
+		}
+		transport = guarded
+	}
+	client = device.NewDevice(&pfObservedTUN{inner, innerCapture}, transport, device.NewLogger(device.LogLevelSilent, ""))
 	peer = device.NewDevice(serverTUN, &pfPeerPacketBind{stack: outerStack, address: netip.MustParseAddr(remote)}, device.NewLogger(device.LogLevelSilent, ""))
 	cp, cu := pfEphemeralKey(t)
 	sp, su := pfEphemeralKey(t)
@@ -404,7 +443,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	}
 	cp, sp = "", "" // No key/configuration is printed or exported.
 	outerPort, outerGeneration := clientBind.lifetime()
-	if outerPort == 0 || outerGeneration == 0 {
+	if !automatic && (outerPort == 0 || outerGeneration == 0) {
 		t.Fatal("official socket lifetime unavailable")
 	}
 	for _, address := range []string{"198.18.100.130", "fd00:198:18:100::130"} {
@@ -439,7 +478,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 					timeout := 650 * time.Millisecond
 					if allowed {
 						timeout = 4 * time.Second
-						if label == "reopened-admitted" {
+						if label == "reopened-admitted" || label == "guarded-reconnected" {
 							// Down erased session keys. A denied handshake may have
 							// armed upstream's 5s+jitter retry; allow that one retry.
 							timeout = 8 * time.Second
@@ -454,6 +493,44 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 				}
 			}
 		}
+	}
+	if automatic {
+		phase("guarded-connected", true, true, true)
+		lease := guarded.current.Load()
+		if lease == nil || !lease.admitted.Load() || lease.retired.Load() {
+			t.Fatal("automatic socket lifetime missing")
+		}
+		if client.Down() != nil {
+			t.Fatal("official Down automatic revocation failed")
+		}
+		record, err := store.readPF(pfJournalFile)
+		if err != nil || record == nil || record.Phase != PFActive || record.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !lease.retired.Load() {
+			t.Fatal("official Down did not retain verified deny-only")
+		}
+		phase("guarded-down", false, false, false)
+		if client.Up() != nil {
+			t.Fatal("official Up automatic readmission failed")
+		}
+		second := guarded.current.Load()
+		if second == nil || second.generation != lease.generation+1 || !lease.retired.Load() {
+			t.Fatal("official new guarded socket generation differs")
+		}
+		phase("guarded-reconnected", true, true, true)
+		// Device.Close closes its TUN first. Revocation must work without it.
+		client.Close()
+		client = nil
+		after, err := store.readPF(pfJournalFile)
+		if err != nil || after == nil || after.Phase != PFActive || after.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !second.retired.Load() {
+			t.Fatal("official Close after TUN deletion lost deny-only")
+		}
+		if guarded.detach() != nil || store.recoverPFLifecycle(ctx) != nil || store.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
+			t.Fatal("automatic encrypted explicit recovery failed")
+		}
+		baseline, err := readDisabledPF(ctx, record.Anchor)
+		if err != nil || !baseline.matches(*record) || baseline.rules != pfDigest("") {
+			t.Fatal("automatic encrypted final baseline differs")
+		}
+		return
 	}
 	phase("baseline", true, true, true)
 	if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {

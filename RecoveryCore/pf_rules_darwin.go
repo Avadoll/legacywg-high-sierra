@@ -82,6 +82,13 @@ func (store *Store) preparePFPolicy(ctx context.Context, record PFRecord, policy
 func (store *Store) updatePFPolicy(ctx context.Context, desired pfPolicy) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
+	return store.updatePFPolicyLocked(ctx, desired, nil)
+}
+
+func (store *Store) updatePFPolicyLocked(ctx context.Context, desired pfPolicy, transport *pfGuardBind) error {
+	if store.pfTransport != transport {
+		return ErrRecoveryRequired
+	}
 	if store.closed || ctx.Err() != nil || !currentPFReferenceName() {
 		return ErrRecoveryRequired
 	}
@@ -148,6 +155,9 @@ func (store *Store) updatePFPolicy(ctx context.Context, desired pfPolicy) error 
 func (store *Store) resolvePFPolicy(ctx context.Context) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
+	if store.pfTransport != nil {
+		return ErrRecoveryRequired
+	}
 	return store.resolvePFPolicyLocked(ctx)
 }
 

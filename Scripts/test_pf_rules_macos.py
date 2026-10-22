@@ -14,12 +14,13 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
-    if scope=='encrypted':pattern='^TestRootPFRuleEncryptedPackets$'
+    if scope=='encrypted':pattern='^TestRootPFRule(EncryptedPackets|GuardedEncryptedPackets)$'
+    if scope=='transport':pattern='^TestRootPFRule(Socket|GuardTransport|GuardedEncryptedPackets)'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -38,7 +39,7 @@ def main():
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
-        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','full') else '0'),str(test),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout='+('600s' if scope=='full' else '300s')],
         capture_output=True,text=True,env=env,timeout=630 if scope=='full' else 330)
@@ -62,6 +63,14 @@ def main():
     if scope=='packets':required={'TestRootPFRuleNativePackets'}
     if scope=='encrypted':required={'TestRootPFRuleEncryptedPackets','TestRootPFRuleEncryptedPackets/outer4','TestRootPFRuleEncryptedPackets/outer6'}
     if scope=='full':required|={'TestRootPFRuleNativePackets','TestRootPFRuleEncryptedPackets','TestRootPFRuleEncryptedPackets/outer4','TestRootPFRuleEncryptedPackets/outer6'}
+    guarded={'TestRootPFRuleGuardedEncryptedPackets','TestRootPFRuleGuardedEncryptedPackets/outer4','TestRootPFRuleGuardedEncryptedPackets/outer6'}
+    transport={'TestRootPFRuleSocketPortLease','TestRootPFRuleSocketDualFamilyAndAdmission',
+        'TestRootPFRuleGuardTransportCloseReopenAndStorePin','TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts',
+        'TestRootPFRuleGuardTransportThirdHashRetainsPorts','TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts',
+        'TestRootPFRuleGuardTransportBoundedWriteShutdown'}
+    if scope in ('full','encrypted'):required|=guarded
+    if scope=='full':required|=transport
+    if scope=='transport':required=transport|guarded
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -82,7 +91,15 @@ def main():
         'encrypted_inner_dual_stack_udp_tcp_dns_outer_ipv6':checked('TestRootPFRuleEncryptedPackets/outer6'),
         'encrypted_outer_and_inner_exception_removal':checked('TestRootPFRuleEncryptedPackets'),
         'encrypted_actual_bind_port_and_explicit_revoke_close_reopen_readmit':checked('TestRootPFRuleEncryptedPackets'),
-        'automatic_socket_lifetime_revocation':'NOT_IMPLEMENTED',
+        'automatic_socket_lifetime_revocation':'PRIVATE_NATIVE_BIND_NOT_INSTALLED',
+        'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
+        'native_dual_family_same_port_and_path_admission':checked('TestRootPFRuleSocketDualFamilyAndAdmission'),
+        'automatic_deny_before_release_stale_callbacks_and_store_pin':checked('TestRootPFRuleGuardTransportCloseReopenAndStorePin'),
+        'uncertain_admission_retains_ports_and_explicit_reconciliation':checked('TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts'),
+        'unknown_policy_retains_ports':checked('TestRootPFRuleGuardTransportThirdHashRetainsPorts'),
+        'retained_ports_survive_loss_of_external_references_and_gc':checked('TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts'),
+        'blocked_send_under_official_lock_order_bounded':'MODEL_PASS' if 'TestRootPFRuleGuardTransportBoundedWriteShutdown' in passed else 'NOT_CONFIRMED',
+        'official_device_automatic_down_up_close_native_encrypted':checked('TestRootPFRuleGuardedEncryptedPackets'),
         'encrypted_packet_guard_deny_survives_owner_sigkill':checked('TestRootPFRuleEncryptedPackets'),
         'encrypted_packet_guard_actual_sigkill_checkpoints':sum('TestRootPFRuleEncryptedPackets/outer'+str(family) in passed for family in (4,6)),
         'packet_guard_native_sigkill_wait_status':'PASS' if 'TestRootPFRuleEncryptedPackets' in passed or 'TestRootPFRuleNativePackets' in passed else 'NOT_CONFIRMED',
