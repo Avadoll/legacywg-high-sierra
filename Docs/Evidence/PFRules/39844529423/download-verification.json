@@ -1,0 +1,11 @@
+{
+  "run_id": "39844529423",
+  "source_commit": "fb5ea6ba0e4f7d3aa5cb98f8a554f024cf424995",
+  "artifact_id": 12454258819,
+  "sha256": "3f81197325160ebc6a127aacb8b6ffe611cc8a932d8b3045d5cf8b30206765fa",
+  "embedded_source": "PASS",
+  "report_sha256": "a2a008943cb64273fb60bc72cb9d189262111aa2eaa917b7a09c8ffe4a3239c1",
+  "artifact_bytes": 4193,
+  "workflow_terminal_observed": true,
+  "limitation": "Native artifact status and observed workflow status are separate; no terminal success inferred"
+}

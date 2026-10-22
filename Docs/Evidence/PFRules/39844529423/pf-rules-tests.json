@@ -1,0 +1,288 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0",
+    "Elapsed": 16.36
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1",
+    "Elapsed": 20.81
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2",
+    "Elapsed": 21.24
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused",
+    "Elapsed": 58.42
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0",
+    "Elapsed": 21.79
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1",
+    "Elapsed": 22.4
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2",
+    "Elapsed": 21.72
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused",
+    "Elapsed": 65.91
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0",
+    "Elapsed": 22.09
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1",
+    "Elapsed": 21.73
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2",
+    "Elapsed": 23.77
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused",
+    "Elapsed": 67.61
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0",
+    "Elapsed": 21.09
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1",
+    "Elapsed": 20.38
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2",
+    "Elapsed": 20.03
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused",
+    "Elapsed": 61.5
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 253.524
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "source_commit": "fb5ea6ba0e4f7d3aa5cb98f8a554f024cf424995",
+  "status": "FAIL",
+  "attempted_cycles": 12,
+  "passed_cycles": 11,
+  "failed_cycles": 1,
+  "failure_observation": {
+    "tunnel_absent": true,
+    "endpoint_residue": true,
+    "pf_residue": true,
+    "detached": false,
+    "context_ok": true,
+    "last_mark": "pf_rule_update_confirmation_committed",
+    "endpoint_phases": [
+      "installed",
+      "installed"
+    ],
+    "endpoint_record_read_ok": true
+  },
+  "interpretation": "Failure precedes endpoint recovery; exact Stop/observer/detach condition not yet isolated. Earlier route-recovery attribution is not established.",
+  "next_source": "5642fe0c5ca116c20f924f7ee8219f597037e44f",
+  "next_checks": "Join permanent-stop monitor; wait post-close removal before fresh proof after an already quiesced Stop; fixed refusal markers. Not a proven causal fix yet."
+}
