@@ -1,0 +1,165 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4",
+    "Elapsed": 29.5
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6",
+    "Elapsed": 31.69
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets",
+    "Elapsed": 61.2
+  },
+  {
+    "Action": "run",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestProtectedEndpointInput",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle",
+    "Elapsed": 17.56
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed",
+    "Elapsed": 13.93
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation",
+    "Elapsed": 8.02
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel",
+    "Elapsed": 0.1
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard",
+    "Elapsed": 14.07
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 114.919
+  }
+]

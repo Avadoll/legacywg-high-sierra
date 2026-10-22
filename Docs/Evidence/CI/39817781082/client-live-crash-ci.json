@@ -1,0 +1,14 @@
+{
+  "active_interface_removed": "PASS",
+  "actual_sigkill": "PASS",
+  "cleanup_after_sigkill_ms": 14629,
+  "disconnected_before_coordinator_stop": "PASS",
+  "helper_requests_after_sigkill": 0,
+  "high_sierra": "NOT_RUN",
+  "immediate_fail_closed": "NOT_IMPLEMENTED",
+  "kind": "native-real-gui-sigkill-watchdog",
+  "profile_dns_and_foreign_resolver_restoration": "PASS",
+  "route_interface_restoration": "PASS",
+  "status": "PASS",
+  "watchdog_grace_encrypted_echo": "PASS"
+}

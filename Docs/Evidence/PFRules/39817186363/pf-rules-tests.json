@@ -1,0 +1,148 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4",
+    "Elapsed": 32.41
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6",
+    "Elapsed": 38.06
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets",
+    "Elapsed": 70.47
+  },
+  {
+    "Action": "run",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestProtectedEndpointInput",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle",
+    "Elapsed": 22.97
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed",
+    "Elapsed": 18.67
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation",
+    "Elapsed": 13.57
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel",
+    "Elapsed": 0.13
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 125.867
+  }
+]

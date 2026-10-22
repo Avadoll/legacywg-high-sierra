@@ -81,3 +81,6 @@ Owned endpoint route checkpoint (2026-10-22): source `f02890a3aa08e21cbd1e87523a
 
 
 Subsequent workflow confirmation (2026-10-22): full PF run39813186331/source f02890a3aa08e21cbd1e87523aa4b2b28396e0eb is now completed/success. The earlier in_progress API observations remain immutable; Evidence/PFRules/39813186331/run-terminal.json records this later result. Native package PASS880.496s/48required tests was already verified before packaging.
+
+
+Typed protected transport checkpoint (2026-10-22): source `e8623cf900206e46f748c5ca6a73df29673ac11d`, focused39817696876/full PF39817973986/client39817781082 PASS; fresh182-file Go analysis and exact artifact identity PASS. Private endpoint-derived preparation, Store ownership through failures, permanent Stop/actual empty-socket guard verification, borrowed route preservation, ordered explicit Disconnect and facade-backed encrypted traffic pass modern owned-topology tests. Installed full/protection remains disabled; control-plane/crash/interface reuse/owner handoff/OS resolver/physical/target/trust and original acceptance gates remain. See PF_RESEARCH.md. Product incomplete.
