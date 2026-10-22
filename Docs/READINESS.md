@@ -65,3 +65,6 @@ Latest automatic transport checkpoint (2026-10-22): source `5c195f023f151ebfffb9
 
 
 Owned endpoint route checkpoint (2026-10-22): source `f02890a3aa08e21cbd1e87523aa4b2b28396e0eb`, focused39812129604/full PF39813186331/client39812245329 native reports PASS; full workflow terminal status still unavailable. Private journal-bound numeric scoped host routes,5 actual route SIGKILL points, guest IPv4 gateway allocation without payload and official encrypted competing-route outer4/outer6/inner-dual-stack traffic are verified. Darwin route errno header correction and fresh 180-file Go worker/source review pass. Research artifacts verified/staged; installed protection/full routes remain disabled. Physical lifetime/owner handoff/dynamic endpoints/OS resolver protection and all original target/trust/acceptance gates remain open. See PF_RESEARCH.md. Product incomplete.
+
+
+Subsequent workflow confirmation (2026-10-22): full PF run39813186331/source f02890a3aa08e21cbd1e87523aa4b2b28396e0eb is now completed/success. The earlier in_progress API observations remain immutable; Evidence/PFRules/39813186331/run-terminal.json records this later result. Native package PASS880.496s/48required tests was already verified before packaging.
