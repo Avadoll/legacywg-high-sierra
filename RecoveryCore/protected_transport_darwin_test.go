@@ -229,3 +229,44 @@ func TestRootPFRuleProtectedTransportRefusesOwnTunnel(t *testing.T) {
 		t.Fatal("own-tunnel endpoint admission mutated protection state")
 	}
 }
+
+func TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard(t *testing.T) {
+	requirePFRuleCI(t)
+	_, hosts := endpointOwnedLink(t)
+	f := newProtectedFixture(t)
+	var err error
+	f.owner, err = f.store.PrepareProtectedTransport(f.ctx, protectedFixtureEndpoints(hosts))
+	if err != nil || f.owner == nil {
+		t.Fatal("empty transport fixture preparation failed")
+	}
+	record, err := f.store.readPF(pfJournalFile)
+	if err != nil || record == nil {
+		t.Fatal("empty transport guard identity unavailable")
+	}
+	foreign := pfPolicy{loopback: true}
+	_, canonical, err := f.store.preparePFPolicy(f.ctx, *record, foreign)
+	if err != nil || forceFixturePFPolicy(f.ctx, f.store, *record, record.RulesSHA256, foreign) != nil {
+		t.Fatal("controlled changed guard fixture failed")
+	}
+	// Only this test may restore its own controlled substitution. Production
+	// Stop/Disconnect must preserve it and refuse to infer deny from no sockets.
+	t.Cleanup(func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+		defer cancel()
+		if forceFixturePFPolicy(cleanup, f.store, *record, pfDigest(canonical), pfPolicy{}) != nil {
+			t.Error("controlled changed guard restoration failed")
+		}
+	})
+	if f.owner.bind.current.Load() != nil || f.owner.Stop(f.ctx) == nil || f.owner.Disconnect(f.ctx) == nil {
+		t.Fatal("empty socket set was treated as proof of deny-only")
+	}
+	after, err := readPFPolicy(f.ctx, record.Anchor, true)
+	unchanged, journalErr := f.store.readPF(pfJournalFile)
+	if err != nil || after.rules != pfDigest(canonical) || journalErr != nil || unchanged == nil || *unchanged != *record {
+		t.Fatal("unknown policy or journal was modified by refused stop")
+	}
+	f.store.Close()
+	if f.store.closed {
+		t.Fatal("refused empty stop released protected Store ownership")
+	}
+}

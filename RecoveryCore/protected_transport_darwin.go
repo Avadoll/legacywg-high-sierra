@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"time"
 
 	"golang.zx2c4.com/wireguard/conn"
 	networkcore "legacywg/NetworkCore"
@@ -238,7 +239,13 @@ func (owner *ProtectedTransport) stop(ctx context.Context) error {
 	if owner.bind.Close() != nil && owner.bind.reconcile(ctx) != nil {
 		return ErrRecoveryRequired
 	}
-	return nil
+	// Close is a no-op if Open never published a lease. Prove the live deny
+	// policy in that case too; an empty socket set is not a PF observation.
+	proof, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	owner.bind.op.Lock()
+	defer owner.bind.op.Unlock()
+	return owner.bind.changePolicy(proof, pfPolicy{}, false)
 }
 
 // Disconnect is explicit release, not the path-loss/process-death policy. The

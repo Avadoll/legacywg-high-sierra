@@ -91,7 +91,8 @@ def main():
     if scope=='full':required|=endpoint_routes
     protected={'TestProtectedEndpointInput','TestRootPFRuleProtectedTransportLifecycle',
                'TestRootPFRuleProtectedTransportBorrowed','TestRootPFRuleProtectedTransportInterruptedPreparation',
-               'TestRootPFRuleProtectedTransportRefusesOwnTunnel','TestRootPFRuleProtectedTransportEncryptedPackets',
+               'TestRootPFRuleProtectedTransportRefusesOwnTunnel','TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard',
+               'TestRootPFRuleProtectedTransportEncryptedPackets',
                'TestRootPFRuleProtectedTransportEncryptedPackets/outer4','TestRootPFRuleProtectedTransportEncryptedPackets/outer6'}
     if scope=='protection':required=protected
     if scope=='full':required|=protected
@@ -131,6 +132,7 @@ def main():
         'typed_protected_transport_borrowed_route_preservation':checked('TestRootPFRuleProtectedTransportBorrowed'),
         'typed_protected_transport_interrupted_preparation':checked('TestRootPFRuleProtectedTransportInterruptedPreparation'),
         'typed_protected_transport_own_tunnel_endpoint_refusal':checked('TestRootPFRuleProtectedTransportRefusesOwnTunnel'),
+        'typed_protected_transport_empty_stop_checks_actual_guard':checked('TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard'),
         'typed_protected_transport_encrypted_conflicting_route':checked('TestRootPFRuleProtectedTransportEncryptedPackets'),
         'typed_protected_transport_scope':'private worker facade only; numeric endpoints/owned topology/explicit disconnect; installed full routes/DNS/process death/target NOT_RUN',
         'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
