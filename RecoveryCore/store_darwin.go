@@ -32,6 +32,9 @@ type Store struct {
 	// A private transport pins the journal until its sockets have been retired
 	// under verified deny-only policy and it has explicitly detached.
 	pfTransport *pfGuardBind
+	// A protected preparation owns the Store before socket admission as well.
+	// Only its ordered explicit disconnect can release this reservation.
+	protection *ProtectedTransport
 	// Only compiled native tests install a checkpoint callback; no callback
 	// or crash-injection operation is reachable from a production request.
 	checkpoint func(string)
@@ -224,7 +227,7 @@ func interfaceGone(record Record) bool {
 }
 
 func (store *Store) recover() error {
-	if store.pfResidue() || store.endpointResidue() {
+	if store.protection != nil || store.pfResidue() || store.endpointResidue() {
 		return ErrRecoveryRequired
 	}
 	records := make(map[string]*Record)
@@ -356,7 +359,7 @@ func (store *Store) Finish() error {
 	if store.closed {
 		return nil
 	}
-	if store.pfResidue() || store.endpointResidue() {
+	if store.protection != nil || store.pfResidue() || store.endpointResidue() {
 		return ErrRecoveryRequired
 	}
 	if !interfaceGone(store.record) {
@@ -396,7 +399,7 @@ func (store *Store) Close() {
 func (store *Store) closeLocked() {
 	// Never abandon the journal lock of a retained transport. Its owner must
 	// reconcile/close and detach first; calling Close does not release its port.
-	if store.closed || store.pfTransport != nil {
+	if store.closed || store.pfTransport != nil || store.protection != nil {
 		return
 	}
 	store.closed = true

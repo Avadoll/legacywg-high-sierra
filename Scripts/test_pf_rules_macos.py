@@ -14,8 +14,8 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','route-wire'):raise SystemExit('Unknown native PF scope')
-    pattern='^TestRootPFRule'
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','route-wire'):raise SystemExit('Unknown native PF scope')
+    pattern='^(TestRootPFRule|TestProtectedEndpointInput$)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
@@ -23,8 +23,11 @@ def main():
     if scope=='transport':pattern='^TestRootPFRule(Socket|GuardTransport|GuardedEncryptedPackets)'
     if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
+    if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='route-wire':pattern='^TestRootPFRuleOwnedEndpointWire$'
-    test_timeout=900 if scope=='full' else 600 if scope=='routes' else 300
+    # The full package already measured 880s before adding transaction-owner
+    # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
+    test_timeout=1200 if scope=='full' else 600 if scope in ('routes','protection') else 300
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -43,7 +46,7 @@ def main():
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
-        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','full') else '0'),str(test),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','protection','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout='+str(test_timeout)+'s'],
         capture_output=True,text=True,env=env,timeout=test_timeout+30)
@@ -86,6 +89,12 @@ def main():
     if scope=='routes':required=endpoint_routes
     if scope=='route-wire':required={'TestRootPFRuleOwnedEndpointWire'}
     if scope=='full':required|=endpoint_routes
+    protected={'TestProtectedEndpointInput','TestRootPFRuleProtectedTransportLifecycle',
+               'TestRootPFRuleProtectedTransportBorrowed','TestRootPFRuleProtectedTransportInterruptedPreparation',
+               'TestRootPFRuleProtectedTransportRefusesOwnTunnel','TestRootPFRuleProtectedTransportEncryptedPackets',
+               'TestRootPFRuleProtectedTransportEncryptedPackets/outer4','TestRootPFRuleProtectedTransportEncryptedPackets/outer6'}
+    if scope=='protection':required=protected
+    if scope=='full':required|=protected
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -118,6 +127,12 @@ def main():
         'owned_endpoint_host_route_encrypted_conflict':checked('TestRootPFRuleOwnedEndpointEncryptedPackets'),
         'owned_endpoint_host_route_sigkill_checkpoints':sum('TestRootPFRuleOwnedEndpointCrashRecovery/'+point in passed for point in endpoint_crash_points),
         'owned_endpoint_host_route_scope':'numeric host-only; owned utun traffic and guest IPv4 gateway allocation without payload; hardware/installed integration NOT_RUN; uncertain additions retained',
+        'typed_protected_transport_preparation':checked('TestRootPFRuleProtectedTransportLifecycle'),
+        'typed_protected_transport_borrowed_route_preservation':checked('TestRootPFRuleProtectedTransportBorrowed'),
+        'typed_protected_transport_interrupted_preparation':checked('TestRootPFRuleProtectedTransportInterruptedPreparation'),
+        'typed_protected_transport_own_tunnel_endpoint_refusal':checked('TestRootPFRuleProtectedTransportRefusesOwnTunnel'),
+        'typed_protected_transport_encrypted_conflicting_route':checked('TestRootPFRuleProtectedTransportEncryptedPackets'),
+        'typed_protected_transport_scope':'private worker facade only; numeric endpoints/owned topology/explicit disconnect; installed full routes/DNS/process death/target NOT_RUN',
         'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
         'native_dual_family_same_port_and_path_admission':checked('TestRootPFRuleSocketDualFamilyAndAdmission'),
         'automatic_deny_before_release_stale_callbacks_and_store_pin':checked('TestRootPFRuleGuardTransportCloseReopenAndStorePin'),

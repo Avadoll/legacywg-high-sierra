@@ -285,7 +285,7 @@ func TestRootPFRuleEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable encrypted packet test")
 	}
 	for _, outerFamily := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false, false, false) })
+		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false, false, false, false) })
 	}
 }
 
@@ -295,7 +295,7 @@ func TestRootPFRuleGuardedEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable guarded transport test")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, false, false) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, false, false, false) })
 	}
 }
 
@@ -305,7 +305,7 @@ func TestRootPFRuleScopedGuardedEncryptedPackets(t *testing.T) {
 		t.Skip("native encrypted packet fixture requires explicit opt-in")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, false) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, false, false) })
 	}
 }
 
@@ -315,11 +315,21 @@ func TestRootPFRuleOwnedEndpointEncryptedPackets(t *testing.T) {
 		t.Skip("explicit owned-route encrypted packet fixture")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, true) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, true, false) })
 	}
 }
 
-func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, owned bool) {
+func TestRootPFRuleProtectedTransportEncryptedPackets(t *testing.T) {
+	requirePFRuleCI(t)
+	if os.Getenv("LEGACYWG_PF_ENCRYPTED_PACKET_TESTS") != "1" {
+		t.Skip("explicit typed protected preparation encrypted fixture")
+	}
+	for _, family := range []int{4, 6} {
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, true, true) })
+	}
+}
+
+func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, owned, coordinated bool) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
@@ -367,6 +377,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 	var datagrams []net.PacketConn
 	var client, peer *device.Device
 	var guarded *pfGuardBind
+	var protection *ProtectedTransport
 	var ownedDecoy tun.Device
 	defer func() {
 		for _, l := range listeners {
@@ -379,6 +390,28 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 	defer func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 25*time.Second)
 		defer stop()
+		if coordinated {
+			if client != nil {
+				client.Close()
+				client = nil
+			}
+			if peer != nil {
+				peer.Close()
+				peer = nil
+			}
+			_ = inner.Close()
+			if ownedDecoy != nil {
+				_ = ownedDecoy.Close()
+			}
+			if protection != nil {
+				if protection.Disconnect(cleanup) != nil {
+					t.Error("typed encrypted explicit disconnect retained ownership")
+				}
+			} else if store.Finish() != nil {
+				t.Error("unprepared encrypted journal cleanup failed")
+			}
+			return
+		}
 		if guarded != nil {
 			if client != nil {
 				client.Close()
@@ -441,6 +474,9 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 		t.Fatal("encrypted inner journal identity failed")
 	}
 	for _, route := range []struct{ family, address, name string }{{"-inet", pfPacketServer4, outerIface.Name}, {"-inet6", pfPacketServer6, outerIface.Name}, {"-inet", "198.18.100.130", innerIface.Name}, {"-inet6", "fd00:198:18:100::130", innerIface.Name}} {
+		if coordinated && route.name == innerIface.Name {
+			continue // Add tunnel routes only after endpoint protection preparation.
+		}
 		kind, address := "-host", route.address
 		if owned && route.name == outerIface.Name {
 			kind, address = "-net", "198.18.99.0/24"
@@ -461,7 +497,19 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 	}
 	clientBind := &pfObservedBind{Bind: conn.NewStdNetBind()}
 	var transport conn.Bind = clientBind
-	if automatic {
+	if coordinated {
+		protection, err = store.PrepareProtectedTransport(ctx, []netip.AddrPort{netip.AddrPortFrom(netip.MustParseAddr(remote), 45121)})
+		if err != nil || protection == nil {
+			t.Fatal("typed encrypted preparation failed")
+		}
+		transport, err = protection.Bind()
+		if err != nil {
+			t.Fatal("typed encrypted engine transport unavailable")
+		}
+		guarded = protection.bind
+		command("/sbin/route", "-n", "add", "-inet", "-host", "198.18.100.130", "-interface", innerIface.Name)
+		command("/sbin/route", "-n", "add", "-inet6", "-host", "fd00:198:18:100::130", "-interface", innerIface.Name)
+	} else if automatic {
 		if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
 			t.Fatal("automatic encrypted guard activation failed")
 		}
@@ -670,7 +718,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 		if err != nil || after == nil || after.Phase != PFActive || after.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !second.retired.Load() {
 			t.Fatal("official Close after TUN deletion lost deny-only")
 		}
-		if guarded.detach() != nil {
+		if !coordinated && guarded.detach() != nil {
 			t.Fatal("automatic encrypted transport detachment failed")
 		}
 		// Remove only the test's competing interface/routes before deleting
@@ -678,6 +726,16 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 		// be removed while deny-only remains held, before endpoint recovery.
 		if ownedDecoy != nil && ownedDecoy.Close() != nil {
 			t.Fatal("owned competing topology cleanup failed")
+		}
+		if coordinated {
+			if protection.Stop(ctx) != nil || protection.Disconnect(ctx) != nil || !store.closed || len(fixturePFReferences(t, ctx)) != 0 {
+				t.Fatal("typed encrypted ordered explicit disconnect failed")
+			}
+			baseline, err := readDisabledPF(ctx, record.Anchor)
+			if err != nil || !baseline.matches(*record) || baseline.rules != pfDigest("") {
+				t.Fatal("typed encrypted final baseline differs")
+			}
+			return
 		}
 		if owned && (store.recoverEndpointRoutes(ctx) != nil || store.endpointResidue()) {
 			t.Fatal("automatic encrypted endpoint recovery failed")
