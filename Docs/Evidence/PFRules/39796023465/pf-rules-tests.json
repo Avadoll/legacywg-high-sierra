@@ -1,0 +1,216 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer4",
+    "Elapsed": 22.19
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets/outer6",
+    "Elapsed": 22.78
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardedEncryptedPackets",
+    "Elapsed": 44.96
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSocketPortLease"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSocketPortLease/127.0.0.1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease/127.0.0.1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease/127.0.0.1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSocketPortLease/127.0.0.1",
+    "Elapsed": 0.05
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSocketPortLease/::1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease/::1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease/::1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSocketPortLease/::1",
+    "Elapsed": 0.05
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketPortLease"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSocketPortLease",
+    "Elapsed": 0.11
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleSocketDualFamilyAndAdmission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketDualFamilyAndAdmission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleSocketDualFamilyAndAdmission"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleSocketDualFamilyAndAdmission",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardTransportCloseReopenAndStorePin"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportCloseReopenAndStorePin"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportCloseReopenAndStorePin"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardTransportCloseReopenAndStorePin",
+    "Elapsed": 15.94
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardTransportCanceledAdmissionRetainsPorts",
+    "Elapsed": 11.96
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardTransportThirdHashRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportThirdHashRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportThirdHashRetainsPorts"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardTransportThirdHashRetainsPorts",
+    "Elapsed": 12.41
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardTransportGarbageCollectionRetainsPorts",
+    "Elapsed": 9.43
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleGuardTransportBoundedWriteShutdown"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportBoundedWriteShutdown"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleGuardTransportBoundedWriteShutdown"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleGuardTransportBoundedWriteShutdown",
+    "Elapsed": 1
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 95.849
+  }
+]

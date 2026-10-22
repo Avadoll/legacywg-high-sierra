@@ -1,0 +1,75 @@
+{
+  "conclusion": "success",
+  "headSha": "5c195f023f151ebfffb9cf00671640eb1b58f78d",
+  "jobs": [
+    {
+      "completedAt": "2026-10-22T14:31:20Z",
+      "conclusion": "success",
+      "databaseId": 119883386909,
+      "name": "native-rules",
+      "startedAt": "2026-10-22T14:29:00Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T14:29:01Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T14:29:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:29:04Z",
+          "conclusion": "success",
+          "name": "Check out reviewed rule coordinator",
+          "number": 2,
+          "startedAt": "2026-10-22T14:29:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:29:19Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-22T14:29:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:31:17Z",
+          "conclusion": "success",
+          "name": "Measure actual typed rule generations and crash resolution",
+          "number": 4,
+          "startedAt": "2026-10-22T14:29:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:31:18Z",
+          "conclusion": "success",
+          "name": "Save sanitized rule generation evidence",
+          "number": 5,
+          "startedAt": "2026-10-22T14:31:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:31:18Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed rule coordinator",
+          "number": 10,
+          "startedAt": "2026-10-22T14:31:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T14:31:19Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-22T14:31:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39796023465/job/119883386909"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39796023465"
+}

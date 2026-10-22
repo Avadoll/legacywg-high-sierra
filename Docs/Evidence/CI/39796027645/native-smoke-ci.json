@@ -1,0 +1,1 @@
+{"arch":"amd64","elapsed_ms":103,"go":"go1.24.13","handshake":"NOT_RUN","os":"darwin","server_traffic":"NOT_RUN","status":"PASS","test":"native-utun-engine-lifecycle"}
