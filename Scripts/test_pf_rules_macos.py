@@ -112,6 +112,7 @@ def main():
     interface_lease={'TestRootPFRuleOwnInterfaceLeaseWire'}|{'TestRootPFRuleOwnInterfaceLeaseWire/'+name for name in (
         'retained_after_device_close','clear_before_last_descriptor_close','last_close_removes_interface','disabled_policy_baseline_unchanged')}
     if scope in ('route-wire','ephemeral','full'):required|=interface_lease
+    if scope in ('ephemeral','full'):required|={'TestRootPFRuleOwnInterfaceReferencedRefused/cycle'+str(cycle) for cycle in range(3)}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],

@@ -5,6 +5,7 @@ package recoverycore
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"runtime"
 	"syscall"
@@ -191,6 +192,13 @@ func TestRootPFRuleOwnInterfaceFlagWire(t *testing.T) {
 }
 
 func TestRootPFRuleOwnInterfaceReferencedRefused(t *testing.T) {
+	for cycle := 0; cycle < 3; cycle++ {
+		t.Run(fmt.Sprintf("cycle%d", cycle), fixtureReferencedInterfaceRefusal)
+	}
+}
+
+func fixtureReferencedInterfaceRefusal(t *testing.T) {
+	t.Helper()
 	requirePFRuleCI(t)
 	_, hosts := endpointOwnedLink(t)
 	f := newProtectedFixture(t)
@@ -231,26 +239,16 @@ func TestRootPFRuleOwnInterfaceReferencedRefused(t *testing.T) {
 	if err != nil || after != before || policyErr != nil || !policy.matches(*record) || policy.rules != record.RulesSHA256 {
 		t.Fatal("referenced permission refusal modified flags or policy")
 	}
-	if !t.Run("deny_before_cleanup", func(t *testing.T) {
-		if f.owner.Stop(f.ctx) != nil {
-			t.Fatal("referenced permission fixture stop did not confirm deny")
-		}
-	}) {
-		return
+	// Preserve immediate sequential cleanup, without subtest scheduling between
+	// steps: a prior compound call failed once. Identify the stage if it recurs.
+	if f.owner.Stop(f.ctx) != nil {
+		t.Fatal("referenced permission fixture stop did not confirm deny")
 	}
-	if !t.Run("close_owned_tunnel", func(t *testing.T) {
-		if f.tunnel.Close() != nil {
-			t.Fatal("referenced permission fixture native tunnel close failed")
-		}
-	}) {
-		return
+	if f.tunnel.Close() != nil {
+		t.Fatal("referenced permission fixture native tunnel close failed")
 	}
-	if !t.Run("explicit_disconnect", func(t *testing.T) {
-		if f.owner.Disconnect(f.ctx) != nil {
-			t.Fatalf("referenced permission fixture disconnect refused: tunnel_absent=%t endpoint_residue=%t pf_residue=%t", admittedInterfaceNameAbsent(name), f.store.endpointResidue(), f.store.pfResidue())
-		}
-	}) {
-		return
+	if f.owner.Disconnect(f.ctx) != nil {
+		t.Fatalf("referenced permission fixture disconnect refused: tunnel_absent=%t endpoint_residue=%t pf_residue=%t", admittedInterfaceNameAbsent(name), f.store.endpointResidue(), f.store.pfResidue())
 	}
 }
 
