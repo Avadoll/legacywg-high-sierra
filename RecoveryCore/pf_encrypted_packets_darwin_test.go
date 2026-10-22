@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -556,16 +557,22 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 			ownedDecoy = decoy
 			decoyCapture := &pfPacketObservation{counts: make(map[pfPacketKey]int)}
 			decoyDone := make(chan struct{})
+			var decoyPanicked atomic.Bool
 			go func() {
-				defer close(decoyDone)
+				defer func() {
+					if recover() != nil {
+						decoyPanicked.Store(true)
+					}
+					close(decoyDone)
+				}()
 				buffers, sizes := [][]byte{make([]byte, 65536)}, make([]int, 1)
 				for {
-					n, err := decoy.Read(buffers, sizes, 0)
+					n, err := decoy.Read(buffers, sizes, 4)
 					if err != nil {
 						return
 					}
-					if n == 1 {
-						decoyCapture.observe(buffers[0][:sizes[0]])
+					if n == 1 && sizes[0] > 0 && sizes[0] <= len(buffers[0])-4 {
+						decoyCapture.observe(buffers[0][4 : 4+sizes[0]])
 					}
 				}
 			}()
@@ -575,6 +582,9 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 				case <-decoyDone:
 				case <-time.After(3 * time.Second):
 					t.Error("owned-route competing reader did not join")
+				}
+				if decoyPanicked.Load() {
+					t.Error("owned-route competing reader panicked")
 				}
 				if decoyCapture.count(pfPacketKey{outerFamily, 17, 45121}) != 0 {
 					t.Error("encrypted endpoint packets reached competing interface")

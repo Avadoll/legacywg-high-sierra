@@ -24,6 +24,7 @@ def main():
     if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='route-wire':pattern='^TestRootPFRuleOwnedEndpointWire$'
+    test_timeout=900 if scope=='full' else 600 if scope=='routes' else 300
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -44,8 +45,8 @@ def main():
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
         'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','full') else '0'),str(test),
         '-test.run='+pattern,
-        '-test.v=test2json','-test.timeout='+('900s' if scope=='full' else '300s')],
-        capture_output=True,text=True,env=env,timeout=930 if scope=='full' else 330)
+        '-test.v=test2json','-test.timeout='+str(test_timeout)+'s'],
+        capture_output=True,text=True,env=env,timeout=test_timeout+30)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
     (output/'pf-rules-tests.json').write_text(json.dumps(sanitized,indent=2)+'\n')
