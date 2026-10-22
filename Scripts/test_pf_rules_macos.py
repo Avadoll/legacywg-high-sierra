@@ -98,7 +98,7 @@ def main():
     if scope=='protection':required=protected
     if scope=='full':required|=protected
     admitted={'TestRootPFRuleProtectedAdmittedCrashReuse'}|{'TestRootPFRuleProtectedAdmittedCrashReuse/'+name for name in (
-        'actual_sigkill','replacement_distinct_index','dead_owner_policy_retained',
+        'actual_sigkill','replacement_instance_after_absence','dead_owner_policy_retained',
         'verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
     if scope=='admitted':required=admitted
     if scope=='full':required|=admitted
@@ -142,7 +142,8 @@ def main():
         'typed_protected_transport_encrypted_conflicting_route':checked('TestRootPFRuleProtectedTransportEncryptedPackets'),
         'typed_protected_transport_scope':'private worker facade only; numeric endpoints/owned topology/explicit disconnect; installed full routes/DNS/process death/target NOT_RUN',
         'admitted_owner_actual_sigkill':checked('TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill'),
-        'admitted_owner_replacement_distinct_interface_index':checked('TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index'),
+        'admitted_owner_replacement_instance_after_verified_absence':checked('TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence'),
+        'admitted_owner_replacement_index_reused':'OBSERVED' if 'TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_reused' in passed else 'NOT_OBSERVED' if 'TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_changed' in passed else 'NOT_CONFIRMED',
         'admitted_owner_policy_and_reference_retained':checked('TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained'),
         'admitted_owner_controlled_deny_blocks_replacement':checked('TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement'),
         'admitted_owner_restored_baseline_positive_controls':checked('TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls'),

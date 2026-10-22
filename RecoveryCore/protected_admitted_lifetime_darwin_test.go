@@ -96,10 +96,23 @@ func admittedLifetimeCleanup(t *testing.T, ctx context.Context, store *Store, id
 			return ErrRecoveryRequired
 		}
 	}
-	if store.recoverEndpointRoutes(ctx) != nil || store.recoverPFLifecycle(ctx) != nil || store.reconcile() != nil {
+	if store.recoverEndpointRoutes(ctx) != nil || store.recoverPFLifecycle(ctx) != nil {
 		return ErrRecoveryRequired
 	}
 	return nil
+}
+
+func admittedInterfaceNameAbsent(name string) bool {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return false
+	}
+	for _, iface := range interfaces {
+		if iface.Name == name {
+			return false
+		}
+	}
+	return true
 }
 
 func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
@@ -142,7 +155,7 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 	pf, err := store.readPF(pfJournalFile)
 	journal, journalErr := store.read(journalFile)
 	if err != nil || pf == nil || pf.PID != child.Process.Pid || pf.Phase != PFActive || pf.RulesSHA256 == pfDigest(stagedPFRule) ||
-		journalErr != nil || journal == nil || journal.PID != child.Process.Pid || !interfaceGone(*journal) {
+		journalErr != nil || journal == nil || journal.PID != child.Process.Pid {
 		t.Fatal("admitted owner did not leave the expected live policy and vanished TUN")
 	}
 	cleaned := false
@@ -152,19 +165,42 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 			defer stop()
 			if admittedLifetimeCleanup(t, cleanup, store, *pf) != nil {
 				t.Error("controlled admitted lifetime cleanup retained evidence")
+				return
 			}
 		}
+		// A live replacement can reuse BOTH old name and index. Its later
+		// closure, not tuple equality, permits retiring this child's metadata.
+		deadline := time.Now().Add(3 * time.Second)
+		for !admittedInterfaceNameAbsent(journal.Interface) && time.Now().Before(deadline) {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if !admittedInterfaceNameAbsent(journal.Interface) || store.reconcile() != nil {
+			t.Error("admitted lifetime metadata retained after replacement closure")
+		}
 	}()
+	deadline := time.Now().Add(3 * time.Second)
+	for !admittedInterfaceNameAbsent(journal.Interface) && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	oldNameAbsent := admittedInterfaceNameAbsent(journal.Interface)
+	if !oldNameAbsent {
+		t.Fatal("original tunnel name did not disappear after actual owner death")
+	}
 	replacement, err := tun.CreateTUN(journal.Interface, 1280)
 	if err != nil {
 		t.Fatal("controlled same-name TUN replacement failed")
 	}
 	defer replacement.Close()
 	iface := admittedLifetimeSetup(t, replacement)
-	if !t.Run("replacement_distinct_index", func(t *testing.T) {
-		if iface.Name != journal.Interface || iface.Index == journal.InterfaceIndex {
-			t.Fatal("replacement name/index did not prove a distinct interface instance")
+	if !t.Run("replacement_instance_after_absence", func(t *testing.T) {
+		if !oldNameAbsent || iface.Name != journal.Interface {
+			t.Fatalf("replacement identity refused: old_name_absent=%t same_name=%t same_index=%t", oldNameAbsent, iface.Name == journal.Interface, iface.Index == journal.InterfaceIndex)
 		}
+		measurement := "index_changed"
+		if iface.Index == journal.InterfaceIndex {
+			measurement = "index_reused"
+		}
+		t.Run(measurement, func(t *testing.T) {})
 	}) {
 		return
 	}
