@@ -34,6 +34,47 @@ type pfObservedTUN struct {
 	capture *pfPacketObservation
 }
 
+// Test instrumentation around the public Bind API. The official transport owns
+// the sockets and all I/O. A successful Open records the actual port, never a
+// guessed free port; each open lifetime gets a distinct generation.
+type pfObservedBind struct {
+	conn.Bind
+	mu         sync.Mutex
+	port       uint16
+	generation uint64
+}
+
+func (bind *pfObservedBind) Open(port uint16) ([]conn.ReceiveFunc, uint16, error) {
+	bind.mu.Lock()
+	defer bind.mu.Unlock()
+	fns, actual, err := bind.Bind.Open(port)
+	if err == nil {
+		if actual == 0 || len(fns) == 0 {
+			bind.Bind.Close()
+			return nil, 0, errors.New("fixture socket observation failed")
+		}
+		bind.port = actual
+		bind.generation++
+	}
+	return fns, actual, err
+}
+
+func (bind *pfObservedBind) Close() error {
+	bind.mu.Lock()
+	defer bind.mu.Unlock()
+	err := bind.Bind.Close()
+	if err == nil {
+		bind.port = 0
+	}
+	return err
+}
+
+func (bind *pfObservedBind) lifetime() (uint16, uint64) {
+	bind.mu.Lock()
+	defer bind.mu.Unlock()
+	return bind.port, bind.generation
+}
+
 // The upstream isolated netstack closes channels and must be closed once.
 // Both partial setup cleanup and Device.Close share this fixture-owned wrapper.
 type pfOnceTUN struct {
@@ -248,7 +289,7 @@ func TestRootPFRuleEncryptedPackets(t *testing.T) {
 func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
 	defer cancel()
 	if store.begin() != nil {
 		t.Fatal("encrypted interface intent failed")
@@ -352,7 +393,8 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	if outerFamily == 6 {
 		remote, source = pfPacketServer6, "fd00:198:18:99::129"
 	}
-	client = device.NewDevice(&pfObservedTUN{inner, innerCapture}, conn.NewStdNetBind(), device.NewLogger(device.LogLevelSilent, ""))
+	clientBind := &pfObservedBind{Bind: conn.NewStdNetBind()}
+	client = device.NewDevice(&pfObservedTUN{inner, innerCapture}, clientBind, device.NewLogger(device.LogLevelSilent, ""))
 	peer = device.NewDevice(serverTUN, &pfPeerPacketBind{stack: outerStack, address: netip.MustParseAddr(remote)}, device.NewLogger(device.LogLevelSilent, ""))
 	cp, cu := pfEphemeralKey(t)
 	sp, su := pfEphemeralKey(t)
@@ -361,6 +403,10 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 		t.Fatal("official encrypted device configuration failed")
 	}
 	cp, sp = "", "" // No key/configuration is printed or exported.
+	outerPort, outerGeneration := clientBind.lifetime()
+	if outerPort == 0 || outerGeneration == 0 {
+		t.Fatal("official socket lifetime unavailable")
+	}
 	for _, address := range []string{"198.18.100.130", "fd00:198:18:100::130"} {
 		for _, port := range []uint16{45121, 53} {
 			endpoint := netip.AddrPortFrom(netip.MustParseAddr(address), port)
@@ -393,6 +439,11 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 					timeout := 650 * time.Millisecond
 					if allowed {
 						timeout = 4 * time.Second
+						if label == "reopened-admitted" {
+							// Down erased session keys. A denied handshake may have
+							// armed upstream's 5s+jitter retry; allow that one retry.
+							timeout = 8 * time.Second
+						}
 					}
 					succeeded := pfEncryptedEcho(ctx, innerIface, family, protocol, port, source, address, timeout)
 					time.Sleep(100 * time.Millisecond)
@@ -410,7 +461,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 	}
 	phase("deny", false, false, false)
 	tunnel := &pfInterface{innerIface.Name, innerIface.Index}
-	escape := pfUDPEscape{pfInterface{outerIface.Name, outerIface.Index}, netip.MustParseAddr(source), netip.AddrPortFrom(netip.MustParseAddr(remote), 45121)}
+	escape := pfUDPEscape{path: pfInterface{outerIface.Name, outerIface.Index}, source: netip.MustParseAddr(source), endpoint: netip.AddrPortFrom(netip.MustParseAddr(remote), 45121), sourcePort: outerPort}
 	if store.updatePFPolicy(ctx, pfPolicy{tunnel: tunnel}) != nil {
 		t.Fatal("encrypted tunnel-only policy failed")
 	}
@@ -431,6 +482,31 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int) {
 		t.Fatal("encrypted outer restore failed")
 	}
 	phase("outer-restored", true, true, true)
+	// Explicitly retire the exception while the original socket is still held.
+	// This fixture proves the ordered lifecycle, not automatic installed-worker
+	// revocation, arbitrary root-process exclusion, or crash-time port ownership.
+	if port, generation := clientBind.lifetime(); port != outerPort || generation != outerGeneration {
+		t.Fatal("official socket changed during admitted lifetime")
+	}
+	if store.updatePFPolicy(ctx, pfPolicy{tunnel: tunnel}) != nil || client.Down() != nil {
+		t.Fatal("socket exception retirement before close failed")
+	}
+	if port, generation := clientBind.lifetime(); port != 0 || generation != outerGeneration {
+		t.Fatal("official socket close not observed")
+	}
+	if client.IpcSet("listen_port=0\n") != nil || client.Up() != nil {
+		t.Fatal("official socket reopen failed")
+	}
+	outerPort, generation := clientBind.lifetime()
+	if outerPort == 0 || generation != outerGeneration+1 {
+		t.Fatal("official new socket lifetime not observed")
+	}
+	phase("reopened-unadmitted", true, false, false)
+	escape.sourcePort = outerPort
+	if store.updatePFPolicy(ctx, pfPolicy{tunnel: tunnel, escapes: []pfUDPEscape{escape}}) != nil {
+		t.Fatal("new official socket admission failed")
+	}
+	phase("reopened-admitted", true, true, true)
 	if store.updatePFPolicy(ctx, pfPolicy{escapes: []pfUDPEscape{escape}}) != nil {
 		t.Fatal("encrypted inner removal failed")
 	}

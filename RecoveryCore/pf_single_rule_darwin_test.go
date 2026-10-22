@@ -25,8 +25,8 @@ func TestRootPFRuleSingleClassCodecPrimaryABI(t *testing.T) {
 	}{
 		{"emit-deny", pfPolicy{}},
 		{"emit-loopback", pfPolicy{loopback: true}},
-		{"emit-udp4", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("127.0.0.1"), endpoint: netip.MustParseAddrPort("127.0.0.2:53")}}}},
-		{"emit-udp6", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("::1"), endpoint: netip.MustParseAddrPort("[::2]:443")}}}},
+		{"emit-udp4", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("127.0.0.1"), endpoint: netip.MustParseAddrPort("127.0.0.2:53"), sourcePort: 45120}}}},
+		{"emit-udp6", pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{"lo0", 1}, source: netip.MustParseAddr("::1"), endpoint: netip.MustParseAddrPort("[::2]:443"), sourcePort: 45120}}}},
 	}
 	for _, fixture := range fixtures {
 		t.Run(fixture.mode, func(t *testing.T) {

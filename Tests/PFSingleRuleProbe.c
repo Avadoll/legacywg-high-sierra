@@ -88,6 +88,9 @@ static void fixed_recipe(struct pfioc_rule *request, const char *path, int kind)
         (void)inet_pton(family,kind == 2 ? "127.0.0.2" : "::2",&request->rule.dst.addr.v.a.addr);
         memset(&request->rule.src.addr.v.a.mask,255,kind == 2 ? 4 : 16);
         memset(&request->rule.dst.addr.v.a.mask,255,kind == 2 ? 4 : 16);
+        request->rule.src.xport.range.port[0]=htons(45120);
+        request->rule.src.xport.range.port[1]=htons(45120);
+        request->rule.src.xport.range.op=PF_OP_EQ;
         uint16_t port=htons(kind == 2 ? 53 : 443);
         request->rule.dst.xport.range.port[0]=port;
         request->rule.dst.xport.range.port[1]=port;

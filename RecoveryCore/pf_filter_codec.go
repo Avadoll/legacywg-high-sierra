@@ -68,6 +68,10 @@ func compiledPFFilterFrames(anchor string, policy pfPolicy) ([]pfFilterFrame, er
 		frame[pfFilterRuleOffset+1014] = 17 // UDP
 		address(&frame, pfFilterRuleOffset, escape.source)
 		address(&frame, pfFilterRuleOffset+64, escape.endpoint.Addr())
+		sourcePort := pfFilterRuleOffset + 48 // src.xport.range.port
+		binary.BigEndian.PutUint16(frame[sourcePort:sourcePort+2], escape.sourcePort)
+		binary.BigEndian.PutUint16(frame[sourcePort+2:sourcePort+4], escape.sourcePort)
+		frame[sourcePort+4] = 2              // PF_OP_EQ: the admitted local UDP port only
 		port := pfFilterRuleOffset + 64 + 48 // dst.xport.range.port
 		binary.BigEndian.PutUint16(frame[port:port+2], escape.endpoint.Port())
 		binary.BigEndian.PutUint16(frame[port+2:port+4], escape.endpoint.Port())

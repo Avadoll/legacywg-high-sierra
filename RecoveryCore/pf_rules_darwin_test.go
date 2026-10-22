@@ -30,8 +30,8 @@ func fixturePFUDPPolicy(t *testing.T) pfPolicy {
 		t.Fatal("owned loopback source fixture unavailable")
 	}
 	return pfPolicy{escapes: []pfUDPEscape{
-		{pfInterface{"lo0", iface.Index}, netip.MustParseAddr("127.0.0.1"), netip.MustParseAddrPort("127.0.0.2:53")},
-		{pfInterface{"lo0", iface.Index}, netip.MustParseAddr("::1"), netip.MustParseAddrPort("[::1]:443")},
+		{path: pfInterface{"lo0", iface.Index}, source: netip.MustParseAddr("127.0.0.1"), endpoint: netip.MustParseAddrPort("127.0.0.2:53"), sourcePort: 45120},
+		{path: pfInterface{"lo0", iface.Index}, source: netip.MustParseAddr("::1"), endpoint: netip.MustParseAddrPort("[::1]:443"), sourcePort: 45120},
 	}}
 }
 

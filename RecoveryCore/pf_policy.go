@@ -15,9 +15,10 @@ type pfInterface struct {
 }
 
 type pfUDPEscape struct {
-	path     pfInterface
-	source   netip.Addr
-	endpoint netip.AddrPort
+	path       pfInterface
+	source     netip.Addr
+	endpoint   netip.AddrPort
+	sourcePort uint16
 }
 
 // Internal typed policy. No raw rules/macros/tables/paths/hostnames/hooks are
@@ -30,7 +31,7 @@ type pfPolicy struct {
 }
 
 var pfInterfaceName = regexp.MustCompile(`^[a-z][a-z0-9]{0,14}$`)
-var pfUDPRule = regexp.MustCompile(`^pass out quick on ([a-z][a-z0-9]{0,14}) (inet6?) proto udp from ([0-9a-f.:]+) to ([0-9a-f.:]+) port = ([0-9]{1,5}) user = (?:0|root) no state$`)
+var pfUDPRule = regexp.MustCompile(`^pass out quick on ([a-z][a-z0-9]{0,14}) (inet6?) proto udp from ([0-9a-f.:]+) port = ([0-9]{1,5}) to ([0-9a-f.:]+) port = ([0-9]{1,5}) user = (?:0|root) no state$`)
 var pfTunnelRule = regexp.MustCompile(`^pass out quick on (utun[0-9]{1,10}) all(?: flags any)? no state$`)
 
 func pfNumericAddress(address netip.Addr) bool {
@@ -38,7 +39,7 @@ func pfNumericAddress(address netip.Addr) bool {
 }
 
 func pfEscapeKey(escape pfUDPEscape) string {
-	return escape.path.name + "\x00" + escape.source.String() + "\x00" + escape.endpoint.String()
+	return escape.path.name + "\x00" + escape.source.String() + "\x00" + escape.endpoint.String() + "\x00" + strconv.FormatUint(uint64(escape.sourcePort), 10)
 }
 
 func (policy pfPolicy) frozen() (pfPolicy, error) {
@@ -54,7 +55,7 @@ func (policy pfPolicy) frozen() (pfPolicy, error) {
 		copyPolicy.tunnel = &value
 	}
 	for _, escape := range copyPolicy.escapes {
-		if !pfInterfaceName.MatchString(escape.path.name) || escape.path.index < 1 || escape.path.index > 2147483647 || !pfNumericAddress(escape.source) || !escape.endpoint.IsValid() || escape.endpoint.Port() == 0 || !pfNumericAddress(escape.endpoint.Addr()) || escape.source.Is4() != escape.endpoint.Addr().Is4() {
+		if !pfInterfaceName.MatchString(escape.path.name) || escape.path.index < 1 || escape.path.index > 2147483647 || !pfNumericAddress(escape.source) || !escape.endpoint.IsValid() || escape.endpoint.Port() == 0 || escape.sourcePort == 0 || !pfNumericAddress(escape.endpoint.Addr()) || escape.source.Is4() != escape.endpoint.Addr().Is4() {
 			return pfPolicy{}, ErrRecoveryRequired
 		}
 	}
@@ -90,10 +91,11 @@ func (policy pfPolicy) render() (string, error) {
 		if escape.source.Is4() {
 			family = "inet"
 		}
-		// The worker opens outer UDP sockets as root. Ordinary application
-		// sockets must not reuse this physical/synthetic endpoint exception.
-		// This is a UID boundary, not a worker-PID or other-root restriction.
-		fmt.Fprintf(&text, "pass out quick on %s %s proto udp from %s to %s port = %d user = 0 no state\n", escape.path.name, family, escape.source, escape.endpoint.Addr(), escape.endpoint.Port())
+		// The worker opens outer UDP sockets as root. A mandatory local port
+		// narrows this exception to its admitted socket tuple. The owner must
+		// revoke/re-admit it when that socket closes or reopens; PF does not
+		// identify a worker PID or prevent privileged reuse of the tuple.
+		fmt.Fprintf(&text, "pass out quick on %s %s proto udp from %s port = %d to %s port = %d user = 0 no state\n", escape.path.name, family, escape.source, escape.sourcePort, escape.endpoint.Addr(), escape.endpoint.Port())
 	}
 	text.WriteString(stagedPFRule)
 	return text.String(), nil
@@ -131,12 +133,13 @@ func parsePFPolicy(text string) (pfPolicy, error) {
 			return pfPolicy{}, ErrRecoveryRequired
 		}
 		source, err := netip.ParseAddr(match[3])
-		destination, second := netip.ParseAddr(match[4])
-		port, third := strconv.ParseUint(match[5], 10, 16)
-		if err != nil || second != nil || third != nil || port == 0 || !pfNumericAddress(source) || !pfNumericAddress(destination) || source.Is4() != destination.Is4() || (match[2] == "inet") != source.Is4() || source.String() != match[3] || destination.String() != match[4] || strconv.FormatUint(port, 10) != match[5] {
+		sourcePort, second := strconv.ParseUint(match[4], 10, 16)
+		destination, third := netip.ParseAddr(match[5])
+		port, fourth := strconv.ParseUint(match[6], 10, 16)
+		if err != nil || second != nil || third != nil || fourth != nil || sourcePort == 0 || port == 0 || !pfNumericAddress(source) || !pfNumericAddress(destination) || source.Is4() != destination.Is4() || (match[2] == "inet") != source.Is4() || source.String() != match[3] || destination.String() != match[5] || strconv.FormatUint(sourcePort, 10) != match[4] || strconv.FormatUint(port, 10) != match[6] {
 			return pfPolicy{}, ErrRecoveryRequired
 		}
-		policy.escapes = append(policy.escapes, pfUDPEscape{pfInterface{match[1], 1}, source, netip.AddrPortFrom(destination, uint16(port))})
+		policy.escapes = append(policy.escapes, pfUDPEscape{path: pfInterface{match[1], 1}, source: source, endpoint: netip.AddrPortFrom(destination, uint16(port)), sourcePort: uint16(sourcePort)})
 	}
 	validated, err := policy.frozen()
 	if err != nil || len(validated.escapes) != len(policy.escapes) {

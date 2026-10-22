@@ -121,6 +121,46 @@ func (connection *pfFixtureUDPConnection) Read(data []byte) (int, error) {
 
 func (connection *pfFixtureUDPConnection) RemoteAddr() net.Addr { return connection.destination }
 
+// A live bound socket owns its ephemeral port throughout every policy phase.
+// Never reserve a port by closing and reopening it before the PF admission.
+func pfPacketUDPSocket(t *testing.T, iface *net.Interface, family int) *net.UDPConn {
+	t.Helper()
+	network, source := "udp4", "198.18.99.129"
+	level, option := unix.IPPROTO_IP, unix.IP_BOUND_IF
+	if family == 6 {
+		network, source = "udp6", "fd00:198:18:99::129"
+		level, option = unix.IPPROTO_IPV6, unix.IPV6_BOUND_IF
+	}
+	udp, err := net.ListenUDP(network, &net.UDPAddr{IP: net.ParseIP(source)})
+	if err != nil {
+		t.Fatal("owned packet socket unavailable")
+	}
+	t.Cleanup(func() { _ = udp.Close() })
+	address, ok := udp.LocalAddr().(*net.UDPAddr)
+	if !ok || address.Port < 1 || address.Port > 65535 || !address.IP.Equal(net.ParseIP(source)) {
+		t.Fatal("owned packet socket identity unavailable")
+	}
+	raw, err := udp.SyscallConn()
+	if err != nil {
+		t.Fatal("owned packet socket descriptor unavailable")
+	}
+	var bindErr error
+	err = raw.Control(func(fd uintptr) { bindErr = unix.SetsockoptInt(int(fd), level, option, iface.Index) })
+	if err != nil || bindErr != nil {
+		t.Fatal("owned packet socket path binding failed")
+	}
+	return udp
+}
+
+func pfPacketUDPSourcePort(t *testing.T, udp *net.UDPConn) uint16 {
+	t.Helper()
+	address, ok := udp.LocalAddr().(*net.UDPAddr)
+	if !ok || address.Port < 1 || address.Port > 65535 {
+		t.Fatal("owned packet socket port unavailable")
+	}
+	return uint16(address.Port)
+}
+
 func (capture *pfPacketObservation) observe(packet []byte) {
 	server4, server6 := capture.server4, capture.server6
 	if server4 == nil {
@@ -336,7 +376,17 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 			go pfServeTCPEcho(tcp, port == 53)
 		}
 	}
-	probe := func(family, protocol, port int, allowed bool) {
+	rootSockets := make(map[int][2]*net.UDPConn)
+	nonroot := make(map[int]*pfNonrootPacketSession)
+	for _, family := range []int{4, 6} {
+		rootSockets[family] = [2]*net.UDPConn{pfPacketUDPSocket(t, iface, family), pfPacketUDPSocket(t, iface, family)}
+		nonroot[family] = pfStartNonrootPacketSession(t, ctx, iface, capture, family)
+		first, second := pfPacketUDPSourcePort(t, rootSockets[family][0]), pfPacketUDPSourcePort(t, rootSockets[family][1])
+		if first == second || first == nonroot[family].sourcePort || second == nonroot[family].sourcePort {
+			t.Fatal("live packet socket port identities overlap")
+		}
+	}
+	probeSocket := func(family, protocol, port int, allowed bool, udp *net.UDPConn) {
 		t.Helper()
 		address, source, network := pfPacketServer4, "198.18.99.129", "udp4"
 		if family == 6 {
@@ -370,20 +420,10 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 			dialer := net.Dialer{Timeout: 650 * time.Millisecond, LocalAddr: &net.TCPAddr{IP: net.ParseIP(source)}, Control: func(_, _ string, raw syscall.RawConn) error { return bind(raw) }}
 			connection, err = dialer.DialContext(ctx, network, net.JoinHostPort(address, fmtPort(port)))
 		} else {
-			udp, listenErr := net.ListenUDP(network, &net.UDPAddr{IP: net.ParseIP(source)})
-			err = listenErr
-			if err == nil {
-				raw, rawErr := udp.SyscallConn()
-				err = rawErr
-				if err == nil {
-					err = bind(raw)
-				}
-				if err != nil {
-					udp.Close()
-				} else {
-					connection = &pfFixtureUDPConnection{udp, &net.UDPAddr{IP: net.ParseIP(address), Port: port}}
-				}
+			if udp == nil {
+				t.Fatal("live packet socket missing")
 			}
+			connection = &pfFixtureUDPConnection{udp, &net.UDPAddr{IP: net.ParseIP(address), Port: port}}
 		}
 		succeeded := false
 		if err == nil {
@@ -409,7 +449,9 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 				_, err = io.ReadFull(connection, got)
 				succeeded = err == nil && bytes.Equal(got, want)
 			}
-			connection.Close()
+			if protocol == 6 {
+				connection.Close()
+			}
 		}
 		time.Sleep(100 * time.Millisecond)
 		observed := capture.count(key) - prior
@@ -420,15 +462,19 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 			t.Fatalf("blocked packet reached owned peer: family=%d protocol=%d dns=%t", family, protocol, port == 53)
 		}
 	}
+	probe := func(family, protocol, port int, allowed bool) {
+		probeSocket(family, protocol, port, allowed, rootSockets[family][0])
+	}
 	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
 			for _, port := range []int{45121, 45122, 53} {
 				probe(family, protocol, port, true)
 			}
 		}
+		probeSocket(family, 17, 45121, true, rootSockets[family][1])
 	}
 	for _, family := range []int{4, 6} {
-		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
+		nonroot[family].probe(t, ctx, true)
 	}
 	if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
 		t.Fatal("durable packet guard activation failed")
@@ -447,14 +493,17 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 			source, address = "fd00:198:18:99::129", pfPacketServer6
 		}
 		for _, port := range []uint16{45121, 53} {
-			escapes.escapes = append(escapes.escapes, pfUDPEscape{pfInterface{name, iface.Index}, netip.MustParseAddr(source), netip.AddrPortFrom(netip.MustParseAddr(address), port)})
+			escapes.escapes = append(escapes.escapes, pfUDPEscape{pfInterface{name, iface.Index}, netip.MustParseAddr(source), netip.AddrPortFrom(netip.MustParseAddr(address), port), pfPacketUDPSourcePort(t, rootSockets[family][0])})
 		}
+		// This child retains its own ordinary-UID socket. Admit its exact port,
+		// leaving UID as the only differing predicate for the negative control.
+		escapes.escapes = append(escapes.escapes, pfUDPEscape{pfInterface{name, iface.Index}, netip.MustParseAddr(source), netip.AddrPortFrom(netip.MustParseAddr(address), 45121), nonroot[family].sourcePort})
 	}
 	if store.updatePFPolicy(ctx, escapes) != nil {
 		t.Fatal("numeric packet exception generation failed")
 	}
 	for _, family := range []int{4, 6} {
-		pfNonrootPacketProbe(t, ctx, iface, capture, family, false)
+		nonroot[family].probe(t, ctx, false)
 	}
 	for _, family := range []int{4, 6} {
 		probe(family, 17, 45121, true)
@@ -462,12 +511,14 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		probe(family, 17, 45122, false)
 		probe(family, 6, 45121, false)
 		probe(family, 6, 53, false)
+		probeSocket(family, 17, 45121, false, rootSockets[family][1])
 	}
 	if store.updatePFPolicy(ctx, pfPolicy{tunnel: &pfInterface{name, iface.Index}}) != nil {
 		t.Fatal("journal-owned tunnel packet exception failed")
 	}
 	for _, family := range []int{4, 6} {
-		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
+		nonroot[family].probe(t, ctx, true)
+		probeSocket(family, 17, 45121, true, rootSockets[family][1])
 	}
 	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
@@ -480,7 +531,7 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		t.Fatal("packet exceptions removal failed")
 	}
 	for _, family := range []int{4, 6} {
-		pfNonrootPacketProbe(t, ctx, iface, capture, family, false)
+		nonroot[family].probe(t, ctx, false)
 	}
 	for _, family := range []int{4, 6} {
 		for _, protocol := range []int{6, 17} {
@@ -501,7 +552,8 @@ func TestRootPFRuleNativePackets(t *testing.T) {
 		t.Fatal("packet final PF baseline differs")
 	}
 	for _, family := range []int{4, 6} {
-		pfNonrootPacketProbe(t, ctx, iface, capture, family, true)
+		nonroot[family].probe(t, ctx, true)
+		probeSocket(family, 17, 45121, true, rootSockets[family][1])
 	}
 	// A separate process owns the deny policy while this parent's utun remains
 	// alive. Actual process death must retain packet blocking until explicit
