@@ -1,0 +1,177 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer4",
+    "Elapsed": 32.55
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets/outer6",
+    "Elapsed": 32.05
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEncryptedPackets",
+    "Elapsed": 64.63
+  },
+  {
+    "Action": "run",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "output",
+    "Test": "TestProtectedEndpointInput"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestProtectedEndpointInput",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedTransportLifecycle",
+    "Elapsed": 18.86
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportBorrowed",
+    "Elapsed": 13.51
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportInterruptedPreparation",
+    "Elapsed": 11.7
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedTransportRefusesOwnTunnel",
+    "Elapsed": 0.11
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard",
+    "Elapsed": 15.69
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 124.55
+  }
+]

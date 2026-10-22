@@ -1,0 +1,9 @@
+{
+  "run_id": "39839383418",
+  "source_commit": "9392c8bb279f9e939bdc367dcfe4db6adb541753",
+  "artifact_id": 12452562384,
+  "sha256": "bebad90ba989f7b87aba7ad020e785acfa30c8f5a52f169bdd77b6c82161c625",
+  "embedded_source": "PASS",
+  "report_sha256": "c6ae8aa6aad117ea6db8b7420ec3eae05c627edb2c0182c6d7b17a02565bf016",
+  "artifact_bytes": 5000
+}
