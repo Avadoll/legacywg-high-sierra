@@ -1,0 +1,509 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer4"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer4"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer4",
+    "Elapsed": 32.27
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer6"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer6"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets/outer6",
+    "Elapsed": 32.98
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralEncryptedPackets",
+    "Elapsed": 65.25
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/fresh_zero_references"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/fresh_zero_references"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/fresh_zero_references"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/fresh_zero_references",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/set_clear_verified"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/set_clear_verified"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/set_clear_verified"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/set_clear_verified",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip/index_reused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip/index_reused",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/replacement_has_no_skip",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire/disabled_policy_baseline_unchanged",
+    "Elapsed": 0.26
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceFlagWire",
+    "Elapsed": 0.58
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle0",
+    "Elapsed": 17.37
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle1",
+    "Elapsed": 16.2
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused/cycle2",
+    "Elapsed": 21.17
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceReferencedRefused",
+    "Elapsed": 54.73
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/retained_after_device_close"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/retained_after_device_close"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/retained_after_device_close"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/retained_after_device_close",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/clear_before_last_descriptor_close"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/clear_before_last_descriptor_close"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/clear_before_last_descriptor_close"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/clear_before_last_descriptor_close",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/last_close_removes_interface"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/last_close_removes_interface"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/last_close_removes_interface"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/last_close_removes_interface",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/disabled_policy_baseline_unchanged"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire/disabled_policy_baseline_unchanged",
+    "Elapsed": 0.38
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleOwnInterfaceLeaseWire",
+    "Elapsed": 0.77
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_reused",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/dead_owner_policy_retained",
+    "Elapsed": 0.42
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/verified_deny_blocks_replacement",
+    "Elapsed": 0.85
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/restored_baseline_positive_controls",
+    "Elapsed": 0.21
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse/no_inherited_tunnel_permission",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleEphemeralAdmittedCrashReuse",
+    "Elapsed": 21.3
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "pass",
+    "Elapsed": 142.708
+  }
+]
