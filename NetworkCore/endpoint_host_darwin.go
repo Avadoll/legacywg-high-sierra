@@ -43,8 +43,16 @@ func (host ScopedHost) Matches(snapshot ScopedPath) bool {
 	if !host.Path.Direct {
 		want |= unix.RTF_GATEWAY
 	}
+	observedFlags := snapshot.Flags
+	// nd6_rtrequest annotates direct IPv6 host routes with LLINFO, even
+	// when our acknowledged route is STATIC rather than a cloned neighbor.
+	// Keep the exception local to IPv6 direct routes; cloned routes remain
+	// refused. This is not ownership evidence without the committed journal.
+	if host.Destination.Is6() && host.Path.Direct {
+		observedFlags &^= unix.RTF_LLINFO
+	}
 	return host.valid() && snapshot.Path == host.Path &&
-		snapshot.Prefix == netip.PrefixFrom(host.Destination, host.Destination.BitLen()) && snapshot.Flags == want
+		snapshot.Prefix == netip.PrefixFrom(host.Destination, host.Destination.BitLen()) && observedFlags == want
 }
 
 // ObserveScopedHost returns a validated best-match observation. A false exact
