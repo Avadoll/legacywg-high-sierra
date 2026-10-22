@@ -14,7 +14,7 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','ephemeral','route-wire'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','ephemeral','cleanup','route-wire'):raise SystemExit('Unknown native PF scope')
     pattern='^(TestRootPFRule|TestProtectedEndpointInput$|TestPFInterfaceProjection$)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
@@ -27,9 +27,11 @@ def main():
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
     if scope=='ephemeral':pattern='^(TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused|ForeignInterfaceSkipRefused|AwaitOwnedInterfaceRemoval)|TestPFInterfaceProjection)$'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
+    if scope=='cleanup':pattern='^TestRootPFRuleOwnInterfaceReferencedRefused$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
-    test_timeout=1200 if scope=='full' else 600 if scope in ('routes','protection') else 300
+    test_timeout=1200 if scope=='full' else 600 if scope in ('routes','protection','cleanup') else 300
+    test_count=4 if scope=='cleanup' else 1
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -50,7 +52,7 @@ def main():
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
         'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','protection','ephemeral','full') else '0'),str(test),
         '-test.run='+pattern,
-        '-test.v=test2json','-test.timeout='+str(test_timeout)+'s'],
+        '-test.v=test2json','-test.count='+str(test_count),'-test.timeout='+str(test_timeout)+'s'],
         capture_output=True,text=True,env=env,timeout=test_timeout+30)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
@@ -118,11 +120,16 @@ def main():
     interface_removal={'TestRootPFRuleAwaitOwnedInterfaceRemoval'}|{'TestRootPFRuleAwaitOwnedInterfaceRemoval/'+name for name in (
         'canceled_wait_preserves_journal','live_descriptor_does_not_release','actual_removal_finishes_journal')}
     if scope in ('protection','ephemeral','full'):required|=interface_removal
-    status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
+    if scope=='cleanup':required={'TestRootPFRuleOwnInterfaceReferencedRefused'}|{'TestRootPFRuleOwnInterfaceReferencedRefused/cycle'+str(cycle) for cycle in range(3)}
+    pass_counts={name:sum(event.get('Action')=='pass' and event.get('Test')==name for event in events) for name in required}
+    repetitions_confirmed=all(count==test_count for count in pass_counts.values())
+    status='PASS' if result.returncode==0 and required<=passed and repetitions_confirmed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
+        'required_test_repetitions':test_count,'required_test_pass_counts':pass_counts,
+        'immediate_cleanup_cycles':12 if scope=='cleanup' and status=='PASS' else 0,
         'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
         'bounded_post_close_actual_interface_removal':checked('TestRootPFRuleAwaitOwnedInterfaceRemoval'),
         'foreign_interface_skip_admission_refusal':checked('TestRootPFRuleForeignInterfaceSkipRefused'),

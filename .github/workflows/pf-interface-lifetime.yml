@@ -2,6 +2,11 @@ name: Ephemeral owned tunnel lifetime candidate
 
 on:
   workflow_dispatch:
+    inputs:
+      cleanup_only:
+        description: Repeat immediate reference-refusal cleanup 12 cycles without encrypted traffic
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,7 +18,7 @@ concurrency:
 jobs:
   native-lifetime:
     runs-on: macos-15-intel
-    timeout-minutes: 12
+    timeout-minutes: 18
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       GOTOOLCHAIN: local
@@ -22,7 +27,7 @@ jobs:
       GOOS: darwin
       GOARCH: amd64
       GOAMD64: v1
-      LEGACYWG_PF_RULE_SCOPE: ephemeral
+      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.cleanup_only && 'cleanup' || 'ephemeral' }}
     steps:
       - name: Check out reviewed lifetime experiment
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
