@@ -14,13 +14,14 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
-    if scope=='encrypted':pattern='^TestRootPFRule(EncryptedPackets|GuardedEncryptedPackets)$'
+    if scope=='encrypted':pattern='^TestRootPFRule(EncryptedPackets|GuardedEncryptedPackets|ScopedGuardedEncryptedPackets)$'
     if scope=='transport':pattern='^TestRootPFRule(Socket|GuardTransport|GuardedEncryptedPackets)'
+    if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -39,10 +40,10 @@ def main():
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
-        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','full') else '0'),str(test),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','full') else '0'),str(test),
         '-test.run='+pattern,
-        '-test.v=test2json','-test.timeout='+('600s' if scope=='full' else '300s')],
-        capture_output=True,text=True,env=env,timeout=630 if scope=='full' else 330)
+        '-test.v=test2json','-test.timeout='+('900s' if scope=='full' else '300s')],
+        capture_output=True,text=True,env=env,timeout=930 if scope=='full' else 330)
     events=[json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     sanitized=[{key:event[key] for key in ('Action','Test','Elapsed') if key in event} for event in events]
     (output/'pf-rules-tests.json').write_text(json.dumps(sanitized,indent=2)+'\n')
@@ -71,6 +72,11 @@ def main():
     if scope in ('full','encrypted'):required|=guarded
     if scope=='full':required|=transport
     if scope=='transport':required=transport|guarded
+    scoped_encrypted={'TestRootPFRuleScopedGuardedEncryptedPackets','TestRootPFRuleScopedGuardedEncryptedPackets/outer4','TestRootPFRuleScopedGuardedEncryptedPackets/outer6'}
+    scoped=scoped_encrypted|{'TestRootPFRuleScopedGuardLossAfterConfirmedAdmission','TestRootPFRuleScopedGuardLossDuringSocketOpen'}
+    if scope=='scoped':required=scoped
+    if scope=='full':required|=scoped
+    if scope=='encrypted':required|=scoped_encrypted
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -92,6 +98,10 @@ def main():
         'encrypted_outer_and_inner_exception_removal':checked('TestRootPFRuleEncryptedPackets'),
         'encrypted_actual_bind_port_and_explicit_revoke_close_reopen_readmit':checked('TestRootPFRuleEncryptedPackets'),
         'automatic_socket_lifetime_revocation':'PRIVATE_NATIVE_BIND_NOT_INSTALLED',
+        'scoped_guard_existing_route_loss_native_encrypted':checked('TestRootPFRuleScopedGuardedEncryptedPackets'),
+        'scoped_guard_loss_after_confirmed_pf_admission':checked('TestRootPFRuleScopedGuardLossAfterConfirmedAdmission'),
+        'scoped_guard_loss_during_socket_open':checked('TestRootPFRuleScopedGuardLossDuringSocketOpen'),
+        'scoped_guard_scope':'owned virtual interface; borrowed scoped routes; physical mutation/installed guard NOT_RUN',
         'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
         'native_dual_family_same_port_and_path_admission':checked('TestRootPFRuleSocketDualFamilyAndAdmission'),
         'automatic_deny_before_release_stale_callbacks_and_store_pin':checked('TestRootPFRuleGuardTransportCloseReopenAndStorePin'),

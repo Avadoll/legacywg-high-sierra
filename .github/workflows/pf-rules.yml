@@ -23,6 +23,10 @@ on:
         description: Test private socket lifetime controller and automatic encrypted transport
         type: boolean
         default: false
+      scoped_only:
+        description: Test scoped route loss during guarded transport admission and encrypted traffic
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,7 +38,7 @@ concurrency:
 jobs:
   native-rules:
     runs-on: macos-15-intel
-    timeout-minutes: 12
+    timeout-minutes: 18
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       GOTOOLCHAIN: local
@@ -43,7 +47,7 @@ jobs:
       GOOS: darwin
       GOARCH: amd64
       GOAMD64: v1
-      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.transport_only && 'transport' || inputs.encrypted_only && 'encrypted' || inputs.packets_only && 'packets' || inputs.fixture_only && 'single-class' || inputs.coordinator_only && 'coordinator' || 'full' }}
+      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.scoped_only && 'scoped' || inputs.transport_only && 'transport' || inputs.encrypted_only && 'encrypted' || inputs.packets_only && 'packets' || inputs.fixture_only && 'single-class' || inputs.coordinator_only && 'coordinator' || 'full' }}
     steps:
       - name: Check out reviewed rule coordinator
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

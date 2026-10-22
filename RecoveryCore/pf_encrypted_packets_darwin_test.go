@@ -282,7 +282,7 @@ func TestRootPFRuleEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable encrypted packet test")
 	}
 	for _, outerFamily := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false) })
+		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false, false) })
 	}
 }
 
@@ -292,11 +292,21 @@ func TestRootPFRuleGuardedEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable guarded transport test")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, false) })
 	}
 }
 
-func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
+func TestRootPFRuleScopedGuardedEncryptedPackets(t *testing.T) {
+	requirePFRuleCI(t)
+	if os.Getenv("LEGACYWG_PF_ENCRYPTED_PACKET_TESTS") != "1" {
+		t.Skip("native encrypted packet fixture requires explicit opt-in")
+	}
+	for _, family := range []int{4, 6} {
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true) })
+	}
+}
+
+func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bool) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
@@ -360,6 +370,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
 				client.Close()
 				client = nil
 			}
+			_ = guarded.Close()
 			if guarded.retained && guarded.reconcile(cleanup) != nil {
 				t.Error("guarded socket ownership retained after cleanup refusal")
 				return
@@ -415,8 +426,13 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
 		command("/sbin/route", "-n", "add", route.family, "-host", route.address, "-interface", route.name)
 	}
 	remote, source := pfPacketServer4, "198.18.99.129"
+	outerRouteFamily := "-inet"
 	if outerFamily == 6 {
 		remote, source = pfPacketServer6, "fd00:198:18:99::129"
+		outerRouteFamily = "-inet6"
+	}
+	if scoped {
+		command("/sbin/route", "-n", "add", outerRouteFamily, "-host", remote, "-interface", outerIface.Name, "-ifscope", outerIface.Name)
 	}
 	clientBind := &pfObservedBind{Bind: conn.NewStdNetBind()}
 	var transport conn.Bind = clientBind
@@ -424,10 +440,15 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
 		if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
 			t.Fatal("automatic encrypted guard activation failed")
 		}
-		guarded, err = newPFGuardBind(ctx, store, pfPolicy{
+		policy := pfPolicy{
 			tunnel:  &pfInterface{innerIface.Name, innerIface.Index},
 			escapes: []pfUDPEscape{{path: pfInterface{outerIface.Name, outerIface.Index}, source: netip.MustParseAddr(source), endpoint: netip.AddrPortFrom(netip.MustParseAddr(remote), 45121), sourcePort: 1}},
-		})
+		}
+		constructor := newPFGuardBind
+		if scoped {
+			constructor = newPFScopedGuardBind
+		}
+		guarded, err = constructor(ctx, store, policy)
 		if err != nil {
 			t.Fatal("automatic encrypted transport admission failed")
 		}
@@ -499,6 +520,51 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic bool) {
 		lease := guarded.current.Load()
 		if lease == nil || !lease.admitted.Load() || lease.retired.Load() {
 			t.Fatal("automatic socket lifetime missing")
+		}
+		if scoped {
+			command("/sbin/route", "-n", "delete", outerRouteFamily, "-host", remote, "-interface", outerIface.Name, "-ifscope", outerIface.Name)
+			select {
+			case <-guarded.scoped.done:
+			case <-time.After(25 * time.Second):
+				t.Fatal("scoped path loss did not complete guard revocation")
+			}
+			iface, err := net.InterfaceByName(outerIface.Name)
+			record, readErr := store.readPF(pfJournalFile)
+			if err != nil || iface.Index != outerIface.Index || iface.Flags&net.FlagUp == 0 || !guarded.scoped.lost.Load() || guarded.scoped.err != nil ||
+				readErr != nil || record == nil || record.Phase != PFActive || record.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !lease.retired.Load() {
+				t.Fatal("scoped withdrawal did not preserve deny-only with the outer interface up")
+			}
+			phase("scoped-route-withdrawn", false, false, false)
+			pfTransportPortFree(t, guarded.paths, lease.port)
+			if client.Down() != nil {
+				t.Fatal("lost scoped official device could not stop")
+			}
+			command("/sbin/route", "-n", "add", outerRouteFamily, "-host", remote, "-interface", outerIface.Name, "-ifscope", outerIface.Name)
+			if client.Up() == nil || guarded.current.Load() != nil {
+				t.Fatal("restored route revived a permanently refused admission")
+			}
+			policy := guarded.policy
+			if guarded.detach() != nil {
+				t.Fatal("lost scoped guard could not join and detach")
+			}
+			fresh, err := newPFScopedGuardBind(ctx, store, policy)
+			if err != nil {
+				t.Fatal("fresh scoped route admission failed")
+			}
+			guarded = fresh
+			if _, _, err := fresh.Open(0); err != nil || fresh.Close() != nil || fresh.detach() != nil {
+				t.Fatal("fresh scoped socket lifetime failed")
+			}
+			client.Close()
+			client = nil
+			if store.recoverPFLifecycle(ctx) != nil || store.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
+				t.Fatal("scoped encrypted explicit recovery failed")
+			}
+			baseline, err := readDisabledPF(ctx, record.Anchor)
+			if err != nil || !baseline.matches(*record) || baseline.rules != pfDigest("") {
+				t.Fatal("scoped encrypted final PF baseline differs")
+			}
+			return
 		}
 		if client.Down() != nil {
 			t.Fatal("official Down automatic revocation failed")

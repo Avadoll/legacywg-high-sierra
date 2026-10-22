@@ -1,0 +1,45 @@
+name: Read-only native endpoint path characterization
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacywg-endpoint-paths
+  cancel-in-progress: false
+
+jobs:
+  native-endpoint-paths:
+    runs-on: macos-15-intel
+    timeout-minutes: 8
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: '0'
+      GOOS: darwin
+      GOARCH: amd64
+      GOAMD64: v1
+    steps:
+      - name: Check out reviewed endpoint path queries
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify pinned sources and native toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Check decoder invariants and characterize egress without mutation
+        run: python3 Scripts/test_endpoint_paths_macos.py
+      - name: Save sanitized endpoint path evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-endpoint-paths-${{ github.sha }}
+          path: |
+            Build/CI/endpoint-paths-ci.json
+            Build/CI/build-host.json
+          if-no-files-found: error
+          retention-days: 3

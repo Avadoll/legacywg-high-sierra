@@ -29,6 +29,8 @@ type pfGuardBind struct {
 	generation uint64
 	retained   bool
 	detached   bool
+	detaching  bool
+	scoped     *pfScopedAdmission
 	openSocket func(pfInterface, netip.Addr, uint16) (pfDatagram, error)
 }
 
@@ -113,11 +115,14 @@ func (bind *pfGuardBind) ParseEndpoint(text string) (conn.Endpoint, error) {
 func (bind *pfGuardBind) Open(requested uint16) ([]conn.ReceiveFunc, uint16, error) {
 	bind.op.Lock()
 	defer bind.op.Unlock()
-	if bind.detached || bind.retained || bind.admission.Err() != nil || bind.generation == ^uint64(0) {
+	if bind.detached || bind.detaching || bind.retained || bind.admission.Err() != nil || bind.generation == ^uint64(0) || (bind.scoped != nil && bind.scoped.lost.Load()) {
 		return nil, 0, ErrRecoveryRequired
 	}
 	if bind.current.Load() != nil {
 		return nil, 0, conn.ErrBindAlreadyOpen
+	}
+	if bind.verifyScoped(bind.admission) != nil {
+		return nil, 0, ErrRecoveryRequired
 	}
 	lease := &pfGuardLease{done: make(chan struct{}), generation: bind.generation + 1}
 	for _, path := range bind.paths {
@@ -140,6 +145,10 @@ func (bind *pfGuardBind) Open(requested uint16) ([]conn.ReceiveFunc, uint16, err
 		}
 		lease.port = uint16(local.Port)
 	}
+	if bind.verifyScoped(bind.admission) != nil {
+		bind.abandonUnadmitted(lease)
+		return nil, 0, ErrRecoveryRequired
+	}
 	bind.generation = lease.generation
 	// Retain ownership BEFORE any effectful PF update. Failed confirmation can
 	// mean the new exception is already in the kernel.
@@ -153,7 +162,18 @@ func (bind *pfGuardBind) Open(requested uint16) ([]conn.ReceiveFunc, uint16, err
 		lease.retire()
 		return nil, 0, ErrRecoveryRequired
 	}
+	if bind.verifyScoped(bind.admission) != nil {
+		// Admission is confirmed, so the loss monitor can now perform ordinary
+		// deny-only revocation. An ambiguous update above needs reconciliation.
+		return nil, 0, ErrRecoveryRequired
+	}
+	lease.control.Lock()
+	if lease.retired.Load() || (bind.scoped != nil && bind.scoped.lost.Load()) {
+		lease.control.Unlock()
+		return nil, 0, ErrRecoveryRequired
+	}
 	lease.admitted.Store(true)
+	lease.control.Unlock()
 	fns := make([]conn.ReceiveFunc, 0, len(lease.sockets))
 	for _, socket := range lease.sockets {
 		fns = append(fns, pfGuardReceive(lease, socket.fd))
@@ -241,10 +261,19 @@ func (bind *pfGuardBind) reconcile(ctx context.Context) error {
 
 func (bind *pfGuardBind) detach() error {
 	bind.op.Lock()
-	defer bind.op.Unlock()
-	if bind.current.Load() != nil || bind.retained {
+	if bind.detached || bind.current.Load() != nil || bind.retained {
+		bind.op.Unlock()
 		return ErrRecoveryRequired
 	}
+	// The monitor may be entering Close. Refuse further Open operations, then
+	// join it without holding op; joining under that mutex would deadlock.
+	bind.detaching = true
+	bind.op.Unlock()
+	if bind.scoped != nil && bind.scoped.stop() != nil {
+		return ErrRecoveryRequired
+	}
+	bind.op.Lock()
+	defer bind.op.Unlock()
 	bind.store.mutex.Lock()
 	defer bind.store.mutex.Unlock()
 	if bind.detached || bind.store.closed || bind.store.pfTransport != bind {
