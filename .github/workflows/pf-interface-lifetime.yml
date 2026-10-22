@@ -1,0 +1,46 @@
+name: Ephemeral owned tunnel lifetime candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacywg-pf-rules
+  cancel-in-progress: false
+
+jobs:
+  native-lifetime:
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      CGO_ENABLED: '0'
+      GOOS: darwin
+      GOARCH: amd64
+      GOAMD64: v1
+      LEGACYWG_PF_RULE_SCOPE: ephemeral
+    steps:
+      - name: Check out reviewed lifetime experiment
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify pinned sources and native toolchain
+        run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Measure test-only permission and actual owner death
+        run: python3 Scripts/test_pf_rules_macos.py
+      - name: Save sanitized lifetime evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: legacywg-pf-rules-${{ github.sha }}
+          path: |
+            Build/CI/pf-rules-ci.json
+            Build/CI/pf-rules-tests.json
+          if-no-files-found: error
+          retention-days: 3

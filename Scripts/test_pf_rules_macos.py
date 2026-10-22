@@ -14,7 +14,7 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','route-wire'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','ephemeral','route-wire'):raise SystemExit('Unknown native PF scope')
     pattern='^(TestRootPFRule|TestProtectedEndpointInput$)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
@@ -25,6 +25,7 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
+    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire)$'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
@@ -103,6 +104,11 @@ def main():
         'verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
     if scope=='admitted':required=admitted
     if scope=='full':required|=admitted
+    ephemeral={'TestRootPFRuleEphemeralAdmittedCrashReuse','TestRootPFRuleOwnInterfaceFlagWire'}|{'TestRootPFRuleEphemeralAdmittedCrashReuse/'+name for name in (
+        'live_permission_positive_controls','actual_sigkill','replacement_instance_after_absence','replacement_has_no_skip',
+        'dead_owner_policy_retained','verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
+    if scope=='ephemeral':required=ephemeral
+    if scope=='full':required|=ephemeral
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -110,6 +116,13 @@ def main():
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
         'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
         'owned_interface_flag_scope':'test-only own fresh TUN, disabled PF, set/clear and close/recreate; crash/packets/installed protection NOT_RUN',
+        'ephemeral_admitted_owner_crash_candidate':checked('TestRootPFRuleEphemeralAdmittedCrashReuse'),
+        'ephemeral_admitted_owner_live_positive_controls':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls'),
+        'ephemeral_admitted_owner_actual_sigkill':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill'),
+        'ephemeral_admitted_owner_replacement_has_no_skip':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip'),
+        'ephemeral_admitted_owner_no_inherited_tunnel_permission':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/no_inherited_tunnel_permission'),
+        'ephemeral_admitted_owner_index_reused':'OBSERVED' if 'TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_reused' in passed else 'NOT_OBSERVED' if 'TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_instance_after_absence/index_changed' in passed else 'NOT_CONFIRMED',
+        'ephemeral_admitted_owner_scope':'test-only skip permission without a tunnel-name rule; actual kill/replacement and synthetic packets; foreign skip admission/production lease/journal/installed/High Sierra NOT_RUN',
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'packet_test_scope':'native kernel to journal-owned utun/pinned netstack; physical/encrypted/OS-resolver NOT_RUN',
         'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),

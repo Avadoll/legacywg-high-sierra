@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/tun/netstack"
 )
@@ -61,6 +62,12 @@ func TestRootPFRuleProtectedAdmittedCrashChild(t *testing.T) {
 	if err != nil || owner == nil {
 		t.Fatal("admitted child protection preparation failed")
 	}
+	ephemeral := os.Getenv("LEGACYWG_EPHEMERAL_ADMITTED") == "1"
+	if ephemeral {
+		// Test-only candidate: never create a name-pinning tunnel rule.
+		// The actual guarded outer UDP admission remains unchanged.
+		owner.bind.policy.tunnel = nil
+	}
 	bind, err := owner.Bind()
 	if err != nil {
 		t.Fatal("admitted child Bind unavailable")
@@ -71,8 +78,82 @@ func TestRootPFRuleProtectedAdmittedCrashChild(t *testing.T) {
 	if store.MarkConfigured(false) != nil {
 		t.Fatal("admitted child configured journal failed")
 	}
+	if ephemeral {
+		fd, err := openPFReferences(ctx)
+		if err != nil {
+			t.Fatal("ephemeral child PF descriptor unavailable")
+		}
+		defer unix.Close(fd)
+		if fixtureChangeOwnSkip(ctx, fd, link, true) != nil {
+			t.Fatal("ephemeral child permission refused")
+		}
+		endpointFixedCommand(t, "/sbin/route", "-n", "add", "-inet", "-host", pfPacketServer4, "-interface", iface.Name)
+		endpointFixedCommand(t, "/sbin/route", "-n", "add", "-inet6", "-host", pfPacketServer6, "-interface", iface.Name)
+		admittedLifetimeEchoPeer(t, link)
+		for _, family := range []int{4, 6} {
+			source, destination := "198.18.99.129", pfPacketServer4
+			if family == 6 {
+				source, destination = "fd00:198:18:99::129", pfPacketServer6
+			}
+			for _, protocol := range []int{17, 6} {
+				if !pfEncryptedEcho(ctx, iface, family, protocol, 45121, source, destination, time.Second) {
+					t.Fatal("ephemeral pre-kill live permission positive control failed")
+				}
+			}
+		}
+		observed, err := fixtureReadPFInterface(ctx, fd, iface.Name)
+		if err != nil || observed != (fixturePFInterface{fixturePFSkip, 0, 1}) {
+			t.Fatal("ephemeral pre-kill interface became referenced or stateful")
+		}
+		fmt.Println("EPHEMERAL_LIVE_POSITIVE_CONTROLS")
+	}
 	fmt.Println("OWNED_PROTECTION_ADMITTED")
 	select {}
+}
+
+func admittedLifetimeEchoPeer(t *testing.T, link tun.Device) {
+	t.Helper()
+	peer, stack, err := netstack.CreateNetTUN([]netip.Addr{netip.MustParseAddr(pfPacketServer4), netip.MustParseAddr(pfPacketServer6)}, nil, 1280)
+	if err != nil {
+		t.Fatal("admitted lifetime isolated echo peer unavailable")
+	}
+	done := make(chan struct{}, 2)
+	go pfPacketBridge(link, peer, nil, done)
+	go pfPacketBridge(peer, link, nil, done)
+	var datagrams []net.PacketConn
+	var listeners []net.Listener
+	t.Cleanup(func() {
+		for _, connection := range datagrams {
+			_ = connection.Close()
+		}
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+		_ = link.Close()
+		_ = peer.Close()
+		for i := 0; i < 2; i++ {
+			select {
+			case <-done:
+			case <-time.After(3 * time.Second):
+				t.Error("admitted lifetime echo bridge did not join")
+			}
+		}
+	})
+	for _, address := range []string{pfPacketServer4, pfPacketServer6} {
+		endpoint := netip.AddrPortFrom(netip.MustParseAddr(address), 45121)
+		udp, err := stack.ListenUDPAddrPort(endpoint)
+		if err != nil {
+			t.Fatal("admitted lifetime echo UDP responder unavailable")
+		}
+		datagrams = append(datagrams, udp)
+		go pfServeUDPEcho(udp, false)
+		tcp, err := stack.ListenTCPAddrPort(endpoint)
+		if err != nil {
+			t.Fatal("admitted lifetime echo TCP responder unavailable")
+		}
+		listeners = append(listeners, tcp)
+		go pfServeTCPEcho(tcp, false)
+	}
 }
 
 // Restore only this controlled child's own policy, after actual SIGKILL proof.
@@ -116,6 +197,15 @@ func admittedInterfaceNameAbsent(name string) bool {
 }
 
 func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
+	admittedLifetimeReuse(t, false)
+}
+
+func TestRootPFRuleEphemeralAdmittedCrashReuse(t *testing.T) {
+	admittedLifetimeReuse(t, true)
+}
+
+func admittedLifetimeReuse(t *testing.T, ephemeral bool) {
+	t.Helper()
 	requirePFRuleCI(t)
 	outer, _ := endpointOwnedLink(t)
 	directory := ownedReferenceTestDirectory(t)
@@ -123,6 +213,9 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 	defer cancel()
 	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRootPFRuleProtectedAdmittedCrashChild$", "-test.v", "-test.timeout=140s")
 	child.Env = append(os.Environ(), "LEGACYWG_ADMITTED_DIR="+directory, "LEGACYWG_ADMITTED_OUTER="+outer.Name)
+	if ephemeral {
+		child.Env = append(child.Env, "LEGACYWG_EPHEMERAL_ADMITTED=1")
+	}
 	output, err := child.StdoutPipe()
 	if err != nil || child.Start() != nil {
 		t.Fatal("admitted lifetime child did not start")
@@ -131,7 +224,11 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 	scanner := bufio.NewScanner(output)
 	scanner.Buffer(make([]byte, 512), 4096)
 	reached := false
+	positive := false
 	for lines := 0; lines < 32 && scanner.Scan(); lines++ {
+		if scanner.Text() == "EPHEMERAL_LIVE_POSITIVE_CONTROLS" {
+			positive = true
+		}
 		if scanner.Text() == "OWNED_PROTECTION_ADMITTED" {
 			reached = true
 			break
@@ -142,6 +239,13 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 		t.Fatal("actual admitted-owner checkpoint not reached")
 	}
 	_ = child.Wait()
+	if ephemeral && !t.Run("live_permission_positive_controls", func(t *testing.T) {
+		if !positive {
+			t.Fatal("live ephemeral permission was not exercised before kill")
+		}
+	}) {
+		return
+	}
 	status, ok := child.ProcessState.Sys().(syscall.WaitStatus)
 	if !t.Run("actual_sigkill", func(t *testing.T) {
 		if !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
@@ -192,6 +296,19 @@ func TestRootPFRuleProtectedAdmittedCrashReuse(t *testing.T) {
 	}
 	defer replacement.Close()
 	iface := admittedLifetimeSetup(t, replacement)
+	if ephemeral && !t.Run("replacement_has_no_skip", func(t *testing.T) {
+		fd, err := openPFReferences(ctx)
+		if err != nil {
+			t.Fatal("replacement PF interface descriptor unavailable")
+		}
+		defer unix.Close(fd)
+		observed, err := fixtureReadPFInterface(ctx, fd, iface.Name)
+		if err != nil || observed != (fixturePFInterface{0, 0, 1}) {
+			t.Fatalf("replacement inherited skip or PF references: observation=%+v error=%v", observed, err)
+		}
+	}) {
+		return
+	}
 	if !t.Run("replacement_instance_after_absence", func(t *testing.T) {
 		if !oldNameAbsent || iface.Name != journal.Interface {
 			t.Fatalf("replacement identity refused: old_name_absent=%t same_name=%t same_index=%t", oldNameAbsent, iface.Name == journal.Interface, iface.Index == journal.InterfaceIndex)
