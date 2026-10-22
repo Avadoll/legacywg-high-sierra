@@ -14,7 +14,7 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','route-wire'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','route-wire'):raise SystemExit('Unknown native PF scope')
     pattern='^(TestRootPFRule|TestProtectedEndpointInput$)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
@@ -24,6 +24,7 @@ def main():
     if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
+    if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
     if scope=='route-wire':pattern='^TestRootPFRuleOwnedEndpointWire$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
@@ -96,6 +97,11 @@ def main():
                'TestRootPFRuleProtectedTransportEncryptedPackets/outer4','TestRootPFRuleProtectedTransportEncryptedPackets/outer6'}
     if scope=='protection':required=protected
     if scope=='full':required|=protected
+    admitted={'TestRootPFRuleProtectedAdmittedCrashReuse'}|{'TestRootPFRuleProtectedAdmittedCrashReuse/'+name for name in (
+        'actual_sigkill','replacement_distinct_index','dead_owner_policy_retained',
+        'verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
+    if scope=='admitted':required=admitted
+    if scope=='full':required|=admitted
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -135,6 +141,13 @@ def main():
         'typed_protected_transport_empty_stop_checks_actual_guard':checked('TestRootPFRuleProtectedTransportEmptyStopVerifiesGuard'),
         'typed_protected_transport_encrypted_conflicting_route':checked('TestRootPFRuleProtectedTransportEncryptedPackets'),
         'typed_protected_transport_scope':'private worker facade only; numeric endpoints/owned topology/explicit disconnect; installed full routes/DNS/process death/target NOT_RUN',
+        'admitted_owner_actual_sigkill':checked('TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill'),
+        'admitted_owner_replacement_distinct_interface_index':checked('TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index'),
+        'admitted_owner_policy_and_reference_retained':checked('TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained'),
+        'admitted_owner_controlled_deny_blocks_replacement':checked('TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement'),
+        'admitted_owner_restored_baseline_positive_controls':checked('TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls'),
+        'admitted_owner_no_inherited_tunnel_permission':checked('TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission'),
+        'admitted_owner_lifetime_scope':'actual child admission and SIGKILL, parent-owned replacement/ordinary UID UDP/root UDP+TCP; controlled fixture cleanup is not production recovery authority',
         'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
         'native_dual_family_same_port_and_path_admission':checked('TestRootPFRuleSocketDualFamilyAndAdmission'),
         'automatic_deny_before_release_stale_callbacks_and_store_pin':checked('TestRootPFRuleGuardTransportCloseReopenAndStorePin'),
