@@ -23,6 +23,7 @@ type ProtectedTransport struct {
 	bind     *pfGuardBind
 	failed   chan struct{}
 	ready    bool
+	quiesced bool // Callbacks/monitor finished; never substitutes for a fresh PF proof.
 	finished bool
 }
 
@@ -237,6 +238,13 @@ func (owner *ProtectedTransport) stop(ctx context.Context) error {
 	}
 	owner.bind.scoped.refuse(owner.bind)
 	if owner.bind.Close() != nil && owner.bind.reconcile(ctx) != nil {
+		owner.store.mark("protected_stop_transport_refused")
+		return ErrRecoveryRequired
+	}
+	// Permanent Stop must join route observations before the caller tears down
+	// its TUN. The monitor may be finishing Close, so do not hold bind.op here.
+	if owner.bind.scoped.stop() != nil {
+		owner.store.mark("protected_stop_monitor_join_refused")
 		return ErrRecoveryRequired
 	}
 	// Close is a no-op if Open never published a lease. Prove the live deny
@@ -244,8 +252,14 @@ func (owner *ProtectedTransport) stop(ctx context.Context) error {
 	proof, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	owner.bind.op.Lock()
-	defer owner.bind.op.Unlock()
-	return owner.bind.changePolicy(proof, pfPolicy{}, false)
+	err := owner.bind.changePolicy(proof, pfPolicy{}, false)
+	owner.bind.op.Unlock()
+	if err != nil {
+		owner.store.mark("protected_stop_deny_proof_refused")
+		return ErrRecoveryRequired
+	}
+	owner.quiesced = true
+	return nil
 }
 
 // Disconnect is explicit release, not the path-loss/process-death policy. The
@@ -260,10 +274,18 @@ func (owner *ProtectedTransport) Disconnect(ctx context.Context) error {
 	if owner.finished {
 		return nil
 	}
+	store := owner.store
+	// A previous successful permanent Stop left no observer/socket to revoke.
+	// Observe the caller's post-close detach before a fresh global PF snapshot,
+	// avoiding our own transient interface removal during that snapshot. A new
+	// proof is still mandatory; quiesced never means current firewall state.
+	if owner.quiesced && store.awaitInterfaceRemoval(ctx) != nil {
+		store.mark("protected_disconnect_interface_removal_refused")
+		return ErrRecoveryRequired
+	}
 	if owner.bind != nil && owner.stop(ctx) != nil {
 		return ErrRecoveryRequired
 	}
-	store := owner.store
 	if store.awaitInterfaceRemoval(ctx) != nil {
 		store.mark("protected_disconnect_interface_removal_refused")
 		return ErrRecoveryRequired
@@ -272,9 +294,11 @@ func (owner *ProtectedTransport) Disconnect(ctx context.Context) error {
 	allowed := !store.closed && store.protection == owner && interfaceGone(store.record)
 	store.mutex.Unlock()
 	if !allowed {
+		store.mark("protected_disconnect_owner_refused")
 		return ErrRecoveryRequired
 	}
 	if owner.bind != nil && !owner.bind.detached && owner.bind.detach() != nil {
+		store.mark("protected_disconnect_detach_refused")
 		return ErrRecoveryRequired
 	}
 	if store.recoverEndpointRoutes(ctx) != nil {

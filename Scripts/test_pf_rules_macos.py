@@ -15,7 +15,7 @@ def main():
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
     if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','ephemeral','cleanup','route-wire'):raise SystemExit('Unknown native PF scope')
-    pattern='^(TestRootPFRule|TestProtectedEndpointInput$|TestPFInterfaceProjection$)'
+    pattern='^(TestRootPFRule|TestProtectedEndpointInput$|TestPFInterfaceProjection$|TestTUNPermission)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
@@ -23,9 +23,9 @@ def main():
     if scope=='transport':pattern='^TestRootPFRule(Socket|GuardTransport|GuardedEncryptedPackets)'
     if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
-    if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestRootPFRuleAwaitOwnedInterfaceRemoval$|TestProtectedEndpointInput$)'
+    if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestRootPFRuleAwaitOwnedInterfaceRemoval$|TestProtectedEndpointInput$|TestTUNPermission)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='ephemeral':pattern='^(TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused|ForeignInterfaceSkipRefused|AwaitOwnedInterfaceRemoval)|TestPFInterfaceProjection)$'
+    if scope=='ephemeral':pattern='^(TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused|ForeignInterfaceSkipRefused|AwaitOwnedInterfaceRemoval)$|TestPFInterfaceProjection$|TestTUNPermission)'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
     if scope=='cleanup':pattern='^TestRootPFRuleOwnInterfaceReferencedRefused$'
     # The full package already measured 880s before adding transaction-owner
@@ -120,6 +120,7 @@ def main():
     interface_removal={'TestRootPFRuleAwaitOwnedInterfaceRemoval'}|{'TestRootPFRuleAwaitOwnedInterfaceRemoval/'+name for name in (
         'canceled_wait_preserves_journal','live_descriptor_does_not_release','actual_removal_finishes_journal')}
     if scope in ('protection','ephemeral','full'):required|=interface_removal
+    if scope in ('protection','ephemeral','full'):required|={'TestTUNPermissionIntentAndReopen','TestTUNPermissionRefusesSkippedEffectsAndIdentityChanges','TestTUNPermissionCanonicalCorruptionRefused'}
     if scope=='cleanup':required={'TestRootPFRuleOwnInterfaceReferencedRefused'}|{'TestRootPFRuleOwnInterfaceReferencedRefused/cycle'+str(cycle) for cycle in range(3)}
     pass_counts={name:sum(event.get('Action')=='pass' and event.get('Test')==name for event in events) for name in required}
     repetitions_confirmed=all(count==test_count for count in pass_counts.values())

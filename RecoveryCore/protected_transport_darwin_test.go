@@ -132,6 +132,11 @@ func TestRootPFRuleProtectedTransportLifecycle(t *testing.T) {
 	if f.owner.Stop(canceled) != nil {
 		t.Fatal("protected stop failed to preserve deny-only")
 	}
+	select {
+	case <-f.owner.bind.scoped.done:
+	default:
+		t.Fatal("permanent protected Stop returned with route monitor still running")
+	}
 	if _, _, err := bind.Open(0); err == nil {
 		t.Fatal("permanently stopped controller reopened")
 	}
