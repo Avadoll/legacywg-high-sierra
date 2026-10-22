@@ -99,6 +99,9 @@ func query(ctx context.Context, destination netip.Addr, scope int, strict bool) 
 	if err != nil {
 		return ScopedPath{}, err
 	}
+	if ctx.Err() != nil || !time.Now().Before(deadline) {
+		return ScopedPath{}, ErrPathUnavailable
+	}
 	if errors.Is(reply.Err, unix.ESRCH) {
 		return ScopedPath{}, ErrNoRoute
 	}
@@ -128,7 +131,12 @@ func exchange(ctx context.Context, request *route.RouteMessage) (*route.RouteMes
 		return nil, ErrPathUnavailable
 	}
 	deadline := time.Now().Add(2 * time.Second)
-	if n, err := unix.Write(fd, data); err != nil || n != len(data) {
+	n, writeError := unix.Write(fd, data)
+	// Apple's route_output can return ESRCH from write AND enqueue its error
+	// reply. Read that reply for GET only; a write errno alone never proves
+	// absence. Mutation write errors remain uncertain to the journal owner.
+	failedGet := request.Type == unix.RTM_GET && errors.Is(writeError, unix.ESRCH)
+	if (!failedGet && writeError != nil) || (writeError == nil && n != len(data)) {
 		return nil, ErrPathUnavailable
 	}
 	buffer := make([]byte, 64*1024)
@@ -153,6 +161,9 @@ func exchange(ctx context.Context, request *route.RouteMessage) (*route.RouteMes
 				continue
 			}
 			if ctx.Err() != nil || !time.Now().Before(deadline) {
+				return nil, ErrPathUnavailable
+			}
+			if failedGet && !errors.Is(reply.Err, writeError) {
 				return nil, ErrPathUnavailable
 			}
 			return reply, nil

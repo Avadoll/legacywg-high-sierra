@@ -31,12 +31,16 @@ on:
         description: Test journal-bound endpoint host route ownership and actual crash recovery
         type: boolean
         default: false
+      route_wire_only:
+        description: Preflight typed host route codec on owned virtual interfaces without PF
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: legacywg-pf-rules
+  group: legacywg-pf-rules${{ inputs.route_wire_only && '-wire' || '' }}
   cancel-in-progress: false
 
 jobs:
@@ -51,7 +55,7 @@ jobs:
       GOOS: darwin
       GOARCH: amd64
       GOAMD64: v1
-      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.routes_only && 'routes' || inputs.scoped_only && 'scoped' || inputs.transport_only && 'transport' || inputs.encrypted_only && 'encrypted' || inputs.packets_only && 'packets' || inputs.fixture_only && 'single-class' || inputs.coordinator_only && 'coordinator' || 'full' }}
+      LEGACYWG_PF_RULE_SCOPE: ${{ inputs.route_wire_only && 'route-wire' || inputs.routes_only && 'routes' || inputs.scoped_only && 'scoped' || inputs.transport_only && 'transport' || inputs.encrypted_only && 'encrypted' || inputs.packets_only && 'packets' || inputs.fixture_only && 'single-class' || inputs.coordinator_only && 'coordinator' || 'full' }}
     steps:
       - name: Check out reviewed rule coordinator
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	networkcore "legacywg/NetworkCore"
+
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/conn"
@@ -282,7 +284,7 @@ func TestRootPFRuleEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable encrypted packet test")
 	}
 	for _, outerFamily := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false, false) })
+		t.Run(fmt.Sprintf("outer%d", outerFamily), func(t *testing.T) { pfEncryptedPacketFamily(t, outerFamily, false, false, false) })
 	}
 }
 
@@ -292,7 +294,7 @@ func TestRootPFRuleGuardedEncryptedPackets(t *testing.T) {
 		t.Skip("explicit disposable guarded transport test")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, false) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, false, false) })
 	}
 }
 
@@ -302,11 +304,21 @@ func TestRootPFRuleScopedGuardedEncryptedPackets(t *testing.T) {
 		t.Skip("native encrypted packet fixture requires explicit opt-in")
 	}
 	for _, family := range []int{4, 6} {
-		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true) })
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, false) })
 	}
 }
 
-func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bool) {
+func TestRootPFRuleOwnedEndpointEncryptedPackets(t *testing.T) {
+	requirePFRuleCI(t)
+	if os.Getenv("LEGACYWG_PF_ENCRYPTED_PACKET_TESTS") != "1" {
+		t.Skip("explicit owned-route encrypted packet fixture")
+	}
+	for _, family := range []int{4, 6} {
+		t.Run(fmt.Sprintf("outer%d", family), func(t *testing.T) { pfEncryptedPacketFamily(t, family, true, true, true) })
+	}
+}
+
+func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, owned bool) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
@@ -354,6 +366,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 	var datagrams []net.PacketConn
 	var client, peer *device.Device
 	var guarded *pfGuardBind
+	var ownedDecoy tun.Device
 	defer func() {
 		for _, l := range listeners {
 			l.Close()
@@ -379,6 +392,10 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 				t.Error("guarded journal detachment refused")
 				return
 			}
+		}
+		if store.endpointResidue() && store.recoverEndpointRoutes(cleanup) != nil {
+			t.Error("encrypted endpoint route ownership retained")
+			return
 		}
 		failed := store.pfResidue() && store.recoverPFLifecycle(cleanup) != nil
 		if client != nil {
@@ -423,7 +440,14 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 		t.Fatal("encrypted inner journal identity failed")
 	}
 	for _, route := range []struct{ family, address, name string }{{"-inet", pfPacketServer4, outerIface.Name}, {"-inet6", pfPacketServer6, outerIface.Name}, {"-inet", "198.18.100.130", innerIface.Name}, {"-inet6", "fd00:198:18:100::130", innerIface.Name}} {
-		command("/sbin/route", "-n", "add", route.family, "-host", route.address, "-interface", route.name)
+		kind, address := "-host", route.address
+		if owned && route.name == outerIface.Name {
+			kind, address = "-net", "198.18.99.0/24"
+			if route.family == "-inet6" {
+				address = "fd00:198:18:99::/64"
+			}
+		}
+		command("/sbin/route", "-n", "add", route.family, kind, address, "-interface", route.name)
 	}
 	remote, source := pfPacketServer4, "198.18.99.129"
 	outerRouteFamily := "-inet"
@@ -431,7 +455,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 		remote, source = pfPacketServer6, "fd00:198:18:99::129"
 		outerRouteFamily = "-inet6"
 	}
-	if scoped {
+	if scoped && !owned {
 		command("/sbin/route", "-n", "add", outerRouteFamily, "-host", remote, "-interface", outerIface.Name, "-ifscope", outerIface.Name)
 	}
 	clientBind := &pfObservedBind{Bind: conn.NewStdNetBind()}
@@ -439,6 +463,13 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 	if automatic {
 		if store.stageDisabledPFAnchor(ctx) != nil || store.activatePFAnchor(ctx) != nil {
 			t.Fatal("automatic encrypted guard activation failed")
+		}
+		if owned {
+			destination := netip.MustParseAddr(remote)
+			path, err := networkcore.EndpointRoute(ctx, destination)
+			if err != nil || path.InterfaceName != outerIface.Name || store.installEndpointRoutes(ctx, []networkcore.ScopedHost{{Destination: destination, Path: path}}) != nil {
+				t.Fatal("encrypted journal-owned endpoint route installation failed")
+			}
 		}
 		policy := pfPolicy{
 			tunnel:  &pfInterface{innerIface.Name, innerIface.Index},
@@ -517,11 +548,51 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 	}
 	if automatic {
 		phase("guarded-connected", true, true, true)
+		if owned {
+			decoy, err := tun.CreateTUN("utun", 1420)
+			if err != nil {
+				t.Fatal("owned-route competing interface failed")
+			}
+			ownedDecoy = decoy
+			decoyCapture := &pfPacketObservation{counts: make(map[pfPacketKey]int)}
+			decoyDone := make(chan struct{})
+			go func() {
+				defer close(decoyDone)
+				buffers, sizes := [][]byte{make([]byte, 65536)}, make([]int, 1)
+				for {
+					n, err := decoy.Read(buffers, sizes, 0)
+					if err != nil {
+						return
+					}
+					if n == 1 {
+						decoyCapture.observe(buffers[0][:sizes[0]])
+					}
+				}
+			}()
+			defer func() {
+				_ = decoy.Close()
+				select {
+				case <-decoyDone:
+				case <-time.After(3 * time.Second):
+					t.Error("owned-route competing reader did not join")
+				}
+				if decoyCapture.count(pfPacketKey{outerFamily, 17, 45121}) != 0 {
+					t.Error("encrypted endpoint packets reached competing interface")
+				}
+			}()
+			decoyIface := setup(decoy, "198.18.112.129", "fd00:198:18:112::129")
+			command("/sbin/route", "-n", "add", outerRouteFamily, "-host", remote, "-interface", decoyIface.Name)
+			selected, err := networkcore.EndpointRoute(ctx, netip.MustParseAddr(remote))
+			if err != nil || selected.InterfaceIndex != decoyIface.Index {
+				t.Fatal("owned-route competing unscoped host was not selected")
+			}
+			phase("owned-route-conflict", true, true, true)
+		}
 		lease := guarded.current.Load()
 		if lease == nil || !lease.admitted.Load() || lease.retired.Load() {
 			t.Fatal("automatic socket lifetime missing")
 		}
-		if scoped {
+		if scoped && !owned {
 			command("/sbin/route", "-n", "delete", outerRouteFamily, "-host", remote, "-interface", outerIface.Name, "-ifscope", outerIface.Name)
 			select {
 			case <-guarded.scoped.done:
@@ -589,7 +660,19 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped bo
 		if err != nil || after == nil || after.Phase != PFActive || after.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !second.retired.Load() {
 			t.Fatal("official Close after TUN deletion lost deny-only")
 		}
-		if guarded.detach() != nil || store.recoverPFLifecycle(ctx) != nil || store.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
+		if guarded.detach() != nil {
+			t.Fatal("automatic encrypted transport detachment failed")
+		}
+		// Remove only the test's competing interface/routes before deleting
+		// the escape. In a real session its own full-tunnel routes must likewise
+		// be removed while deny-only remains held, before endpoint recovery.
+		if ownedDecoy != nil && ownedDecoy.Close() != nil {
+			t.Fatal("owned competing topology cleanup failed")
+		}
+		if owned && (store.recoverEndpointRoutes(ctx) != nil || store.endpointResidue()) {
+			t.Fatal("automatic encrypted endpoint recovery failed")
+		}
+		if store.recoverPFLifecycle(ctx) != nil || store.pfResidue() || len(fixturePFReferences(t, ctx)) != 0 {
 			t.Fatal("automatic encrypted explicit recovery failed")
 		}
 		baseline, err := readDisabledPF(ctx, record.Anchor)

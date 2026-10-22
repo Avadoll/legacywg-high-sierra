@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -72,6 +73,31 @@ func endpointFixtureHosts(t *testing.T, name string) []networkcore.ScopedHost {
 		hosts = append(hosts, networkcore.ScopedHost{Destination: dst, Path: path})
 	}
 	return hosts
+}
+
+// Kernel wire-format preflight on owned virtual interfaces only. This test
+// never enables PF, opens payload sockets, or touches the guest default route,
+// so a failed codec observation remains reportable by the CI runner.
+func TestRootPFRuleOwnedEndpointWire(t *testing.T) {
+	requirePFRuleCI(t)
+	_, hosts := endpointOwnedLink(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+	for _, host := range hosts {
+		if networkcore.ChangeScopedHost(ctx, host, true) != nil {
+			t.Fatalf("owned host native acknowledgment failed ipv6=%t", host.Destination.Is6())
+		}
+		observed, err := networkcore.ScopedRoute(ctx, host.Destination, host.Path.InterfaceIndex)
+		if err != nil {
+			t.Fatalf("owned host strict observation failed ipv6=%t", host.Destination.Is6())
+		}
+		if !host.Matches(observed) {
+			t.Fatalf("owned host identity mismatch ipv6=%t path=%t source=%t gateway=%t prefix=%t flags=%d", host.Destination.Is6(), observed.Path == host.Path, observed.Source == host.Path.Source, observed.Gateway == host.Path.Gateway, observed.Prefix.Bits() == host.Destination.BitLen(), observed.Flags)
+		}
+		if networkcore.ChangeScopedHost(ctx, host, false) != nil {
+			t.Fatalf("owned host native deletion failed ipv6=%t", host.Destination.Is6())
+		}
+	}
 }
 
 func TestRootPFRuleOwnedEndpointLifecycle(t *testing.T) {
@@ -141,6 +167,55 @@ func TestRootPFRuleOwnedEndpointLifecycle(t *testing.T) {
 	observed, err := networkcore.ScopedRoute(f.ctx, hosts[0].Destination, hosts[0].Path.InterfaceIndex)
 	if err != nil || !hosts[0].Matches(observed) || networkcore.ChangeScopedHost(f.ctx, hosts[0], false) != nil {
 		t.Fatal("pre-existing host preservation failed")
+	}
+}
+
+// Fixed benchmark destination through the CI guest's existing default gateway.
+// No payload or DNS is sent. This is guest egress, not physical-hardware or
+// High Sierra evidence. The exact added host is journaled and removed under PF.
+func TestRootPFRuleOwnedEndpointGuestGateway(t *testing.T) {
+	requirePFRuleCI(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 65*time.Second)
+	defer cancel()
+	destination := netip.MustParseAddr("198.18.99.90")
+	before, err := networkcore.EndpointRoute(ctx, destination)
+	if err != nil || before.Direct || !before.Gateway.IsValid() || !strings.HasPrefix(before.InterfaceName, "en") {
+		t.Fatal("CI guest gateway baseline unavailable")
+	}
+	host := networkcore.ScopedHost{Destination: destination, Path: before}
+	f := newPFTransportFixture(t)
+	t.Cleanup(func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 25*time.Second)
+		defer stop()
+		if f.bind != nil && !f.bind.detached {
+			_ = f.bind.Close()
+			_ = f.bind.detach()
+		}
+		if f.store.recoverEndpointRoutes(cleanup) != nil {
+			t.Error("guest endpoint ownership cleanup refused")
+		}
+	})
+	if f.store.installEndpointRoutes(ctx, []networkcore.ScopedHost{host}) != nil {
+		t.Fatal("journal-bound guest gateway host installation failed")
+	}
+	snapshot, err := networkcore.ScopedRoute(ctx, destination, before.InterfaceIndex)
+	if err != nil || !host.Matches(snapshot) || snapshot.Direct {
+		t.Fatal("guest gateway host identity differs")
+	}
+	policy := pfPolicy{escapes: []pfUDPEscape{{path: pfInterface{before.InterfaceName, before.InterfaceIndex}, source: before.Source, endpoint: netip.AddrPortFrom(destination, 45121), sourcePort: 1}}}
+	f.bind, err = newPFScopedGuardBind(ctx, f.store, policy)
+	if err != nil {
+		t.Fatal("guest gateway scoped socket admission failed")
+	}
+	if _, _, err := f.bind.Open(0); err != nil || f.bind.Close() != nil || f.bind.detach() != nil {
+		t.Fatal("guest gateway exact-source socket lifetime failed")
+	}
+	if f.store.recoverEndpointRoutes(ctx) != nil || f.store.endpointResidue() {
+		t.Fatal("guest gateway host recovery failed")
+	}
+	after, err := networkcore.EndpointRoute(ctx, destination)
+	if err != nil || after != before {
+		t.Fatal("guest gateway route baseline changed")
 	}
 }
 

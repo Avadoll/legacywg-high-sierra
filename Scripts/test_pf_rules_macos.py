@@ -14,7 +14,7 @@ def main():
     output=ROOT/'Build/CI';output.mkdir(parents=True,exist_ok=True)
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
-    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes'):raise SystemExit('Unknown native PF scope')
+    if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','route-wire'):raise SystemExit('Unknown native PF scope')
     pattern='^TestRootPFRule'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
@@ -23,6 +23,7 @@ def main():
     if scope=='transport':pattern='^TestRootPFRule(Socket|GuardTransport|GuardedEncryptedPackets)'
     if scope=='scoped':pattern='^TestRootPFRuleScopedGuard'
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
+    if scope=='route-wire':pattern='^TestRootPFRuleOwnedEndpointWire$'
     singleton,abi=build_probe(build)
     acl,test=build/'acl-probe',build/'legacywg-worker'
     subprocess.run(['/usr/bin/xcrun','clang','-std=c11','-arch','x86_64','-mmacosx-version-min=10.13',
@@ -41,7 +42,7 @@ def main():
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
-        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','full') else '0'),str(test),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout='+('900s' if scope=='full' else '300s')],
         capture_output=True,text=True,env=env,timeout=930 if scope=='full' else 330)
@@ -79,8 +80,10 @@ def main():
     if scope=='full':required|=scoped
     if scope=='encrypted':required|=scoped_encrypted
     endpoint_crash_points=('endpoint_plan_committed','endpoint_add_intent_committed','endpoint_added_kernel','endpoint_installed_committed','endpoint_deleted_kernel')
-    endpoint_routes={'TestRootPFRuleOwnedEndpointLifecycle','TestRootPFRuleOwnedEndpointCrashRecovery'}|{'TestRootPFRuleOwnedEndpointCrashRecovery/'+point for point in endpoint_crash_points}
+    owned_encrypted={'TestRootPFRuleOwnedEndpointEncryptedPackets','TestRootPFRuleOwnedEndpointEncryptedPackets/outer4','TestRootPFRuleOwnedEndpointEncryptedPackets/outer6'}
+    endpoint_routes={'TestRootPFRuleOwnedEndpointLifecycle','TestRootPFRuleOwnedEndpointGuestGateway','TestRootPFRuleOwnedEndpointCrashRecovery'}|owned_encrypted|{'TestRootPFRuleOwnedEndpointCrashRecovery/'+point for point in endpoint_crash_points}
     if scope=='routes':required=endpoint_routes
+    if scope=='route-wire':required={'TestRootPFRuleOwnedEndpointWire'}
     if scope=='full':required|=endpoint_routes
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
@@ -108,9 +111,12 @@ def main():
         'scoped_guard_loss_during_socket_open':checked('TestRootPFRuleScopedGuardLossDuringSocketOpen'),
         'scoped_guard_scope':'owned virtual interface; borrowed scoped routes; physical mutation/installed guard NOT_RUN',
         'owned_endpoint_host_route_lifecycle':checked('TestRootPFRuleOwnedEndpointLifecycle'),
+        'owned_endpoint_host_route_native_wire':checked('TestRootPFRuleOwnedEndpointWire'),
         'owned_endpoint_host_route_crash_recovery':checked('TestRootPFRuleOwnedEndpointCrashRecovery'),
+        'owned_endpoint_host_route_guest_gateway_without_payload':checked('TestRootPFRuleOwnedEndpointGuestGateway'),
+        'owned_endpoint_host_route_encrypted_conflict':checked('TestRootPFRuleOwnedEndpointEncryptedPackets'),
         'owned_endpoint_host_route_sigkill_checkpoints':sum('TestRootPFRuleOwnedEndpointCrashRecovery/'+point in passed for point in endpoint_crash_points),
-        'owned_endpoint_host_route_scope':'numeric host-only; owned utun synthetic route effects; physical/installed integration NOT_RUN; uncertain additions retained',
+        'owned_endpoint_host_route_scope':'numeric host-only; owned utun traffic and guest IPv4 gateway allocation without payload; hardware/installed integration NOT_RUN; uncertain additions retained',
         'native_udp_deadline_retains_port':checked('TestRootPFRuleSocketPortLease'),
         'native_dual_family_same_port_and_path_admission':checked('TestRootPFRuleSocketDualFamilyAndAdmission'),
         'automatic_deny_before_release_stale_callbacks_and_store_pin':checked('TestRootPFRuleGuardTransportCloseReopenAndStorePin'),
