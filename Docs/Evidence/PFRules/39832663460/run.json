@@ -1,0 +1,75 @@
+{
+  "conclusion": "success",
+  "headSha": "c6c5b815e52f08b8dcb39038933de8bb8411e999",
+  "jobs": [
+    {
+      "completedAt": "2026-10-22T18:36:21Z",
+      "conclusion": "success",
+      "databaseId": 120012623420,
+      "name": "native-lifetime",
+      "startedAt": "2026-10-22T18:35:05Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T18:35:09Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T18:35:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:35:11Z",
+          "conclusion": "success",
+          "name": "Check out reviewed lifetime experiment",
+          "number": 2,
+          "startedAt": "2026-10-22T18:35:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:35:29Z",
+          "conclusion": "success",
+          "name": "Verify pinned sources and native toolchain",
+          "number": 3,
+          "startedAt": "2026-10-22T18:35:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:36:16Z",
+          "conclusion": "success",
+          "name": "Measure test-only permission and actual owner death",
+          "number": 4,
+          "startedAt": "2026-10-22T18:35:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:36:18Z",
+          "conclusion": "success",
+          "name": "Save sanitized lifetime evidence",
+          "number": 5,
+          "startedAt": "2026-10-22T18:36:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:36:18Z",
+          "conclusion": "success",
+          "name": "Post Check out reviewed lifetime experiment",
+          "number": 10,
+          "startedAt": "2026-10-22T18:36:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T18:36:18Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-10-22T18:36:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39832663460/job/120012623420"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Avadoll/legacywg-high-sierra/actions/runs/39832663460"
+}
