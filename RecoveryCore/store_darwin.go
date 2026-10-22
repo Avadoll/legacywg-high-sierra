@@ -224,7 +224,7 @@ func interfaceGone(record Record) bool {
 }
 
 func (store *Store) recover() error {
-	if store.pfResidue() {
+	if store.pfResidue() || store.endpointResidue() {
 		return ErrRecoveryRequired
 	}
 	records := make(map[string]*Record)
@@ -356,7 +356,7 @@ func (store *Store) Finish() error {
 	if store.closed {
 		return nil
 	}
-	if store.pfResidue() {
+	if store.pfResidue() || store.endpointResidue() {
 		return ErrRecoveryRequired
 	}
 	if !interfaceGone(store.record) {

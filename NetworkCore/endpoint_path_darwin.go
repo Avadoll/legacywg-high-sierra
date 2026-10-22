@@ -86,35 +86,50 @@ func query(ctx context.Context, destination netip.Addr, scope int, strict bool) 
 	if err != nil {
 		return ScopedPath{}, err
 	}
-	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
-	if err != nil {
-		return ScopedPath{}, ErrPathUnavailable
-	}
-	defer unix.Close(fd)
-	unix.CloseOnExec(fd)
-	if unix.SetsockoptTimeval(fd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &unix.Timeval{Usec: 100000}) != nil ||
-		unix.SetsockoptTimeval(fd, unix.SOL_SOCKET, unix.SO_SNDTIMEO, &unix.Timeval{Usec: 100000}) != nil {
-		return ScopedPath{}, ErrPathUnavailable
-	}
 	addrs := make([]route.Addr, unix.RTAX_MAX)
-	if destination.Is4() {
-		addrs[unix.RTAX_DST] = &route.Inet4Addr{IP: destination.As4()}
-	} else {
-		addrs[unix.RTAX_DST] = &route.Inet6Addr{IP: destination.As16()}
-	}
+	addrs[unix.RTAX_DST] = routeAddress(destination, 0)
 	addrs[unix.RTAX_IFP] = &route.LinkAddr{}
 	request := &route.RouteMessage{Version: unix.RTM_VERSION, Type: unix.RTM_GET,
 		ID: uintptr(os.Getpid()), Seq: seq, Index: scope, Addrs: addrs}
 	if scope != 0 {
 		request.Flags = unix.RTF_IFSCOPE
 	}
+	deadline := time.Now().Add(2 * time.Second)
+	reply, err := exchange(ctx, request)
+	if err != nil {
+		return ScopedPath{}, err
+	}
+	if errors.Is(reply.Err, unix.ESRCH) {
+		return ScopedPath{}, ErrNoRoute
+	}
+	result, err := decode(destination, scope, strict, reply, net.InterfaceByIndex)
+	if ctx.Err() != nil || !time.Now().Before(deadline) {
+		return ScopedPath{}, ErrPathUnavailable
+	}
+	return result, err
+}
+
+// exchange shares correlation and bounds between observations and typed route
+// effects. It returns native error replies to the caller; write failures remain
+// ambiguous and never imply that an effect was absent.
+func exchange(ctx context.Context, request *route.RouteMessage) (*route.RouteMessage, error) {
+	fd, err := unix.Socket(unix.AF_ROUTE, unix.SOCK_RAW, unix.AF_UNSPEC)
+	if err != nil {
+		return nil, ErrPathUnavailable
+	}
+	defer unix.Close(fd)
+	unix.CloseOnExec(fd)
+	if unix.SetsockoptTimeval(fd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &unix.Timeval{Usec: 100000}) != nil ||
+		unix.SetsockoptTimeval(fd, unix.SOL_SOCKET, unix.SO_SNDTIMEO, &unix.Timeval{Usec: 100000}) != nil {
+		return nil, ErrPathUnavailable
+	}
 	data, err := request.Marshal()
 	if err != nil || ctx.Err() != nil {
-		return ScopedPath{}, ErrPathUnavailable
+		return nil, ErrPathUnavailable
 	}
 	deadline := time.Now().Add(2 * time.Second)
 	if n, err := unix.Write(fd, data); err != nil || n != len(data) {
-		return ScopedPath{}, ErrPathUnavailable
+		return nil, ErrPathUnavailable
 	}
 	buffer := make([]byte, 64*1024)
 	for tries := 0; tries < 128 && ctx.Err() == nil && time.Now().Before(deadline); tries++ {
@@ -123,11 +138,11 @@ func query(ctx context.Context, destination netip.Addr, scope int, strict bool) 
 			continue
 		}
 		if err != nil || n <= 0 || n == len(buffer) {
-			return ScopedPath{}, ErrPathUnavailable
+			return nil, ErrPathUnavailable
 		}
 		messages, err := route.ParseRIB(route.RIBTypeRoute, buffer[:n])
 		if err != nil {
-			return ScopedPath{}, ErrPathUnavailable
+			return nil, ErrPathUnavailable
 		}
 		for _, message := range messages {
 			reply, ok := message.(*route.RouteMessage)
@@ -138,19 +153,12 @@ func query(ctx context.Context, destination netip.Addr, scope int, strict bool) 
 				continue
 			}
 			if ctx.Err() != nil || !time.Now().Before(deadline) {
-				return ScopedPath{}, ErrPathUnavailable
+				return nil, ErrPathUnavailable
 			}
-			if errors.Is(reply.Err, unix.ESRCH) {
-				return ScopedPath{}, ErrNoRoute
-			}
-			result, err := decode(destination, scope, strict, reply, net.InterfaceByIndex)
-			if ctx.Err() != nil || !time.Now().Before(deadline) {
-				return ScopedPath{}, ErrPathUnavailable
-			}
-			return result, err
+			return reply, nil
 		}
 	}
-	return ScopedPath{}, ErrPathUnavailable
+	return nil, ErrPathUnavailable
 }
 
 func sameRequest(request, reply *route.RouteMessage) bool {

@@ -35,6 +35,7 @@ DECODER_TESTS = frozenset({
     "TestCanceledQueryRefusesBeforeSocket",
     "TestKernelEndpointRouteRejectsUnsafeReplies",
     "TestScopedObservationDoesNotAdmitImplicitDefault",
+    "TestScopedHostOwnershipMatchesOnlyExactStaticIdentity",
 })
 
 FAMILY_STATUS = frozenset({

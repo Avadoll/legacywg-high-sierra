@@ -98,7 +98,7 @@ func (store *Store) commitOwnedPF(record PFRecord) error {
 func (store *Store) recoverPFLifecycle(ctx context.Context) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	if store.pfTransport != nil {
+	if store.pfTransport != nil || store.endpointResidue() {
 		return ErrRecoveryRequired
 	}
 	if store.closed || ctx.Err() != nil {
