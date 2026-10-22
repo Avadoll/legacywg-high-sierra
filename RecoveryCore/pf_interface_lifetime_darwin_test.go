@@ -178,3 +178,100 @@ func TestRootPFRuleOwnInterfaceFlagWire(t *testing.T) {
 		}
 	})
 }
+
+func TestRootPFRuleOwnInterfaceLeaseWire(t *testing.T) {
+	requirePFRuleCI(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	anchor := "com.apple/legacywg-0123456789abcdef0123456789abcdef"
+	baseline, err := readDisabledPF(ctx, anchor)
+	if err != nil || baseline.rules != pfDigest("") || len(fixturePFReferences(t, ctx)) != 0 {
+		t.Fatal("interface lease wire requires disabled empty-state baseline")
+	}
+	pf, err := openPFReferences(ctx)
+	if err != nil {
+		t.Fatal("interface lease PF descriptor unavailable")
+	}
+	defer unix.Close(pf)
+	link, err := tun.CreateTUN("utun", 1280)
+	if err != nil {
+		t.Fatal("interface lease own tunnel unavailable")
+	}
+	defer link.Close()
+	name, err := link.Name()
+	iface, lookupErr := net.InterfaceByName(name)
+	if err != nil || lookupErr != nil || link.File() == nil {
+		t.Fatal("interface lease own identity unavailable")
+	}
+	lease := -1
+	raw, err := link.File().SyscallConn()
+	if err != nil {
+		t.Fatal("interface lease file unavailable")
+	}
+	var duplicateErr error
+	if raw.Control(func(fd uintptr) {
+		lease, duplicateErr = unix.FcntlInt(fd, unix.F_DUPFD_CLOEXEC, 0)
+	}) != nil || duplicateErr != nil || lease < 0 {
+		t.Fatal("interface lease atomic close-on-exec duplication failed")
+	}
+	defer func() {
+		if lease >= 0 {
+			_ = unix.Close(lease)
+		}
+	}()
+	leaseIdentity := func() bool {
+		actual, err := unix.GetsockoptString(lease, 2, 2) // official Darwin TUN name query
+		current, lookupErr := net.InterfaceByName(name)
+		flags, flagErr := unix.FcntlInt(uintptr(lease), unix.F_GETFD, 0)
+		return err == nil && actual == name && lookupErr == nil && current.Index == iface.Index && flagErr == nil && flags&unix.FD_CLOEXEC != 0
+	}
+	if !leaseIdentity() || fixtureChangeOwnSkip(ctx, pf, link, true) != nil || link.Close() != nil {
+		t.Fatal("interface lease preparation or engine-side closure failed")
+	}
+	if !t.Run("retained_after_device_close", func(t *testing.T) {
+		observed, err := fixtureReadPFInterface(ctx, pf, name)
+		if !leaseIdentity() || err != nil || observed != (fixturePFInterface{fixturePFSkip, 0, 1}) {
+			t.Fatal("native duplicate failed to retain original flagged interface")
+		}
+	}) {
+		return
+	}
+	if !t.Run("clear_before_last_descriptor_close", func(t *testing.T) {
+		if !leaseIdentity() {
+			t.Fatal("retained descriptor identity changed")
+		}
+		header := make([]byte, 40)
+		copy(header, name)
+		binary.LittleEndian.PutUint32(header[36:], fixturePFSkip)
+		if fixturePFInterfaceIoctl(ctx, pf, fixturePFClearSkip, header) != nil {
+			t.Fatal("leased interface clear failed")
+		}
+		observed, err := fixtureReadPFInterface(ctx, pf, name)
+		if err != nil || observed != (fixturePFInterface{0, 0, 1}) || !leaseIdentity() {
+			t.Fatal("leased interface clear was not verified before release")
+		}
+	}) {
+		return
+	}
+	if unix.Close(lease) != nil {
+		t.Fatal("interface lease final descriptor release failed")
+	}
+	lease = -1
+	deadline := time.Now().Add(3 * time.Second)
+	for !admittedInterfaceNameAbsent(name) && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !t.Run("last_close_removes_interface", func(t *testing.T) {
+		if !admittedInterfaceNameAbsent(name) {
+			t.Fatal("interface remained after final descriptor closed")
+		}
+	}) {
+		return
+	}
+	t.Run("disabled_policy_baseline_unchanged", func(t *testing.T) {
+		after, err := readDisabledPF(ctx, anchor)
+		if err != nil || after != baseline || len(fixturePFReferences(t, ctx)) != 0 {
+			t.Fatal("interface lease wire altered PF policy/reference baseline")
+		}
+	})
+}

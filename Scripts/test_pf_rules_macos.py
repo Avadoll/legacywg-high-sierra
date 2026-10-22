@@ -25,8 +25,8 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire)$'
-    if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire)$'
+    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
+    if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
     test_timeout=1200 if scope=='full' else 600 if scope in ('routes','protection') else 300
@@ -109,12 +109,17 @@ def main():
         'dead_owner_policy_retained','verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
     if scope=='ephemeral':required=ephemeral
     if scope=='full':required|=ephemeral
+    interface_lease={'TestRootPFRuleOwnInterfaceLeaseWire'}|{'TestRootPFRuleOwnInterfaceLeaseWire/'+name for name in (
+        'retained_after_device_close','clear_before_last_descriptor_close','last_close_removes_interface','disabled_policy_baseline_unchanged')}
+    if scope in ('route-wire','ephemeral','full'):required|=interface_lease
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
         'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
+        'owned_interface_lease_wire':checked('TestRootPFRuleOwnInterfaceLeaseWire'),
+        'owned_interface_lease_scope':'test-only atomic CLOEXEC duplicate, official device Close, clear confirmed before final close; no cross-process lease or installed use',
         'owned_interface_flag_scope':'test-only own fresh TUN, disabled PF, set/clear and close/recreate; crash/packets/installed protection NOT_RUN',
         'ephemeral_admitted_owner_crash_candidate':checked('TestRootPFRuleEphemeralAdmittedCrashReuse'),
         'ephemeral_admitted_owner_live_positive_controls':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls'),
