@@ -56,6 +56,36 @@ func (store *Store) endpointGuard(ctx context.Context, pfID string) error {
 	return nil
 }
 
+// A retained/partial route transaction must never be bypassed by attaching a
+// transport directly. Called under Store.mutex before the socket owner is
+// published. No journal remains the existing borrowed-route contract.
+func (store *Store) endpointAdmission(ctx context.Context, pf PFRecord) error {
+	if temporary, err := store.readEndpointRoutes(endpointTemporaryFile); err != nil || temporary != nil {
+		return ErrRecoveryRequired
+	}
+	record, err := store.readEndpointRoutes(endpointJournalFile)
+	if err != nil {
+		return ErrRecoveryRequired
+	}
+	if record == nil {
+		return nil
+	}
+	if record.Boot != store.boot || record.PFID != pf.ID || record.PID != pf.PID || record.PID != os.Getpid() {
+		return ErrRecoveryRequired
+	}
+	for _, entry := range record.Routes {
+		if entry.Phase != endpointInstalled {
+			return ErrRecoveryRequired
+		}
+		host := entry.Spec.host()
+		observed, err := networkcore.ScopedRoute(ctx, host.Destination, host.Path.InterfaceIndex)
+		if err != nil || !host.Matches(observed) {
+			return ErrRecoveryRequired
+		}
+	}
+	return nil
+}
+
 func endpointExactPresent(ctx context.Context, host networkcore.ScopedHost) (bool, error) {
 	observed, err := networkcore.ObserveScopedHost(ctx, host)
 	if errors.Is(err, networkcore.ErrNoRoute) {
@@ -165,6 +195,10 @@ func (store *Store) recoverEndpointRoutes(ctx context.Context) error {
 		return nil
 	}
 	if record.Boot != store.boot || (record.PID != os.Getpid() && processAlive(record.PID)) || store.endpointGuard(ctx, record.PFID) != nil {
+		return ErrRecoveryRequired
+	}
+	pf, err := store.readPF(pfJournalFile)
+	if err != nil || pf == nil || pf.PID != record.PID {
 		return ErrRecoveryRequired
 	}
 	for i := len(record.Routes) - 1; i >= 0; i-- {

@@ -87,6 +87,9 @@ func newPFGuardBind(ctx context.Context, store *Store, template pfPolicy) (*pfGu
 	if err != nil || record == nil || store.pfTransport != nil || record.Phase != PFActive || record.PID != os.Getpid() || record.RulesSHA256 != pfDigest(stagedPFRule) {
 		return nil, ErrRecoveryRequired
 	}
+	if store.endpointAdmission(ctx, *record) != nil {
+		return nil, ErrRecoveryRequired
+	}
 	// A verified no-op proves the live guard and reference, not just its journal.
 	if store.updatePFPolicyLocked(ctx, pfPolicy{}, nil) != nil {
 		return nil, ErrRecoveryRequired

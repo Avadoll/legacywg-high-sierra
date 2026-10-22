@@ -148,7 +148,7 @@ func exchange(ctx context.Context, request *route.RouteMessage) (*route.RouteMes
 		if err != nil || n <= 0 || n == len(buffer) {
 			return nil, ErrPathUnavailable
 		}
-		messages, err := route.ParseRIB(route.RIBTypeRoute, buffer[:n])
+		messages, err := parseRouteFrames(buffer[:n])
 		if err != nil {
 			return nil, ErrPathUnavailable
 		}

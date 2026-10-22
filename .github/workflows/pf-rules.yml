@@ -65,6 +65,11 @@ jobs:
           submodules: false
       - name: Verify pinned sources and native toolchain
         run: python3 Scripts/bootstrap_macos_ci.py
+      - name: Verify native routing header offsets
+        run: |
+          mkdir -p Build/PFRules
+          /usr/bin/xcrun clang -std=c11 -arch x86_64 -mmacosx-version-min=10.13 -Wall -Wextra -Werror Tests/RouteHeaderProbe.c -o Build/PFRules/route-header-probe
+          ./Build/PFRules/route-header-probe
       - name: Measure actual typed rule generations and crash resolution
         run: python3 Scripts/test_pf_rules_macos.py
       - name: Save sanitized rule generation evidence

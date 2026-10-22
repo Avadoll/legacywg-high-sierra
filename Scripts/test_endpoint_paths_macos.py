@@ -37,6 +37,7 @@ DECODER_TESTS = frozenset({
     "TestScopedObservationDoesNotAdmitImplicitDefault",
     "TestScopedHostOwnershipMatchesOnlyExactStaticIdentity",
     "TestScopedHostDirectIPv6NeighborAnnotation",
+    "TestDarwinRouteHeaderErrorIsNotUseCounter",
 })
 
 FAMILY_STATUS = frozenset({
