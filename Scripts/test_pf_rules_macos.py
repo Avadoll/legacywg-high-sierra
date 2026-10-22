@@ -25,7 +25,7 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused)$'
+    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused)$'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
@@ -48,7 +48,7 @@ def main():
         'LEGACYWG_PF_SINGLE_RULE_HELPER='+str(singleton),
         'LEGACYWG_PF_NESTED_RULE_HELPER='+str(build/'pf-nested-rule-probe'),
         'LEGACYWG_PF_PACKET_TESTS='+('1' if scope in ('packets','full') else '0'),
-        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','protection','full') else '0'),str(test),
+        'LEGACYWG_PF_ENCRYPTED_PACKET_TESTS='+('1' if scope in ('encrypted','transport','scoped','routes','protection','ephemeral','full') else '0'),str(test),
         '-test.run='+pattern,
         '-test.v=test2json','-test.timeout='+str(test_timeout)+'s'],
         capture_output=True,text=True,env=env,timeout=test_timeout+30)
@@ -113,6 +113,7 @@ def main():
         'retained_after_device_close','clear_before_last_descriptor_close','last_close_removes_interface','disabled_policy_baseline_unchanged')}
     if scope in ('route-wire','ephemeral','full'):required|=interface_lease
     if scope in ('ephemeral','full'):required|={'TestRootPFRuleOwnInterfaceReferencedRefused/cycle'+str(cycle) for cycle in range(3)}
+    if scope in ('ephemeral','full'):required|={'TestRootPFRuleEphemeralEncryptedPackets','TestRootPFRuleEphemeralEncryptedPackets/outer4','TestRootPFRuleEphemeralEncryptedPackets/outer6'}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
@@ -124,6 +125,8 @@ def main():
         'owned_interface_lease_scope':'test-only atomic CLOEXEC duplicate, official device Close, clear confirmed before final close; no cross-process lease or installed use',
         'owned_interface_flag_scope':'test-only own fresh TUN, disabled PF, set/clear and close/recreate; crash/packets/installed protection NOT_RUN',
         'ephemeral_admitted_owner_crash_candidate':checked('TestRootPFRuleEphemeralAdmittedCrashReuse'),
+        'ephemeral_official_encrypted_lifecycle':checked('TestRootPFRuleEphemeralEncryptedPackets'),
+        'ephemeral_official_encrypted_scope':'test-only leased permission wrapper, both outer families/inner dual stack/Down-Up-Device.Close; route-loss callback/foreign skip/journal/installed NOT_RUN',
         'ephemeral_admitted_owner_live_positive_controls':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/live_permission_positive_controls'),
         'ephemeral_admitted_owner_actual_sigkill':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/actual_sigkill'),
         'ephemeral_admitted_owner_replacement_has_no_skip':checked('TestRootPFRuleEphemeralAdmittedCrashReuse/replacement_has_no_skip'),

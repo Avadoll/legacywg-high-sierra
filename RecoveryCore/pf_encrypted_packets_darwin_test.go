@@ -330,6 +330,10 @@ func TestRootPFRuleProtectedTransportEncryptedPackets(t *testing.T) {
 }
 
 func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, owned, coordinated bool) {
+	pfEncryptedPacketFamilyWithPermission(t, outerFamily, automatic, scoped, owned, coordinated, false)
+}
+
+func pfEncryptedPacketFamilyWithPermission(t *testing.T, outerFamily int, automatic, scoped, owned, coordinated, ephemeral bool) {
 	store := realBootStore(t, ownedReferenceTestDirectory(t))
 	defer store.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
@@ -378,6 +382,7 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 	var client, peer *device.Device
 	var guarded *pfGuardBind
 	var protection *ProtectedTransport
+	var permission *pfFixturePermissionBind
 	var ownedDecoy tun.Device
 	defer func() {
 		for _, l := range listeners {
@@ -400,6 +405,10 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 				peer = nil
 			}
 			_ = inner.Close()
+			if permission != nil && permission.release() != nil {
+				t.Error("ephemeral encrypted permission retained during cleanup")
+				return
+			}
 			if ownedDecoy != nil {
 				_ = ownedDecoy.Close()
 			}
@@ -507,6 +516,10 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 			t.Fatal("typed encrypted engine transport unavailable")
 		}
 		guarded = protection.bind
+		if ephemeral {
+			permission = fixturePermissionBind(t, guarded, inner)
+			transport = permission
+		}
 		command("/sbin/route", "-n", "add", "-inet", "-host", "198.18.100.130", "-interface", innerIface.Name)
 		command("/sbin/route", "-n", "add", "-inet6", "-host", "fd00:198:18:100::130", "-interface", innerIface.Name)
 	} else if automatic {
@@ -717,6 +730,21 @@ func pfEncryptedPacketFamily(t *testing.T, outerFamily int, automatic, scoped, o
 		after, err := store.readPF(pfJournalFile)
 		if err != nil || after == nil || after.Phase != PFActive || after.RulesSHA256 != pfDigest(stagedPFRule) || guarded.current.Load() != nil || !second.retired.Load() {
 			t.Fatal("official Close after TUN deletion lost deny-only")
+		}
+		if ephemeral {
+			if admittedInterfaceNameAbsent(innerIface.Name) || permission == nil || permission.enabled {
+				t.Fatal("official Device.Close did not preserve cleared leased interface")
+			}
+			if permission.release() != nil {
+				t.Fatal("ephemeral encrypted final lease release failed")
+			}
+			deadline := time.Now().Add(3 * time.Second)
+			for !admittedInterfaceNameAbsent(innerIface.Name) && time.Now().Before(deadline) {
+				time.Sleep(20 * time.Millisecond)
+			}
+			if !admittedInterfaceNameAbsent(innerIface.Name) {
+				t.Fatal("official Device.Close last lease failed to remove interface")
+			}
 		}
 		if !coordinated && guarded.detach() != nil {
 			t.Fatal("automatic encrypted transport detachment failed")
