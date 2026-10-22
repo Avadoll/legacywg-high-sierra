@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "original_build_source": "651048d50037a091750ec9786da38ac339284f02",
+  "diagnostic_source": "fb5ea6ba0e4f7d3aa5cb98f8a554f024cf424995",
+  "original_client_run": "39843767231",
+  "original_worker_sha256": "e27afb563801b757144e7a7c8c60f0a680dc0975e1e6db5bd363810e6f48c405",
+  "go_source_identity": {
+    "status": "PASS",
+    "files": 191,
+    "manifest_sha256": "1c790ce25bad4ba83d6a2af97a63054278d8056b6749a50349fb49502f17b749",
+    "scope": "production Go tree including test/build-specific files; dependencies additionally pinned by lock"
+  },
+  "scope": "All Go/mod/sum trees byte-identical; diagnostic changes only Python/workflow. No new client binary or whole-package identity inferred."
+}
