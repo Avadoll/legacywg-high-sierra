@@ -1,0 +1,8 @@
+{
+  "source_commit": "3d0147539d68d3f71d6e5158b6435f8075227608",
+  "native_status": "FAIL",
+  "actual_sigkill": "PASS",
+  "classification": "FIXTURE_ASSUMED_DISTINCT_REPLACEMENT_INDEX",
+  "packet_permission_assertions": "NOT_RUN",
+  "limitation": "Failed before packet checks on a name/index distinction criterion without exported branch booleans. No leak or no-leak result is inferred. Corrected run39822014968 proves name absence then controlled recreation and measures actual index reuse."
+}

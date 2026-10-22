@@ -1,0 +1,173 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_reused"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence/index_reused",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_instance_after_absence",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/dead_owner_policy_retained",
+    "Elapsed": 0.99
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/verified_deny_blocks_replacement",
+    "Elapsed": 0.86
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/restored_baseline_positive_controls",
+    "Elapsed": 0.21
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/no_inherited_tunnel_permission",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse",
+    "Elapsed": 27.65
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 27.749
+  }
+]

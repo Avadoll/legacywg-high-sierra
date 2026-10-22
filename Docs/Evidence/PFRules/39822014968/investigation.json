@@ -1,0 +1,22 @@
+{
+  "classification": "CONFIRMED_PRIVATE_TUNNEL_PERMISSION_LIFETIME_DEFECT",
+  "source_commit": "7b03f6c7ef70d0332da849b676a996da90445fb5",
+  "native_run": "39822014968",
+  "native_status": "FAIL",
+  "actual_sigkill": "PASS",
+  "verified_old_interface_name_absence": "PASS",
+  "replacement_same_name_and_index": "OBSERVED",
+  "retained_policy_and_reference": "PASS",
+  "observed_packet_permission_inheritance": {
+    "root4udp": true,
+    "root4tcp": true,
+    "root6udp": true,
+    "root6tcp": true,
+    "ordinary4udp": true,
+    "ordinary6udp": true
+  },
+  "explicit_fixture_deny_blocks_replacement": "PASS",
+  "restored_baseline_positive_controls": "PASS",
+  "limitation": "Modern owned synthetic topology; no internet transmission, no actual High Sierra or installed-client protection test. Controlled replacement/configuration is test-fixture authority, not a claim of unprivileged interface configuration or administrator isolation.",
+  "release_effect": "Private name-based tunnel pass permission must not be presented as incarnation-safe. Installed protection remains disabled. Previous green subset evidence is retained, not erased."
+}

@@ -1,0 +1,88 @@
+[
+  {
+    "Action": "start"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild"
+  },
+  {
+    "Action": "skip",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashChild",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill"
+  },
+  {
+    "Action": "pass",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/actual_sigkill",
+    "Elapsed": 0
+  },
+  {
+    "Action": "run",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index"
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse/replacement_distinct_index",
+    "Elapsed": 0
+  },
+  {
+    "Action": "output",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse"
+  },
+  {
+    "Action": "fail",
+    "Test": "TestRootPFRuleProtectedAdmittedCrashReuse",
+    "Elapsed": 11.45
+  },
+  {
+    "Action": "output"
+  },
+  {
+    "Action": "fail",
+    "Elapsed": 11.527
+  }
+]

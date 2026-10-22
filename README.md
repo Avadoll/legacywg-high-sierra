@@ -84,3 +84,6 @@ Subsequent workflow confirmation (2026-10-22): full PF run39813186331/source f02
 
 
 Typed protected transport checkpoint (2026-10-22): source `e8623cf900206e46f748c5ca6a73df29673ac11d`, focused39817696876/full PF39817973986/client39817781082 PASS; fresh182-file Go analysis and exact artifact identity PASS. Private endpoint-derived preparation, Store ownership through failures, permanent Stop/actual empty-socket guard verification, borrowed route preservation, ordered explicit Disconnect and facade-backed encrypted traffic pass modern owned-topology tests. Installed full/protection remains disabled; control-plane/crash/interface reuse/owner handoff/OS resolver/physical/target/trust and original acceptance gates remain. See PF_RESEARCH.md. Product incomplete.
+
+
+Latest admitted-owner lifetime experiment39822014968/source7b03f6c: FAIL. After actual SIGKILL and verified interface disappearance, controlled same-name/same-index replacement inherits private PF tunnel permission; IPv4/IPv6 root UDP/TCP and ordinary UDP observed. Controlled deny/baseline controls pass. This is isolated topology, not internet/target/installed proof. Guard/full remains disabled; installed integration must resolve permission lifetime. See PF_RESEARCH.md. Product incomplete.
