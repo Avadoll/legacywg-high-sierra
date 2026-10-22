@@ -25,7 +25,7 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
+    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused)$'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
@@ -104,7 +104,7 @@ def main():
         'verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
     if scope=='admitted':required=admitted
     if scope=='full':required|=admitted
-    ephemeral={'TestRootPFRuleEphemeralAdmittedCrashReuse','TestRootPFRuleOwnInterfaceFlagWire'}|{'TestRootPFRuleEphemeralAdmittedCrashReuse/'+name for name in (
+    ephemeral={'TestRootPFRuleEphemeralAdmittedCrashReuse','TestRootPFRuleOwnInterfaceFlagWire','TestRootPFRuleOwnInterfaceReferencedRefused'}|{'TestRootPFRuleEphemeralAdmittedCrashReuse/'+name for name in (
         'live_permission_positive_controls','actual_sigkill','replacement_instance_after_absence','replacement_has_no_skip',
         'dead_owner_policy_retained','verified_deny_blocks_replacement','restored_baseline_positive_controls','no_inherited_tunnel_permission')}
     if scope=='ephemeral':required=ephemeral
@@ -119,6 +119,7 @@ def main():
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
         'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
         'owned_interface_lease_wire':checked('TestRootPFRuleOwnInterfaceLeaseWire'),
+        'owned_interface_rule_reference_refusal':checked('TestRootPFRuleOwnInterfaceReferencedRefused'),
         'owned_interface_lease_scope':'test-only atomic CLOEXEC duplicate, official device Close, clear confirmed before final close; no cross-process lease or installed use',
         'owned_interface_flag_scope':'test-only own fresh TUN, disabled PF, set/clear and close/recreate; crash/packets/installed protection NOT_RUN',
         'ephemeral_admitted_owner_crash_candidate':checked('TestRootPFRuleEphemeralAdmittedCrashReuse'),

@@ -68,6 +68,17 @@ func fixtureChangeOwnSkip(ctx context.Context, fd int, link tun.Device, enable b
 	if err != nil || link.File() == nil {
 		return ErrRecoveryRequired
 	}
+	raw, err := link.File().SyscallConn()
+	if err != nil {
+		return ErrRecoveryRequired
+	}
+	var descriptorName string
+	var descriptorErr error
+	if raw.Control(func(value uintptr) {
+		descriptorName, descriptorErr = unix.GetsockoptString(int(value), 2, 2)
+	}) != nil || descriptorErr != nil || descriptorName != name {
+		return ErrRecoveryRequired
+	}
 	iface, err := net.InterfaceByName(name)
 	if err != nil || iface.Index < 1 {
 		return ErrRecoveryRequired
@@ -133,7 +144,7 @@ func TestRootPFRuleOwnInterfaceFlagWire(t *testing.T) {
 		return
 	}
 	if !t.Run("set_clear_verified", func(t *testing.T) {
-		if fixtureChangeOwnSkip(ctx, fd, link, true) != nil || fixtureChangeOwnSkip(ctx, fd, link, false) != nil {
+		if fixtureChangeOwnSkip(ctx, fd, link, true) != nil || fixtureChangeOwnSkip(ctx, fd, link, true) == nil || fixtureChangeOwnSkip(ctx, fd, link, false) != nil {
 			t.Fatal("exact owned interface set/clear verification failed")
 		}
 	}) {
@@ -177,6 +188,52 @@ func TestRootPFRuleOwnInterfaceFlagWire(t *testing.T) {
 			t.Fatal("interface flag wire altered PF policy/reference baseline")
 		}
 	})
+}
+
+func TestRootPFRuleOwnInterfaceReferencedRefused(t *testing.T) {
+	requirePFRuleCI(t)
+	_, hosts := endpointOwnedLink(t)
+	f := newProtectedFixture(t)
+	var err error
+	f.owner, err = f.store.PrepareProtectedTransport(f.ctx, protectedFixtureEndpoints(hosts))
+	if err != nil || f.owner == nil {
+		t.Fatal("referenced interface fixture preparation failed")
+	}
+	bind, err := f.owner.Bind()
+	if err != nil {
+		t.Fatal("referenced interface fixture Bind unavailable")
+	}
+	if _, _, err := bind.Open(0); err != nil {
+		t.Fatal("referenced interface fixture admission failed")
+	}
+	fd, err := openPFReferences(f.ctx)
+	if err != nil {
+		t.Fatal("referenced interface fixture PF descriptor unavailable")
+	}
+	defer unix.Close(fd)
+	name, err := f.tunnel.Name()
+	if err != nil {
+		t.Fatal("referenced interface fixture identity unavailable")
+	}
+	before, err := fixtureReadPFInterface(f.ctx, fd, name)
+	if err != nil || before.flags != 0 || before.states != 0 || before.rules < 2 {
+		t.Fatal("live tunnel rule did not retain the expected PF interface reference")
+	}
+	record, err := f.store.readPF(pfJournalFile)
+	if err != nil || record == nil {
+		t.Fatal("referenced interface fixture journal unavailable")
+	}
+	if fixtureChangeOwnSkip(f.ctx, fd, f.tunnel, true) == nil {
+		t.Fatal("ephemeral permission accepted a rule-pinned interface")
+	}
+	after, err := fixtureReadPFInterface(f.ctx, fd, name)
+	policy, policyErr := readPFPolicy(f.ctx, record.Anchor, true)
+	if err != nil || after != before || policyErr != nil || !policy.matches(*record) || policy.rules != record.RulesSHA256 {
+		t.Fatal("referenced permission refusal modified flags or policy")
+	}
+	if f.owner.Stop(f.ctx) != nil || f.tunnel.Close() != nil || f.owner.Disconnect(f.ctx) != nil {
+		t.Fatal("referenced permission fixture explicit cleanup failed")
+	}
 }
 
 func TestRootPFRuleOwnInterfaceLeaseWire(t *testing.T) {
