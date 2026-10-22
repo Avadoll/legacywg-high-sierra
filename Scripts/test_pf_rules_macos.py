@@ -15,7 +15,7 @@ def main():
     build=ROOT/'Build/PFRules';build.mkdir(parents=True,exist_ok=True)
     scope=os.environ.get('LEGACYWG_PF_RULE_SCOPE','full')
     if scope not in ('full','single-class','coordinator','packets','encrypted','transport','scoped','routes','protection','admitted','ephemeral','route-wire'):raise SystemExit('Unknown native PF scope')
-    pattern='^(TestRootPFRule|TestProtectedEndpointInput$)'
+    pattern='^(TestRootPFRule|TestProtectedEndpointInput$|TestPFInterfaceProjection$)'
     if scope=='single-class':pattern='^TestRootPFRuleSingleClass(RealPolicy|CodecPrimaryABI)$'
     if scope=='coordinator':pattern='^TestRootPFRule(CanonicalGenerationsAndRefusals|OwnedTunnelPolicy|CanceledAndThirdHashRemainBoundToIntent|EffectCrashResolution|EffectCrashChild|LoaderCrashRecovery|LoaderCrashChild|SingleClassCodecPrimaryABI)$'
     if scope=='packets':pattern='^TestRootPFRuleNativePackets$'
@@ -25,7 +25,7 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='ephemeral':pattern='^TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused)$'
+    if scope=='ephemeral':pattern='^(TestRootPFRule(ProtectedAdmittedCrashChild|EphemeralAdmittedCrashReuse|EphemeralEncryptedPackets|OwnInterfaceFlagWire|OwnInterfaceLeaseWire|OwnInterfaceReferencedRefused|ForeignInterfaceSkipRefused)|TestPFInterfaceProjection)$'
     if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire|OwnInterfaceLeaseWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
@@ -114,12 +114,15 @@ def main():
     if scope in ('route-wire','ephemeral','full'):required|=interface_lease
     if scope in ('ephemeral','full'):required|={'TestRootPFRuleOwnInterfaceReferencedRefused/cycle'+str(cycle) for cycle in range(3)}
     if scope in ('ephemeral','full'):required|={'TestRootPFRuleEphemeralEncryptedPackets','TestRootPFRuleEphemeralEncryptedPackets/outer4','TestRootPFRuleEphemeralEncryptedPackets/outer6'}
+    if scope in ('ephemeral','full'):required|={'TestPFInterfaceProjection','TestRootPFRuleForeignInterfaceSkipRefused','TestRootPFRuleForeignInterfaceSkipRefused/skip_observed_and_policy_refused','TestRootPFRuleForeignInterfaceSkipRefused/original_baseline_preserved'}
     status='PASS' if result.returncode==0 and required<=passed else 'FAIL'
     def checked(name):return 'PASS' if name in passed else 'NOT_CONFIRMED'
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
         'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
+        'foreign_interface_skip_admission_refusal':checked('TestRootPFRuleForeignInterfaceSkipRefused'),
+        'pf_interface_flag_observation_scope':'production fixed read-only bounded all-kif projection; all live interfaces must appear, all nonzero flags refuse before/after policy snapshot; no atomic privileged-writer or owned-skip exemption',
         'owned_interface_lease_wire':checked('TestRootPFRuleOwnInterfaceLeaseWire'),
         'owned_interface_rule_reference_refusal':checked('TestRootPFRuleOwnInterfaceReferencedRefused'),
         'owned_interface_lease_scope':'test-only atomic CLOEXEC duplicate, official device Close, clear confirmed before final close; no cross-process lease or installed use',

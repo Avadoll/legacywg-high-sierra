@@ -66,6 +66,9 @@ func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnap
 	if !strings.HasPrefix(owned, "com.apple/legacywg-") || !hexID.MatchString(strings.TrimPrefix(owned, "com.apple/legacywg-")) {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
+	if requireUnskippedPFInterfaces(ctx) != nil {
+		return pfPolicySnapshot{}, ErrRecoveryRequired
+	}
 	info, err := runOwnedPF(ctx, "", "-s", "info")
 	status, count := pfStatusLine.FindAllStringSubmatch(info, -1), pfStateLine.FindAllStringSubmatch(info, -1)
 	if err != nil || len(status) != 1 || len(count) != 1 || status[0][1] != expectedStatus || count[0][1] != "0" {
@@ -116,6 +119,9 @@ func readPFPolicy(ctx context.Context, owned string, enabled bool) (pfPolicySnap
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	if len(observations) == 0 || observations[0].path != "" || observations[0].rules != root {
+		return pfPolicySnapshot{}, ErrRecoveryRequired
+	}
+	if requireUnskippedPFInterfaces(ctx) != nil {
 		return pfPolicySnapshot{}, ErrRecoveryRequired
 	}
 	return pfPolicySnapshot{pfDigest(root), filterHash, natHash, pfDigest(rules)}, nil
