@@ -46,7 +46,7 @@ func (network *nativeNetwork) finishRecovery() error {
 	if network.journal == nil {
 		return nil
 	}
-	return network.journal.Finish()
+	return network.journal.FinishAfterClose(context.Background())
 }
 
 func reconcileNative() error { return recoverycore.Reconcile() }
@@ -132,7 +132,7 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 		if tunnel != nil {
 			tunnel.Close()
 		}
-		if journal.Finish() != nil {
+		if journal.FinishAfterClose(context.Background()) != nil {
 			reason = recoverycore.ErrRecoveryRequired
 		}
 		journal.Close()

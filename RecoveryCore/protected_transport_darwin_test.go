@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/netip"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -33,16 +34,19 @@ func TestProtectedEndpointInput(t *testing.T) {
 }
 
 type protectedFixture struct {
-	store  *Store
-	tunnel tun.Device
-	owner  *ProtectedTransport
-	ctx    context.Context
+	store    *Store
+	tunnel   tun.Device
+	owner    *ProtectedTransport
+	ctx      context.Context
+	lastMark atomic.Value
 }
 
 func newProtectedFixture(t *testing.T) *protectedFixture {
 	t.Helper()
 	requirePFRuleCI(t)
 	f := &protectedFixture{store: realBootStore(t, ownedReferenceTestDirectory(t))}
+	f.lastMark.Store("none")
+	f.store.checkpoint = func(mark string) { f.lastMark.Store(mark) }
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	f.ctx = ctx
 	t.Cleanup(func() {
@@ -57,7 +61,7 @@ func newProtectedFixture(t *testing.T) *protectedFixture {
 			if f.owner.Disconnect(cleanup) != nil {
 				t.Error("protected fixture retained recovery ownership")
 			}
-		} else if f.store.Finish() != nil {
+		} else if f.store.FinishAfterClose(cleanup) != nil {
 			t.Error("unprepared fixture journal retained")
 		}
 	})
@@ -138,8 +142,23 @@ func TestRootPFRuleProtectedTransportLifecycle(t *testing.T) {
 	if err != nil || record == nil || record.RulesSHA256 != pfDigest(stagedPFRule) || f.owner.bind.current.Load() != nil {
 		t.Fatal("stopped transport did not retain confirmed deny-only")
 	}
-	if f.tunnel.Close() != nil || f.owner.Disconnect(f.ctx) != nil || !f.store.closed || f.owner.Disconnect(f.ctx) != nil {
-		t.Fatal("ordered explicit disconnect failed")
+	if f.tunnel.Close() != nil {
+		t.Fatal("ordered explicit tunnel Close failed")
+	}
+	if f.owner.Disconnect(f.ctx) != nil {
+		var phases []endpointRoutePhase
+		f.store.mutex.Lock()
+		journal, readErr := f.store.readEndpointRoutes(endpointJournalFile)
+		if journal != nil {
+			for _, entry := range journal.Routes {
+				phases = append(phases, entry.Phase)
+			}
+		}
+		f.store.mutex.Unlock()
+		t.Fatalf("ordered explicit Disconnect failed: tunnel_gone=%t detached=%t context_ok=%t endpoint_phases=%v record_read_ok=%t last_mark=%v", admittedInterfaceNameAbsent(f.store.record.Interface), f.owner.bind.detached, f.ctx.Err() == nil, phases, readErr == nil, f.lastMark.Load())
+	}
+	if !f.store.closed || f.owner.Disconnect(f.ctx) != nil {
+		t.Fatal("ordered explicit disconnect did not finish idempotently")
 	}
 	for _, host := range hosts {
 		after, err := networkcore.EndpointRoute(f.ctx, host.Destination)

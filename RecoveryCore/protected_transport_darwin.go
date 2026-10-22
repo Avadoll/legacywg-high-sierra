@@ -264,6 +264,10 @@ func (owner *ProtectedTransport) Disconnect(ctx context.Context) error {
 		return ErrRecoveryRequired
 	}
 	store := owner.store
+	if store.awaitInterfaceRemoval(ctx) != nil {
+		store.mark("protected_disconnect_interface_removal_refused")
+		return ErrRecoveryRequired
+	}
 	store.mutex.Lock()
 	allowed := !store.closed && store.protection == owner && interfaceGone(store.record)
 	store.mutex.Unlock()
