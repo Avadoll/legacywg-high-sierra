@@ -195,6 +195,7 @@ func (store *Store) recoverEndpointRoutes(ctx context.Context) error {
 		return nil
 	}
 	if record.Boot != store.boot || (record.PID != os.Getpid() && processAlive(record.PID)) || store.endpointGuard(ctx, record.PFID) != nil {
+		store.mark("endpoint_recovery_initial_guard_refused")
 		return ErrRecoveryRequired
 	}
 	pf, err := store.readPF(pfJournalFile)
@@ -208,10 +209,12 @@ func (store *Store) recoverEndpointRoutes(ctx context.Context) error {
 			continue
 		}
 		if store.endpointGuard(ctx, record.PFID) != nil {
+			store.mark("endpoint_recovery_entry_guard_refused")
 			return ErrRecoveryRequired
 		}
 		present, err := endpointExactPresent(ctx, host)
 		if err != nil {
+			store.mark("endpoint_recovery_initial_observation_refused")
 			return ErrRecoveryRequired
 		}
 		if entry.Phase == endpointAddIntent && present {
@@ -221,6 +224,7 @@ func (store *Store) recoverEndpointRoutes(ctx context.Context) error {
 			if present {
 				observed, err := networkcore.ScopedRoute(ctx, host.Destination, host.Path.InterfaceIndex)
 				if err != nil || !host.Matches(observed) || validatePFDatagramSource(pfInterface{host.Path.InterfaceName, host.Path.InterfaceIndex}, host.Path.Source) != nil {
+					store.mark("endpoint_recovery_installed_path_refused")
 					return ErrRecoveryRequired
 				}
 			}
@@ -235,15 +239,18 @@ func (store *Store) recoverEndpointRoutes(ctx context.Context) error {
 			if present {
 				observed, err := networkcore.ScopedRoute(ctx, host.Destination, host.Path.InterfaceIndex)
 				if err != nil || !host.Matches(observed) || store.endpointGuard(ctx, record.PFID) != nil {
+					store.mark("endpoint_recovery_delete_precondition_refused")
 					return ErrRecoveryRequired
 				}
 				if networkcore.ChangeScopedHost(ctx, host, false) != nil {
+					store.mark("endpoint_recovery_delete_ack_refused")
 					return ErrRecoveryRequired
 				}
 				store.mark("endpoint_deleted_kernel")
 			}
 			present, err = endpointExactPresent(ctx, host)
 			if err != nil || present {
+				store.mark("endpoint_recovery_deleted_observation_refused")
 				return ErrRecoveryRequired
 			}
 		}

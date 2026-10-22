@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"runtime"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -202,6 +203,13 @@ func fixtureReferencedInterfaceRefusal(t *testing.T) {
 	requirePFRuleCI(t)
 	_, hosts := endpointOwnedLink(t)
 	f := newProtectedFixture(t)
+	var marksMutex sync.Mutex
+	lastMark := "none"
+	f.store.checkpoint = func(mark string) {
+		marksMutex.Lock()
+		lastMark = mark
+		marksMutex.Unlock()
+	}
 	var err error
 	f.owner, err = f.store.PrepareProtectedTransport(f.ctx, protectedFixtureEndpoints(hosts))
 	if err != nil || f.owner == nil {
@@ -248,7 +256,19 @@ func fixtureReferencedInterfaceRefusal(t *testing.T) {
 		t.Fatal("referenced permission fixture native tunnel close failed")
 	}
 	if f.owner.Disconnect(f.ctx) != nil {
-		t.Fatalf("referenced permission fixture disconnect refused: tunnel_absent=%t endpoint_residue=%t pf_residue=%t", admittedInterfaceNameAbsent(name), f.store.endpointResidue(), f.store.pfResidue())
+		marksMutex.Lock()
+		mark := lastMark
+		marksMutex.Unlock()
+		var phases []endpointRoutePhase
+		f.store.mutex.Lock()
+		record, recordErr := f.store.readEndpointRoutes(endpointJournalFile)
+		if record != nil {
+			for _, entry := range record.Routes {
+				phases = append(phases, entry.Phase)
+			}
+		}
+		f.store.mutex.Unlock()
+		t.Fatalf("referenced permission fixture disconnect refused: tunnel_absent=%t endpoint_residue=%t pf_residue=%t detached=%t context_ok=%t last_mark=%s phases=%v record_read_ok=%t", admittedInterfaceNameAbsent(name), f.store.endpointResidue(), f.store.pfResidue(), f.owner.bind.detached, f.ctx.Err() == nil, mark, phases, recordErr == nil)
 	}
 }
 
