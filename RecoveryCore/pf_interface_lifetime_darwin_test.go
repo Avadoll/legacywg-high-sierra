@@ -231,8 +231,26 @@ func TestRootPFRuleOwnInterfaceReferencedRefused(t *testing.T) {
 	if err != nil || after != before || policyErr != nil || !policy.matches(*record) || policy.rules != record.RulesSHA256 {
 		t.Fatal("referenced permission refusal modified flags or policy")
 	}
-	if f.owner.Stop(f.ctx) != nil || f.tunnel.Close() != nil || f.owner.Disconnect(f.ctx) != nil {
-		t.Fatal("referenced permission fixture explicit cleanup failed")
+	if !t.Run("deny_before_cleanup", func(t *testing.T) {
+		if f.owner.Stop(f.ctx) != nil {
+			t.Fatal("referenced permission fixture stop did not confirm deny")
+		}
+	}) {
+		return
+	}
+	if !t.Run("close_owned_tunnel", func(t *testing.T) {
+		if f.tunnel.Close() != nil {
+			t.Fatal("referenced permission fixture native tunnel close failed")
+		}
+	}) {
+		return
+	}
+	if !t.Run("explicit_disconnect", func(t *testing.T) {
+		if f.owner.Disconnect(f.ctx) != nil {
+			t.Fatalf("referenced permission fixture disconnect refused: tunnel_absent=%t endpoint_residue=%t pf_residue=%t", admittedInterfaceNameAbsent(name), f.store.endpointResidue(), f.store.pfResidue())
+		}
+	}) {
+		return
 	}
 }
 
