@@ -40,7 +40,7 @@ on:
         type: boolean
         default: false
       route_wire_only:
-        description: Preflight typed host route codec on owned virtual interfaces without PF
+        description: Preflight host route codec and owned interface flag lifetime with PF disabled
         type: boolean
         default: false
 

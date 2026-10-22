@@ -25,7 +25,7 @@ def main():
     if scope=='routes':pattern='^TestRootPFRuleOwnedEndpoint'
     if scope=='protection':pattern='^(TestRootPFRuleProtectedTransport|TestProtectedEndpointInput$)'
     if scope=='admitted':pattern='^TestRootPFRuleProtectedAdmittedCrash'
-    if scope=='route-wire':pattern='^TestRootPFRuleOwnedEndpointWire$'
+    if scope=='route-wire':pattern='^TestRootPFRule(OwnedEndpointWire|OwnInterfaceFlagWire)$'
     # The full package already measured 880s before adding transaction-owner
     # lifecycle/encrypted cases. Keep explicit Go and outer process limits.
     test_timeout=1200 if scope=='full' else 600 if scope in ('routes','protection') else 300
@@ -88,7 +88,8 @@ def main():
     owned_encrypted={'TestRootPFRuleOwnedEndpointEncryptedPackets','TestRootPFRuleOwnedEndpointEncryptedPackets/outer4','TestRootPFRuleOwnedEndpointEncryptedPackets/outer6'}
     endpoint_routes={'TestRootPFRuleOwnedEndpointLifecycle','TestRootPFRuleOwnedEndpointGuestGateway','TestRootPFRuleOwnedEndpointCrashRecovery'}|owned_encrypted|{'TestRootPFRuleOwnedEndpointCrashRecovery/'+point for point in endpoint_crash_points}
     if scope=='routes':required=endpoint_routes
-    if scope=='route-wire':required={'TestRootPFRuleOwnedEndpointWire'}
+    if scope=='route-wire':required={'TestRootPFRuleOwnedEndpointWire','TestRootPFRuleOwnInterfaceFlagWire'}|{'TestRootPFRuleOwnInterfaceFlagWire/'+name for name in (
+        'fresh_zero_references','set_clear_verified','replacement_has_no_skip','disabled_policy_baseline_unchanged')}
     if scope=='full':required|=endpoint_routes
     protected={'TestProtectedEndpointInput','TestRootPFRuleProtectedTransportLifecycle',
                'TestRootPFRuleProtectedTransportBorrowed','TestRootPFRuleProtectedTransportInterruptedPreparation',
@@ -107,6 +108,8 @@ def main():
     report={'status':status,'source_commit':os.environ['GITHUB_SHA'],'host_os':platform.mac_ver()[0],
         'kind':'standalone single-class real-policy prototype' if scope=='single-class' else 'native journal-bound typed own-PF rule generations',
         'scope':scope,'full_rule_generation_suite':status if scope=='full' else 'NOT_RUN',
+        'owned_interface_flag_wire':checked('TestRootPFRuleOwnInterfaceFlagWire'),
+        'owned_interface_flag_scope':'test-only own fresh TUN, disabled PF, set/clear and close/recreate; crash/packets/installed protection NOT_RUN',
         'journal_bound_single_filter_coordinator':status if scope=='coordinator' else 'NOT_RUN',
         'packet_test_scope':'native kernel to journal-owned utun/pinned netstack; physical/encrypted/OS-resolver NOT_RUN',
         'owned_utun_udp_tcp_dns_port_packet_guard':checked('TestRootPFRuleNativePackets'),

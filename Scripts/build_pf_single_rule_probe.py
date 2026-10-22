@@ -51,13 +51,21 @@ typedef u_int32_t pf_osfp_t;
              'union pf_rule_xport', 'struct pf_rule_uid', 'struct pf_rule_gid',
              'struct pf_rule_addr', 'struct pf_pooladdr', 'struct pf_poolhashkey',
              'struct pf_pool', 'union pf_rule_ptr', 'struct pf_rule',
-             'struct pfioc_rule', 'struct pfioc_pooladdr', 'struct pfioc_trans')
+             'struct pfioc_rule', 'struct pfioc_pooladdr', 'struct pfioc_trans',
+             'struct pfioc_iface')
     parts = [notices, '/* Modified 2026-10-14: mechanical declaration subset for CI; no policy implementation.\n * Source: pinned Apple XNU pfvar.h; modifications are reproducible by this public builder.\n * Covered declarations remain subject to APSL-2.0 and their original notices. */\n', prefix,
              '\n'.join(enums)]
     for name in names:
         if name == 'struct pf_poolhashkey': parts.append('TAILQ_HEAD(pf_palist, pf_pooladdr);\n')
         parts.append(declaration(text, name))
-    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR'):
+    # The kernel/user conditional has two alternate struct openings and one
+    # shared body. Remove exactly the alternate opening before extraction.
+    alternate = 'struct pfi_uif {\n#else /* !KERNEL */\nstruct pfi_kif {\n#endif /* !KERNEL */'
+    if text.count(alternate) != 1:
+        raise ValueError('Pinned interface declaration conditional changed')
+    parts.append(declaration(text.replace(alternate, 'struct pfi_uif {'), 'struct pfi_uif'))
+    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR',
+                 'DIOCIGETIFACES','DIOCSETIFFLAG','DIOCCLRIFFLAG','PFI_IFLAG_SKIP'):
         match = re.search(r'^#define\s+'+name+r'\s+[^\n]+',text,re.M)
         if not match: raise ValueError('Pinned ABI request missing')
         parts.append(match.group(0)+'\n')
@@ -76,13 +84,16 @@ def build_probe(build):
         'pfioc_pooladdr': ('action','ticket','anchor','addr'),
         'pfioc_trans': ('size','esize','array'),
         'pfioc_trans_e': ('rs_num','anchor','ticket'),
+        'pfioc_iface': ('pfiio_name','pfiio_buffer','pfiio_esize','pfiio_size','pfiio_nzero','pfiio_flags'),
+        'pfi_uif': ('pfik_name','pfik_packets','pfik_bytes','pfik_tzero','pfik_flags','pfik_states','pfik_rules'),
     }
     lines = ['#include <stddef.h>', '#include <stdio.h>', '#include "pf_rule_abi.h"', 'int main(void) {']
     for struct, members in fields.items():
         lines.append(f'printf("{struct}.size=%zu\\n", sizeof(struct {struct}));')
         for member in members:
             lines.append(f'printf("{struct}.{member}=%zu\\n", offsetof(struct {struct}, {member}));')
-    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR'):
+    for name in ('DIOCXBEGIN','DIOCXCOMMIT','DIOCXROLLBACK','DIOCADDRULE','DIOCGETRULES','DIOCGETRULE','DIOCBEGINADDRS','DIOCADDADDR',
+                 'DIOCIGETIFACES','DIOCSETIFFLAG','DIOCCLRIFFLAG','PFI_IFLAG_SKIP'):
         lines.append(f'printf("{name}=%lu\\n", (unsigned long){name});')
     lines += ['return 0;', '}']
     printer = build/'abi-layout.c';printer.write_text('\n'.join(lines)+'\n')
@@ -102,6 +113,15 @@ def build_probe(build):
         layouts.append(layout);pins.append({'tag':tag,'url':url,'sha256':sha})
     if layouts[0]!=layouts[1]:
         raise ValueError('Legacy/modern rule ABI differs; refusing mutation probe')
+    expected = {'pfioc_iface.size':40,'pfioc_iface.pfiio_name':0,'pfioc_iface.pfiio_buffer':16,
+                'pfioc_iface.pfiio_esize':24,'pfioc_iface.pfiio_size':28,'pfioc_iface.pfiio_nzero':32,
+                'pfioc_iface.pfiio_flags':36,'pfi_uif.size':168,'pfi_uif.pfik_name':0,
+                'pfi_uif.pfik_packets':16,'pfi_uif.pfik_bytes':80,'pfi_uif.pfik_tzero':144,
+                'pfi_uif.pfik_flags':152,'pfi_uif.pfik_states':156,'pfi_uif.pfik_rules':160,
+                'DIOCIGETIFACES':0xc0284457,'DIOCSETIFFLAG':0xc0284459,'DIOCCLRIFFLAG':0xc028445a,
+                'PFI_IFLAG_SKIP':0x100}
+    if any(int(layouts[0].get(key, '-1')) != value for key,value in expected.items()):
+        raise ValueError('Interface ABI differs from bounded Go test projection')
     evidence={'status':'PASS','kind':'compiler comparison of pinned primary declarations',
               'sources':pins,'layout':layouts[0],'running_kernel_layout_match':'NOT_PROVEN'}
     (build/'abi-comparison.json').write_text(json.dumps(evidence,indent=2)+'\n')
