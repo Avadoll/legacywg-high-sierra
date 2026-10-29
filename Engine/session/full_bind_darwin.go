@@ -49,7 +49,7 @@ func prepareFullBind(ctx context.Context, endpoints []netip.AddrPort) (*fullBind
 	}
 	bind := &fullBind{remote: address, path: before, loopback: address.IsLoopback()}
 	if !bind.loopback {
-		bind.scoped, err = networkcore.ScopedRoute(ctx, address, before.InterfaceIndex)
+		bind.scoped, err = networkcore.SocketRoute(ctx, address, before.InterfaceIndex)
 		if err != nil || bind.scoped.Path != before {
 			return nil, errFullPath
 		}
@@ -74,7 +74,7 @@ func (bind *fullBind) verify(ctx context.Context) error {
 			return errFullPath
 		}
 	} else {
-		path, err := networkcore.ScopedRoute(ctx, bind.remote, bind.path.InterfaceIndex)
+		path, err := networkcore.SocketRoute(ctx, bind.remote, bind.path.InterfaceIndex)
 		if err != nil || path != bind.scoped {
 			return errFullPath
 		}

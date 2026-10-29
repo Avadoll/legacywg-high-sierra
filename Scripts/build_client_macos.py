@@ -39,11 +39,13 @@ def main() -> None:
         ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
     if not (required|checkpoints)<=passed:raise SystemExit('Privileged journal tests not actually exercised')
-    full_bind_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n','./Engine/session'],timeout=90)
+    full_bind_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n /usr/bin/env LEGACYWG_FULL_ROUTE_TEST=1','./Engine/session'],timeout=90)
     (OUT/'full-bind-tests.txt').write_text(full_bind_tests)
     full_events=[json.loads(line) for line in full_bind_tests.splitlines() if line.strip()]
     if not any(event.get('Action')=='pass' and event.get('Test')=='TestRootFullBindScopedSocketLifetime' for event in full_events):
         raise SystemExit('Native scoped full Bind lifecycle was not exercised')
+    if not any(event.get('Action')=='pass' and event.get('Test')=='TestRootFullBindBorrowedEgressSurvivesTunnelDefaults' for event in full_events):
+        raise SystemExit('Native primary egress under full tunnel routes was not exercised')
     pf_required={'TestRootPFJournalDurabilityAndPreservation','TestRootPFJournalRejectsUnsafeFiles','TestRootPFJournalCrashPreservesUnknownEffects',
         'TestRootPFJournalCancellationAndRuleGenerations','TestRootPFJournalUpdateCrashPreservesBothCandidates'}
     pf_checkpoints={'TestRootPFJournalCrashPreservesUnknownEffects/'+stage for stage in

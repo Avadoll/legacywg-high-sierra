@@ -54,7 +54,8 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 	if err != nil {
 		return nil, err
 	}
-	if plan.FullIPv4 || plan.FullIPv6 {
+	full := plan.FullIPv4 || plan.FullIPv6
+	if full {
 		if err := checkFullMode(config, plan); err != nil {
 			return nil, err
 		}
@@ -101,8 +102,13 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 			// these entries before creating an interface or changing DNS.
 			continue
 		}
+		for _, local := range config.Addresses {
+			if address == local.Addr() {
+				return nil, errors.New("endpoint cannot equal a local tunnel address")
+			}
+		}
 		for _, route := range plan.Routes {
-			if !fullMode(config) && route.Contains(address) {
+			if !full && route.Contains(address) {
 				return nil, errors.New("endpoint overlaps a tunnel route; physical endpoint routing required")
 			}
 		}

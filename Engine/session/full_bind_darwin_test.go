@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"golang.zx2c4.com/wireguard/conn"
+	"golang.zx2c4.com/wireguard/tun"
+	networkcore "legacywg/NetworkCore"
 )
 
 func TestRootFullBindScopedSocketLifetime(t *testing.T) {
@@ -78,5 +80,67 @@ func TestRootFullBindScopedSocketLifetime(t *testing.T) {
 				t.Fatal("unknown endpoint address accepted")
 			}
 		})
+	}
+}
+
+func TestRootFullBindBorrowedEgressSurvivesTunnelDefaults(t *testing.T) {
+	if os.Geteuid() != 0 || os.Getenv("LEGACYWG_FULL_ROUTE_TEST") != "1" {
+		t.Skip("disposable native full-route fixture only")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	endpoint := netip.MustParseAddrPort("198.19.201.90:51820")
+	before, err := networkcore.EndpointRoute(ctx, endpoint.Addr())
+	if err != nil {
+		t.Fatal("initial egress unavailable")
+	}
+	bind, err := prepareFullBind(ctx, []netip.AddrPort{endpoint})
+	if err != nil {
+		t.Fatal("scoped primary egress refused", err)
+	}
+	defer bind.stop()
+	link, err := tun.CreateTUN("utun", 1420)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := link.Name()
+	if err != nil {
+		link.Close()
+		t.Fatal(err)
+	}
+	defer func() {
+		link.Close()
+		deadline := time.Now().Add(3 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, err := net.InterfaceByName(name); err != nil {
+				break
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		after, err := networkcore.EndpointRoute(context.Background(), endpoint.Addr())
+		if err != nil || after != before {
+			t.Error("original egress was not restored")
+		}
+	}()
+	if nativeCommand("/sbin/ifconfig", name, "up") != nil {
+		t.Fatal("fixture activation failed")
+	}
+	for _, prefix := range []string{"0.0.0.0/1", "128.0.0.0/1"} {
+		if nativeCommand("/sbin/route", "-n", "add", "-inet", "-net", prefix, "-interface", name) != nil {
+			t.Fatal("fixture route creation refused")
+		}
+	}
+	selected, err := networkcore.EndpointRoute(ctx, endpoint.Addr())
+	if err != nil || selected.InterfaceName != name {
+		t.Fatal("full route did not select owned tunnel")
+	}
+	if err := bind.verify(ctx); err != nil {
+		t.Fatal("physical socket path did not survive full route", err)
+	}
+	if _, _, err := bind.Open(0); err != nil {
+		t.Fatal("bound physical socket could not open under full route", err)
+	}
+	if bind.Close() != nil {
+		t.Fatal("physical socket close refused")
 	}
 }

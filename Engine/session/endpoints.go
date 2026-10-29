@@ -19,6 +19,7 @@ func systemLookup(ctx context.Context, host string) ([]netip.Addr, error) {
 
 func resolveEndpoints(ctx context.Context, config *configcore.Config, endpoints []netip.AddrPort, lookup endpointLookup) ([]netip.AddrPort, error) {
 	cache := make(map[string]netip.Addr)
+	full := fullMode(config)
 	for index, peer := range config.Peers {
 		if peer.Endpoint == nil || endpoints[index].IsValid() {
 			continue
@@ -46,9 +47,12 @@ func resolveEndpoints(ctx context.Context, config *configcore.Config, endpoints 
 						continue
 					}
 					overlaps := false
+					for _, local := range config.Addresses {
+						overlaps = overlaps || candidate == local.Addr()
+					}
 					for _, other := range config.Peers {
 						for _, route := range other.AllowedIPs {
-							overlaps = overlaps || (!fullMode(config) && route.Contains(candidate))
+							overlaps = overlaps || (!full && route.Contains(candidate))
 						}
 					}
 					if !overlaps {

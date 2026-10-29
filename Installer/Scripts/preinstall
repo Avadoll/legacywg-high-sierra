@@ -5,6 +5,15 @@ if [ "$(/usr/bin/id -u)" != 0 ]; then
     echo 'Administrator authorization is required.' >&2
     exit 1
 fi
+if [ "$(/usr/bin/uname -m)" != x86_64 ] ||
+   ! /usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '
+      NF >= 2 && NF <= 3 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && (NF == 2 || $3 ~ /^[0-9]+$/) {
+          if ($1 > 10 || ($1 == 10 && ($2 > 13 || ($2 == 13 && $3 >= 6)))) good=1
+      }
+      END { exit !good }'; then
+    echo 'LegacyWG requires an Intel Mac with macOS 10.13.6 or later.' >&2
+    exit 1
+fi
 if [ "${3:-}" != / ]; then
     echo 'This research package supports only the running system volume.' >&2
     exit 1

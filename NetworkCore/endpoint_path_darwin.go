@@ -78,6 +78,21 @@ func ScopedRoute(ctx context.Context, destination netip.Addr, scope int) (Scoped
 	return query(ctx, destination, scope, true)
 }
 
+// SocketRoute observes the path selected by an interface-bound UDP socket.
+// Unlike protected ScopedRoute it accepts the primary interface's implicit
+// default. It proves neither exclusive route ownership nor traffic protection.
+// Protected/PF admission must continue to use ScopedRoute.
+func SocketRoute(ctx context.Context, destination netip.Addr, scope int) (ScopedPath, error) {
+	if scope < 1 || scope > 65535 {
+		return ScopedPath{}, ErrPathUnavailable
+	}
+	path, err := query(ctx, destination, scope, false)
+	if err != nil || !path.Prefix.IsValid() || !path.Source.IsValid() || path.Source.IsUnspecified() || path.Source.Is4In6() {
+		return ScopedPath{}, ErrPathUnavailable
+	}
+	return path, nil
+}
+
 func query(ctx context.Context, destination netip.Addr, scope int, strict bool) (ScopedPath, error) {
 	if ctx == nil || ctx.Err() != nil || !destination.IsValid() || destination.Zone() != "" || destination.Is4In6() || scope < 0 || scope > 65535 {
 		return ScopedPath{}, ErrPathUnavailable
