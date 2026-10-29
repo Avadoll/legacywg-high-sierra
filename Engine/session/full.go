@@ -26,8 +26,8 @@ func checkFullMode(config *configcore.Config, plan *networkcore.Plan) error {
 }
 
 // /1 routes supersede ordinary defaults without changing them. If the profile
-// has no full IPv6 coverage, route the rest of IPv6 into our TUN, where the
-// official engine drops destinations with no matching peer. More-specific
+// has no full IPv6 coverage, reject the uncovered IPv6 halves on our TUN.
+// More-specific
 // system/LAN routes remain; this is not a firewall or a leak guarantee.
 func sessionRoutes(config *configcore.Config) []netip.Prefix {
 	var result []netip.Prefix
@@ -57,4 +57,18 @@ func sessionRoutes(config *configcore.Config) []netip.Prefix {
 		appendRoute(netip.MustParsePrefix("8000::/1"))
 	}
 	return result
+}
+
+func rejectSessionRoute(config *configcore.Config, prefix netip.Prefix) bool {
+	if !fullMode(config) || !prefix.Addr().Is6() || prefix.Bits() != 1 {
+		return false
+	}
+	for _, peer := range config.Peers {
+		for _, allowed := range peer.AllowedIPs {
+			if allowed.Addr().Is6() && allowed.Bits() <= 1 && allowed.Contains(prefix.Addr()) {
+				return false
+			}
+		}
+	}
+	return true
 }

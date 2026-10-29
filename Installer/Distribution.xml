@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<installer-gui-script minSpecVersion="2">
+  <title>LegacyWG — тестовая версия</title>
+  <options customize="never" hostArchitectures="x86_64" require-scripts="false"/>
+  <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+  <welcome file="Welcome.html" mime-type="text/html"/>
+  <conclusion file="Conclusion.html" mime-type="text/html"/>
+  <volume-check script="true">
+    <allowed-os-versions><os-version min="10.13.6"/></allowed-os-versions>
+  </volume-check>
+  <choices-outline><line choice="client"/></choices-outline>
+  <choice id="client" title="LegacyWG" description="VPN-клиент и системный сетевой компонент" visible="false">
+    <pkg-ref id="org.legacywg.research"/>
+  </choice>
+  <pkg-ref id="org.legacywg.research">LegacyWG-component.pkg</pkg-ref>
+</installer-gui-script>

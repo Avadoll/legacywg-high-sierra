@@ -251,9 +251,24 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			return errors.New("full tunnel interface unavailable")
 		}
 		for _, address := range []string{"198.19.200.90", "2001:db8:fe::90"} {
-			path, err := physicalRoute(netip.MustParseAddr(address))
-			if err != nil || !strings.Contains(path, "interface:"+iface) {
-				return errors.New("full route coverage missing")
+			family := "-inet"
+			if strings.Contains(address, ":") {
+				family = "-inet6"
+			}
+			output, commandError := exec.Command("/sbin/route", "-n", "get", family, address).CombinedOutput()
+			own, rejected := false, false
+			for _, line := range strings.Split(string(output), "\n") {
+				field, value, ok := strings.Cut(strings.TrimSpace(line), ":")
+				if ok && field == "interface" {
+					own = strings.TrimSpace(value) == iface
+				}
+				if ok && field == "flags" {
+					rejected = strings.Contains(value, "REJECT")
+				}
+			}
+			wantReject := family == "-inet6" && !dual
+			if commandError != nil || !own || rejected != wantReject {
+				return fmt.Errorf("full route coverage missing family=%s query_ok=%t owned=%t rejected=%t", family, commandError == nil, own, rejected)
 			}
 		}
 	}

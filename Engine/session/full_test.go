@@ -36,6 +36,7 @@ func TestResearchFullIntentAndBootstrap(t *testing.T) {
 		if prefix.Bits() != 1 {
 			t.Fatal("system default replacement requested")
 		}
+		if rejectSessionRoute(config,prefix)!=prefix.Addr().Is6() { t.Fatal("uncovered IPv6 was not rejected") }
 	}
 }
 

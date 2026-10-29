@@ -39,8 +39,11 @@ def main() -> None:
         ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
     if not (required|checkpoints)<=passed:raise SystemExit('Privileged journal tests not actually exercised')
-    full_bind_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n /usr/bin/env LEGACYWG_FULL_ROUTE_TEST=1','./Engine/session'],timeout=90)
+    full_bind_run=subprocess.run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n /usr/bin/env LEGACYWG_FULL_ROUTE_TEST=1','./Engine/session'],
+        cwd=ROOT,capture_output=True,text=True,timeout=90)
+    full_bind_tests=full_bind_run.stdout
     (OUT/'full-bind-tests.txt').write_text(full_bind_tests)
+    if full_bind_run.returncode:raise SystemExit('Native full Bind tests failed; consult full-bind-tests.txt')
     full_events=[json.loads(line) for line in full_bind_tests.splitlines() if line.strip()]
     if not any(event.get('Action')=='pass' and event.get('Test')=='TestRootFullBindScopedSocketLifetime' for event in full_events):
         raise SystemExit('Native scoped full Bind lifecycle was not exercised')
@@ -145,9 +148,12 @@ def main() -> None:
         'RootRelativeBundlePath':'Applications/LegacyWG.app',
         'BundleIsRelocatable':False,'BundleIsVersionChecked':False,
         'BundleHasStrictIdentifier':True,'BundleOverwriteAction':'upgrade'}]))
+    component=BUILD/'LegacyWG-component.pkg'
     run(['/usr/bin/pkgbuild','--root',str(payload),'--ownership','recommended','--identifier','org.legacywg.research',
          '--version','0.2','--install-location','/','--component-plist',str(components),
-         '--scripts',str(installer_scripts),str(package)])
+         '--scripts',str(installer_scripts),str(component)])
+    run(['/usr/bin/productbuild','--distribution',str(ROOT/'Installer/Distribution.xml'),
+         '--package-path',str(BUILD),'--resources',str(ROOT/'Installer/Resources'),str(package)])
     archive=OUT/'LegacyWG-research-0.2-app.zip'
     run(['/usr/bin/ditto','-c','-k','--sequesterRsrc','--keepParent',str(app),str(archive)])
     manifest={'source_commit':source,'kind':'limited-native-client-research','signing_mode':'ad-hoc',

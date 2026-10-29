@@ -214,7 +214,11 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 		return fail()
 	}
 	for _, prefix := range sessionRoutes(config) {
-		if err := nativeCommand("/sbin/route", "-n", "add", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", name); err != nil {
+		arguments := []string{"-n", "add", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", name}
+		if rejectSessionRoute(config, prefix) {
+			arguments = append(arguments, "-reject")
+		}
+		if err := nativeCommand("/sbin/route", arguments...); err != nil {
 			return fail()
 		}
 		network.routes = append(network.routes, prefix)

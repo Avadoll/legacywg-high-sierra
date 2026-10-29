@@ -122,7 +122,7 @@ func TestRootFullBindBorrowedEgressSurvivesTunnelDefaults(t *testing.T) {
 			t.Error("original egress was not restored")
 		}
 	}()
-	if nativeCommand("/sbin/ifconfig", name, "up") != nil {
+	if nativeCommand("/sbin/ifconfig", name, "inet", "198.18.220.1", "198.18.220.1", "netmask", "255.255.255.255", "alias") != nil {
 		t.Fatal("fixture activation failed")
 	}
 	for _, prefix := range []string{"0.0.0.0/1", "128.0.0.0/1"} {
