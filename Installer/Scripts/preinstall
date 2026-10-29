@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 # Test package: fixed application files only; no user profiles are touched.
+if [ "$(/usr/bin/id -u)" != 0 ]; then
+    echo 'Administrator authorization is required.' >&2
+    exit 1
+fi
 if [ "${3:-}" != / ]; then
     echo 'This research package supports only the running system volume.' >&2
     exit 1
@@ -10,6 +14,12 @@ if [ -e '/Applications/LegacyWG.app' ] || [ -L '/Applications/LegacyWG.app' ] ||
    [ -e '/Library/PrivilegedHelperTools/org.legacywg.helper' ] || [ -L '/Library/PrivilegedHelperTools/org.legacywg.helper' ] ||
    [ -e '/Library/LaunchDaemons/org.legacywg.helper.plist' ] || [ -L '/Library/LaunchDaemons/org.legacywg.helper.plist' ]; then
     echo 'Existing LegacyWG component found. This research package does not perform upgrades.' >&2
+    exit 1
+fi
+script_dir=$(/usr/bin/dirname "$0")
+if ! /usr/bin/codesign --verify --strict "$script_dir/legacywg-preflight" >/dev/null 2>&1 ||
+   ! "$script_dir/legacywg-preflight" --platform-check; then
+    echo 'The VPN engine cannot run on this Mac. No LegacyWG components have been installed.' >&2
     exit 1
 fi
 exit 0

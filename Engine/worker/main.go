@@ -128,6 +128,14 @@ func main() {
 		respond(os.Stdout, map[string]any{"ok": false, "error": "cannot disable engine core dumps"})
 		return
 	}
+	if len(os.Args) == 2 && os.Args[1] == "--platform-check" {
+		result := platformCheck()
+		respond(os.Stdout, result)
+		if result["ok"] != true {
+			os.Exit(1)
+		}
+		return
+	}
 	engine := &session.Session{}
 	defer engine.Stop()
 	if len(os.Args) == 2 && os.Args[1] == "--validate" {

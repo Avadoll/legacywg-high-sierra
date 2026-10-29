@@ -24,6 +24,7 @@ type nativeNetwork struct {
 	dns     *dnsProcess
 	path    *pathWatch
 	journal *recoverycore.Store
+	full    *fullBind
 }
 
 func (network *nativeNetwork) name() string    { return network.iface }
@@ -77,6 +78,11 @@ func (network *nativeNetwork) close() error {
 			return err
 		}
 	}
+	if network.full != nil {
+		if err := network.full.stop(); err != nil {
+			return err
+		}
+	}
 	if network.dns != nil {
 		if err := network.dns.close(); err != nil {
 			return err
@@ -124,6 +130,15 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if err != nil {
 		return nil, nil, err
 	}
+	var full *fullBind
+	if fullMode(config) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		full, err = prepareFullBind(ctx, endpoints)
+		cancel()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	journal, err := recoverycore.Begin()
 	if err != nil {
 		return nil, nil, err
@@ -157,8 +172,12 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if err := journal.MarkInterface(name, iface.Index); err != nil {
 		return failBeforeEngine(tunnel, err)
 	}
-	network := &nativeNetwork{iface: name, index: iface.Index, journal: journal}
-	engine := device.NewDevice(tunnel, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	network := &nativeNetwork{iface: name, index: iface.Index, journal: journal, full: full}
+	var binding conn.Bind = conn.NewDefaultBind()
+	if full != nil {
+		binding = full
+	}
+	engine := device.NewDevice(tunnel, binding, device.NewLogger(device.LogLevelSilent, ""))
 	fail := func() (*device.Device, *nativeNetwork, error) {
 		if network.path != nil {
 			network.path.close()
@@ -194,19 +213,11 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if err := engine.Up(); err != nil {
 		return fail()
 	}
-	seen := map[netip.Prefix]bool{}
-	for _, peer := range config.Peers {
-		for _, prefix := range peer.AllowedIPs {
-			prefix = prefix.Masked()
-			if seen[prefix] {
-				continue
-			}
-			if err := nativeCommand("/sbin/route", "-n", "add", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", name); err != nil {
-				return fail()
-			}
-			seen[prefix] = true
-			network.routes = append(network.routes, prefix)
+	for _, prefix := range sessionRoutes(config) {
+		if err := nativeCommand("/sbin/route", "-n", "add", routeFamily(prefix.Addr()), "-net", prefix.String(), "-interface", name); err != nil {
+			return fail()
 		}
+		network.routes = append(network.routes, prefix)
 	}
 	if len(config.DNS) > 0 {
 		network.dns, err = startDNS(name, config.DNS)
@@ -215,7 +226,11 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 		}
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
-	err = verifyEndpointPaths(ctx, paths, nativeEndpointPath)
+	if full == nil {
+		err = verifyEndpointPaths(ctx, paths, nativeEndpointPath)
+	} else {
+		err = full.verify(ctx)
+	}
 	cancel()
 	if err != nil {
 		return fail()
@@ -223,10 +238,20 @@ func openNative(config *configcore.Config, uapi string, endpoints []netip.AddrPo
 	if journal.MarkConfigured(network.dns != nil) != nil {
 		return fail()
 	}
-	current, err := newCurrentPathCheck(config, uapi, endpoints, paths, network.index, engine.IpcGet, nativeEndpointPath)
-	if err != nil {
-		return fail()
+	if full != nil {
+		network.path = startPathCheck(func(ctx context.Context) error {
+			if err := full.verify(ctx); err != nil {
+				full.stop()
+				return err
+			}
+			return nil
+		})
+	} else {
+		current, err := newCurrentPathCheck(config, uapi, endpoints, paths, network.index, engine.IpcGet, nativeEndpointPath)
+		if err != nil {
+			return fail()
+		}
+		network.path = startPathCheck(current.verify)
 	}
-	network.path = startPathCheck(current.verify)
 	return engine, network, nil
 }

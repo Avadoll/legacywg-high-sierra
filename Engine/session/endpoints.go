@@ -48,7 +48,7 @@ func resolveEndpoints(ctx context.Context, config *configcore.Config, endpoints 
 					overlaps := false
 					for _, other := range config.Peers {
 						for _, route := range other.AllowedIPs {
-							overlaps = overlaps || route.Contains(candidate)
+							overlaps = overlaps || (!fullMode(config) && route.Contains(candidate))
 						}
 					}
 					if !overlaps {

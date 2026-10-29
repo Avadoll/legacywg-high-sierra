@@ -80,6 +80,7 @@ func physicalRoute(address netip.Addr) (string, error) {
 }
 
 type checkOptions struct {
+	full          bool
 	hostname      bool
 	routeLoss     bool
 	recoveryTest  bool
@@ -127,7 +128,7 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 	if outerIPv6 {
 		endpointHost = "::1"
 	}
-	dual := dnsMode == "dual-stack"
+	dual := dnsMode == "dual-stack" || dnsMode == "full-dual"
 	serverAddresses := []netip.Addr{serverIP}
 	clientAddresses := fmt.Sprintf("%s/%d", clientIP, bits)
 	serverRoutes := fmt.Sprintf("%s/%d", serverIP, bits)
@@ -214,6 +215,13 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 		echoResult <- err
 	}()
 	profile = fmt.Sprintf("[Interface]\nPrivateKey=%s\nAddress=%s\n[Peer]\nPublicKey=%s\nEndpoint=%s\nAllowedIPs=%s\nPersistentKeepalive=1\n", clientPrivate, clientAddresses, serverPublic, net.JoinHostPort(endpointHost, strconv.Itoa(port)), serverRoutes)
+	if settings.full {
+		coverage := "0.0.0.0/0"
+		if dual {
+			coverage += ",::/0"
+		}
+		profile = strings.Replace(profile, "AllowedIPs="+serverRoutes, "AllowedIPs="+coverage, 1)
+	}
 	if settings.hostname {
 		profile = strings.Replace(profile, net.JoinHostPort(endpointHost, strconv.Itoa(port)), net.JoinHostPort("localhost", strconv.Itoa(port)), 1)
 	}
@@ -229,6 +237,26 @@ func check(client, requirement string, crashParent bool, dnsProbe, dnsMode strin
 			call(client, requirement, "stop", "")
 		}
 	}()
+	if settings.full {
+		state, err := call(client, requirement, "status", "")
+		if err != nil {
+			return err
+		}
+		status, ok := state["status"].(map[string]any)
+		if !ok || status["protected"] != false {
+			return errors.New("full research connection misreports protection")
+		}
+		iface, ok := status["interface"].(string)
+		if !ok || iface == "" {
+			return errors.New("full tunnel interface unavailable")
+		}
+		for _, address := range []string{"198.19.200.90", "2001:db8:fe::90"} {
+			path, err := physicalRoute(netip.MustParseAddr(address))
+			if err != nil || !strings.Contains(path, "interface:"+iface) {
+				return errors.New("full route coverage missing")
+			}
+		}
+	}
 	if settings.recoveryTest {
 		data, failure := exec.Command(client, requirement, "recover").Output()
 		var refused map[string]any
@@ -414,6 +442,22 @@ func main() {
 		os.Exit(2)
 	}
 	started := time.Now()
+	if os.Getenv("LEGACYWG_FULL_TUNNEL_TEST") == "1" {
+		for _, item := range []struct {
+			mode                  string
+			inner6, outer6, crash bool
+		}{
+			{"full-v4", false, false, false}, {"full-dual", true, false, false},
+			{"full-dual", true, true, false}, {"full-v4", false, false, true},
+		} {
+			if err := check(os.Args[1], os.Args[2], item.crash, os.Args[3], item.mode, item.inner6, item.outer6, checkOptions{full: true}); err != nil {
+				json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "kind": "full-tunnel", "reason": err.Error(), "mode": item.mode, "outer_ipv6": item.outer6, "helper_crash": item.crash})
+				os.Exit(1)
+			}
+		}
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "PASS", "kind": "research-full-tunnel", "cases": 4, "ipv4": true, "dual_stack": true, "outer_ipv6": true, "system_dns_udp_tcp": true, "helper_crash_cleanup": true, "kill_switch": false, "high_sierra": "NOT_RUN"})
+		return
+	}
 	for cycle := 0; cycle < 21; cycle++ {
 		if err := check(os.Args[1], os.Args[2], cycle == 20, "", "", false, false, checkOptions{recoveryTest: cycle == 0}); err != nil {
 			json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "FAIL", "cycle": cycle + 1, "reason": err.Error()})

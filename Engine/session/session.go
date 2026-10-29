@@ -55,7 +55,9 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 		return nil, err
 	}
 	if plan.FullIPv4 || plan.FullIPv6 {
-		return nil, errors.New("full tunnel requires endpoint escape routing and verified traffic protection")
+		if err := checkFullMode(config, plan); err != nil {
+			return nil, err
+		}
 	}
 	if len(config.DNS) > 8 {
 		return nil, errors.New("at most eight DNS servers are supported")
@@ -100,7 +102,7 @@ func CheckCapabilities(config *configcore.Config) ([]netip.AddrPort, error) {
 			continue
 		}
 		for _, route := range plan.Routes {
-			if route.Contains(address) {
+			if !fullMode(config) && route.Contains(address) {
 				return nil, errors.New("endpoint overlaps a tunnel route; physical endpoint routing required")
 			}
 		}

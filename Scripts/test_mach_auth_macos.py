@@ -226,6 +226,14 @@ def main() -> None:
             assert report['status']=='PASS'
             (OUT/'native-peer-ci.json').write_text(json.dumps(report,indent=2)+'\n')
             results['native_authenticated_encrypted_peer']='PASS'
+            full_run=subprocess.run([str(client_build/'peercheck'),str(allowed),helper_requirement,str(client_build/'dns-probe')],
+                cwd=ROOT,env={**os.environ,'LEGACYWG_FULL_TUNNEL_TEST':'1'},capture_output=True,text=True,timeout=120)
+            (OUT/'native-full-tunnel-ci.txt').write_text(full_run.stdout+full_run.stderr)
+            if full_run.returncode:raise RuntimeError('Native full tunnel test failed; consult native-full-tunnel-ci.txt')
+            full_report=json.loads(full_run.stdout)
+            assert full_report['status']=='PASS' and full_report['cases']==4 and full_report['kill_switch'] is False
+            (OUT/'native-full-tunnel-ci.json').write_text(json.dumps(full_report,indent=2)+'\n')
+            results['native_full_tunnel']='PASS'
             # Admit exactly the existing test client and the fresh, separate
             # instrumented GUI. This policy never enters the product payload.
             modal_app=client_build/'GUIModal.app'

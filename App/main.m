@@ -98,6 +98,8 @@ static NSString *PreviewText(NSDictionary *validation, BOOL abbreviated) {
 
 static NSString *UnsupportedProfileReason(id value) {
     NSDictionary *reasons=@{@"full tunnel requires endpoint escape routing and verified traffic protection":@"Полный туннель пока недоступен: защита всего трафика не подтверждена.",
+        @"research full tunnel requires one peer with Endpoint and full IPv4 coverage":@"Для полного туннеля нужен один сервер с Endpoint и маршрутом всего IPv4.",
+        @"research full tunnel requires profile DNS":@"Укажите DNS в секции Interface полного профиля.",
         @"at most eight DNS servers are supported":@"Поддерживается до восьми DNS-серверов.",
         @"profile DNS must be routed through the tunnel":@"DNS-сервер профиля должен входить в маршруты туннеля.",
         @"initial native executor permits at most 64 routes":@"В этой сборке поддерживается до 64 маршрутов.",
@@ -173,7 +175,7 @@ static NSString *LicenseText(void) {
     self.window.title=@"LegacyWG — тестовая сборка";
     self.window.minSize=[self.window frameRectForContentRect:NSMakeRect(0,0,720,520)].size;
     self.window.releasedWhenClosed=NO;
-    NSTextField *notice = [NSTextField wrappingLabelWithString:@"Исследовательская версия: IPv4/IPv6 split tunnel; DNS профиля идёт через туннель.\nПолный туннель пока отклоняется; защита всего трафика не заявлена."];
+    NSTextField *notice = [NSTextField wrappingLabelWithString:@"Тестовая версия: выборочные маршруты или полный туннель с одним сервером и DNS.\nKill switch отсутствует. При обрыве или отключении VPN обычная сеть восстанавливается."];
     notice.frame=NSMakeRect(20,445,680,55); notice.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     [self.window.contentView addSubview:notice];
     NSScrollView *scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,105,290,325)];

@@ -39,6 +39,11 @@ def main() -> None:
         ('temporary_created','temporary_synced','renamed','directory_synced','live_utun')}
     passed={event.get('Test') for event in events if event.get('Action')=='pass'}
     if not (required|checkpoints)<=passed:raise SystemExit('Privileged journal tests not actually exercised')
+    full_bind_tests=run([str(go),'test','-json','-count=1','-exec','/usr/bin/sudo -n','./Engine/session'],timeout=90)
+    (OUT/'full-bind-tests.txt').write_text(full_bind_tests)
+    full_events=[json.loads(line) for line in full_bind_tests.splitlines() if line.strip()]
+    if not any(event.get('Action')=='pass' and event.get('Test')=='TestRootFullBindScopedSocketLifetime' for event in full_events):
+        raise SystemExit('Native scoped full Bind lifecycle was not exercised')
     pf_required={'TestRootPFJournalDurabilityAndPreservation','TestRootPFJournalRejectsUnsafeFiles','TestRootPFJournalCrashPreservesUnknownEffects',
         'TestRootPFJournalCancellationAndRuleGenerations','TestRootPFJournalUpdateCrashPreservesBothCandidates'}
     pf_checkpoints={'TestRootPFJournalCrashPreservesUnknownEffects/'+stage for stage in
@@ -89,7 +94,8 @@ def main() -> None:
     source=os.environ['GITHUB_SHA']
     (app/'Contents/Resources/BuildManifest.json').write_text(json.dumps({'source_commit':source,'vpn_ready':False,
         'signing_mode':'ad-hoc','features':['IPv4 and IPv6 split tunnel','routed profile DNS','numeric IPv4/IPv6 endpoints','bounded native hostname bootstrap','Keychain','duplicate import choice','private profile metadata preview','bundled license viewer','authenticated Mach helper'],
-        'unsupported':['full tunnel','protected hostname reconnect','kill switch'],
+        'unsupported':['protected hostname reconnect','kill switch'],
+        'full_tunnel':'research; one peer with Endpoint and profile DNS; scoped outer UDP; unprotected',
         'hostname_bootstrap':'current system resolver before network changes; IPv4 preferred; no automatic fallback',
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN'},indent=2)+'\n')
     run(common+['-framework','Cocoa',str(ROOT/'App/main.m'),str(ROOT/'App/LWProfiles.m'),
@@ -121,7 +127,14 @@ def main() -> None:
     (payload/'Library/LaunchDaemons/org.legacywg.helper.plist').write_bytes(plistlib.dumps({
         'Label':label,'ProgramArguments':['/Library/PrivilegedHelperTools/'+label],
         'MachServices':{label:True},'RunAtLoad':True,'ProcessType':'Interactive'}))
-    for path in (ROOT/'Installer/Scripts').iterdir():path.chmod(0o755)
+    installer_scripts=BUILD/'installer-scripts'
+    shutil.copytree(ROOT/'Installer/Scripts',installer_scripts)
+    shutil.copyfile(worker,installer_scripts/'legacywg-preflight')
+    for path in installer_scripts.iterdir():path.chmod(0o755)
+    runtime_report=json.loads(run([str(worker),'--platform-check']))
+    if runtime_report.get('ok') is not True or runtime_report.get('network_changed') is not False:
+        raise SystemExit('Worker runtime preflight failed')
+    (OUT/'worker-runtime-ci.json').write_text(json.dumps(runtime_report,indent=2)+'\n')
     package=OUT/'LegacyWG-research-0.2.pkg'
     # The helper policy and application location are fixed. Do not let Installer
     # relocate the bundle onto another copy (including the build directory).
@@ -132,7 +145,7 @@ def main() -> None:
         'BundleHasStrictIdentifier':True,'BundleOverwriteAction':'upgrade'}]))
     run(['/usr/bin/pkgbuild','--root',str(payload),'--ownership','recommended','--identifier','org.legacywg.research',
          '--version','0.2','--install-location','/','--component-plist',str(components),
-         '--scripts',str(ROOT/'Installer/Scripts'),str(package)])
+         '--scripts',str(installer_scripts),str(package)])
     archive=OUT/'LegacyWG-research-0.2-app.zip'
     run(['/usr/bin/ditto','-c','-k','--sequesterRsrc','--keepParent',str(app),str(archive)])
     manifest={'source_commit':source,'kind':'limited-native-client-research','signing_mode':'ad-hoc',
