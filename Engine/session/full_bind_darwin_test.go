@@ -135,7 +135,9 @@ func TestRootFullBindBorrowedEgressSurvivesTunnelDefaults(t *testing.T) {
 		t.Fatal("full route did not select owned tunnel")
 	}
 	if err := bind.verify(ctx); err != nil {
-		t.Fatal("physical socket path did not survive full route", err)
+		observed, queryError := networkcore.SocketRoute(ctx, endpoint.Addr(), bind.path.InterfaceIndex)
+		t.Fatalf("physical socket path did not survive full route: query_ok=%t interface_same=%t gateway_same=%t source_same=%t", queryError == nil,
+			observed.InterfaceIndex == bind.path.InterfaceIndex, observed.Gateway == bind.path.Gateway, observed.Source == bind.path.Source)
 	}
 	if _, _, err := bind.Open(0); err != nil {
 		t.Fatal("bound physical socket could not open under full route", err)

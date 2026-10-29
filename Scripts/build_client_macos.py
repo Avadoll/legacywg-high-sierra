@@ -8,6 +8,7 @@ import plistlib
 import shutil
 import subprocess
 from test_mach_auth_macos import cdhash, run
+from build_uninstaller_macos import build as build_uninstaller
 
 ROOT=Path(__file__).resolve().parents[1]
 BUILD=ROOT/'Build'/'Client'
@@ -154,12 +155,13 @@ def main() -> None:
          '--scripts',str(installer_scripts),str(component)])
     run(['/usr/bin/productbuild','--distribution',str(ROOT/'Installer/Distribution.xml'),
          '--package-path',str(BUILD),'--resources',str(ROOT/'Installer/Resources'),str(package)])
+    uninstaller=build_uninstaller(BUILD,OUT,app,helper,worker,network,payload)
     archive=OUT/'LegacyWG-research-0.2-app.zip'
     run(['/usr/bin/ditto','-c','-k','--sequesterRsrc','--keepParent',str(app),str(archive)])
     manifest={'source_commit':source,'kind':'limited-native-client-research','signing_mode':'ad-hoc',
         'installer_signed':False,'signed_for_distribution':False,'vpn_ready':False,
         'high_sierra_runtime':'NOT_RUN','external_server':'NOT_RUN',
-        'artifacts':{path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in (package,archive)}}
+        'artifacts':{path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in (package,archive,uninstaller)}}
     (OUT/'client-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     # Clone after packaging. The instrumented controller and its signing pin
     # exist only in the disposable developer test; never in the app or pkg.

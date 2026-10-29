@@ -53,6 +53,11 @@ def main() -> None:
             'installed_app_keychain':'PASS','installed_app_helper_authentication':'PASS',
             'installer_gui':'NOT_RUN','target_high_sierra':'NOT_RUN',
             'developer_id':'NOT_RUN','signed_for_distribution':False}
+        run(['/usr/bin/sudo','-n','/usr/sbin/installer','-pkg',
+             str(ROOT/'Build/CI/LegacyWG-remove-test-0.2.pkg'),'-target','/'],timeout=45)
+        if any(path.exists() or path.is_symlink() for path in (APP,HELPER,POLICY,PLIST)):
+            raise RuntimeError('Owned application or service remains after removal package')
+        results['uninstaller_package']='PASS'
     finally:
         if attempted:
             subprocess.run(['/usr/bin/sudo','-n','/bin/launchctl','bootout','system/'+SERVICE],capture_output=True)

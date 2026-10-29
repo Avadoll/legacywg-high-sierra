@@ -68,6 +68,21 @@ func (bind *fullBind) verify(ctx context.Context) error {
 	if err != nil || iface.Index != bind.path.InterfaceIndex || iface.Flags&net.FlagUp == 0 {
 		return errFullPath
 	}
+	if !bind.loopback {
+		addresses, err := iface.Addrs()
+		if err != nil {
+			return errFullPath
+		}
+		assigned := false
+		for _, value := range addresses {
+			if prefix, err := netip.ParsePrefix(value.String()); err == nil && prefix.Addr().Unmap() == bind.path.Source {
+				assigned = true
+			}
+		}
+		if !assigned {
+			return errFullPath
+		}
+	}
 	if bind.loopback {
 		path, err := networkcore.EndpointRoute(ctx, bind.remote)
 		if err != nil || path != bind.path {
@@ -75,7 +90,10 @@ func (bind *fullBind) verify(ctx context.Context) error {
 		}
 	} else {
 		path, err := networkcore.SocketRoute(ctx, bind.remote, bind.path.InterfaceIndex)
-		if err != nil || path != bind.scoped {
+		// Route-cache class/prefix may change when the system re-scopes its
+		// primary route. Unprotected mode pins the actual egress identity;
+		// it makes no claim of owning that route or its cache entry.
+		if err != nil || path.Path != bind.path {
 			return errFullPath
 		}
 	}
